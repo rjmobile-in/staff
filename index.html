@@ -85,7 +85,7 @@
 </head>
 <body>
 
-  <div id="global-loader" class="glass-effect"><div class="spinner"></div><p>Authenticating...</p></div>
+  <div id="global-loader" class="glass-effect"><div class="spinner"></div><p>Loading...</p></div>
   <div id="toast" class="glass-effect"><div id="toast-icon"></div><div id="toast-msg"></div></div>
 
   <div id="login-screen">
@@ -110,7 +110,7 @@
         <img src="logo.png" alt="RJ Mobile" class="brand-logo" onerror="this.style.display='none'" />
         <div>
           <div class="brand-title">RJ Mobile</div>
-          <div class="brand-tag" id="detected-branch-display">Detecting...</div>
+          <div class="brand-tag" id="detected-branch-display">Loading...</div>
         </div>
       </div>
       <div class="header-controls">
@@ -122,7 +122,7 @@
     <div class="main-card">
       <div id="video-container">
         <video id="video" autoplay playsinline muted></video>
-        <div id="scan-overlay">Awaiting Camera Start...</div>
+        <div id="scan-overlay">Loading...</div>
       </div>
 
       <div class="btn-row">
@@ -192,7 +192,7 @@
         else if (email.includes('lohamandi')) currentBranch = "VKI, Lohamandi";
         else if (email.includes('shastri')) currentBranch = "Shastri Nagar";
         else if (email.includes('murlipura6')) currentBranch = "Murlipura, 6 Number";
-        else currentBranch = "Murlipura, 1 Number (Testing Mode)"; 
+        else currentBranch = "Testing Mode"; 
 
         document.getElementById('detected-branch-display').innerText = currentBranch;
         if (!cameraActive) { startCamera(); initializeAI(); cameraActive = true; }
@@ -227,12 +227,12 @@
     async function initializeAI() {
       const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
       try {
-        overlay.innerText = "Loading AI Models...";
+        overlay.innerText = "Loading...";
         await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
         await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
         await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
         
-        overlay.innerText = "Syncing Database Profiles...";
+        overlay.innerText = "Loading...";
         const facesSnap = await getDocs(collection(db, "registered_faces"));
         const labeledDescriptors = [];
 
@@ -249,10 +249,10 @@
           lockInterface();
           startFaceDetectionLoop();
         } else {
-          overlay.innerText = "No Profiles Registered. Scan faces in Admin Panel first.";
+          overlay.innerText = "No Profiles Configured.";
           overlay.style.background = "var(--danger)";
         }
-      } catch (err) { overlay.innerText = "AI Module Failed to Load"; }
+      } catch (err) { overlay.innerText = "Error Loading Assets"; }
     }
 
     function getEAR(eye) {
@@ -276,11 +276,11 @@
             if (currentMatchedName !== bestMatch.label) { currentMatchedName = bestMatch.label; hasBlinked = false; }
 
             if (!hasBlinked) {
-                overlay.innerText = `Recognized: ${currentMatchedName} — Please BLINK to Verify`;
+                overlay.innerText = `Blink to Verify: ${currentMatchedName}`;
                 overlay.style.background = "var(--primary)";
                 btnClockIn.disabled = true; btnClockOut.disabled = true;
             } else {
-                overlay.innerText = `Verified: ${currentMatchedName} — You may Clock In`;
+                overlay.innerText = `Verified: ${currentMatchedName}`;
                 overlay.style.background = "var(--success)";
                 btnClockIn.disabled = false; btnClockOut.disabled = false;
             }
@@ -291,7 +291,7 @@
 
     function lockInterface() {
       currentMatchedName = null; hasBlinked = false;
-      overlay.innerText = "System Ready: Scanning...";
+      overlay.innerText = "Scanning...";
       overlay.style.background = "rgba(0, 0, 0, 0.7)";
       btnClockIn.disabled = true; btnClockOut.disabled = true;
     }
@@ -300,7 +300,7 @@
       if (isProcessing || !currentMatchedName || !hasBlinked) return;
       isProcessing = true;
       const staffSelected = currentMatchedName; 
-      displayToast(`Logging ${staffSelected}...`, "primary"); 
+      displayToast(`Processing ${staffSelected}...`, "primary"); 
       
       let lastActionState = null;
       let lastActionTime = null;
@@ -313,10 +313,8 @@
           lastActionTime = snapshot.docs[0].data().timestamp.toDate();
         }
       } catch (dbError) {
-        // THIS LINE WILL REVEAL THE FIREBASE INDEX LINK IN YOUR CONSOLE
         console.error("Firestore Error:", dbError); 
-        
-        displayToast("Network Error: Could not verify history. Check Console (F12).", "error");
+        displayToast("Error: Could not verify history. Check DevTools Console.", "error");
         isProcessing = false; return;
       }
 
@@ -325,16 +323,16 @@
 
       if (targetAction === "Clock In") {
         if (lastActionState === "Clock In" && isSameCalendarDay) {
-          displayToast(`Denied: ${staffSelected} is already Clocked In today.`, "error");
+          displayToast(`Denied: Already Clocked In today.`, "error");
           isProcessing = false; return;
         }
       } else if (targetAction === "Clock Out") {
         if (!lastActionState || lastActionState === "Clock Out") {
-          displayToast(`Denied: ${staffSelected} must Clock In first.`, "error");
+          displayToast(`Denied: Must Clock In first.`, "error");
           isProcessing = false; return;
         }
         if (lastActionState === "Clock In" && !isSameCalendarDay) {
-          displayToast(`Error: Missed previous Clock Out. Please Clock In fresh today.`, "error");
+          displayToast(`Error: Missed previous Clock Out.`, "error");
           isProcessing = false; return;
         }
       }
@@ -361,11 +359,11 @@
           timestamp: exactTime,
           photo_capture: capturedBase64
         });
-        displayToast(`Success: ${targetAction} completed for ${staffSelected}`, "success");
+        displayToast(`Success: Logged ${targetAction}`, "success");
         lockInterface();
         setTimeout(() => { isProcessing = false; }, 3000); 
       } catch (err) {
-        displayToast("Database record transmission failed.", "error");
+        displayToast("Transmission failed.", "error");
         isProcessing = false;
       }
     }
