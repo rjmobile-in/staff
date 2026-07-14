@@ -150,7 +150,6 @@
       appId: "1:19785118704:web:915272bdf29ebaefb6a335"
     };
 
-    // FIX: Using custom app initialization to separate login sessions
     const app = initializeApp(firebaseConfig, "ScannerApp");
     const db = getFirestore(app);
     const auth = getAuth(app);
@@ -314,7 +313,10 @@
           lastActionTime = snapshot.docs[0].data().timestamp.toDate();
         }
       } catch (dbError) {
-        displayToast("Network Error: Could not verify history.", "error");
+        // THIS LINE WILL REVEAL THE FIREBASE INDEX LINK IN YOUR CONSOLE
+        console.error("Firestore Error:", dbError); 
+        
+        displayToast("Network Error: Could not verify history. Check Console (F12).", "error");
         isProcessing = false; return;
       }
 
