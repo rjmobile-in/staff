@@ -150,7 +150,8 @@
       appId: "1:19785118704:web:915272bdf29ebaefb6a335"
     };
 
-    const app = initializeApp(firebaseConfig);
+    // FIX: Using custom app initialization to separate login sessions
+    const app = initializeApp(firebaseConfig, "ScannerApp");
     const db = getFirestore(app);
     const auth = getAuth(app);
 
@@ -214,7 +215,6 @@
 
     async function startCamera() {
       try {
-        // Enforce high resolution request
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } }, 
           audio: false 
@@ -338,7 +338,6 @@
       }
 
       const hiddenCanvas = document.createElement('canvas');
-      // Upgrade 1: Capture native video resolution for extreme clarity
       hiddenCanvas.width = video.videoWidth || 1280;
       hiddenCanvas.height = video.videoHeight || 720;
       const ctx = hiddenCanvas.getContext('2d');
@@ -347,7 +346,6 @@
       let capturedBase64 = "";
       try {
         ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
-        // Upgrade 2: Export at 95% JPEG quality to ensure ID card readability
         capturedBase64 = hiddenCanvas.toDataURL('image/jpeg', 0.95); 
       } catch (err) {
         capturedBase64 = "";
