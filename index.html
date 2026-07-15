@@ -225,7 +225,10 @@
     }
 
     async function initializeAI() {
-      const MODEL_URL = './models';
+      // FIX 1: Dynamically grab the exact URL path where index.html lives
+      const currentPath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+      const MODEL_URL = currentPath + '/models';
+
       try {
         overlay.innerText = "Loading...";
         await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
@@ -252,7 +255,11 @@
           overlay.innerText = "No Profiles Configured.";
           overlay.style.background = "var(--danger)";
         }
-      } catch (err) { overlay.innerText = "Error Loading Assets"; }
+      } catch (err) { 
+        // FIX 2: Print the actual error message to the overlay so we aren't guessing
+        overlay.innerText = "Error: " + err.message; 
+        console.error("AI Load Error:", err);
+      }
     }
 
     function getEAR(eye) {
