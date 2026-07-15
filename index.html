@@ -225,7 +225,7 @@
     }
 
     async function initializeAI() {
-      const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+      const MODEL_URL = './models';
       try {
         overlay.innerText = "Loading...";
         await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
