@@ -1,330 +1,388 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>RJ Mobile - Secure Scanner</title>
-  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RJ Mobile — Secure Terminal</title>
+
+  <script>
+    if (localStorage.getItem('rj_theme') === 'light') {
+      document.documentElement.classList.add('light-theme');
+    }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet" />
-  
-  <!-- Face API Library -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg-base: #09090b; --card-bg: #18181b; --card-border: #27272a;
-      --primary: #3b82f6; --success: #10b981; --danger: #ef4444;
-      --text-main: #f4f4f5; --text-soft: #a1a1aa;
+      --bg-base: #09090b; --card-bg: #18181b; --card-bg-alpha: rgba(24, 24, 27, 0.75);
+      --card-border: #27272a; --primary: #8b5cf6; --primary-hover: #a78bfa;
+      --primary-alpha: rgba(139, 92, 246, 0.15); --text-main: #f4f4f5; --text-soft: #a1a1aa;
+      --success: #10b981; --success-alpha: rgba(16, 185, 129, 0.15); --danger: #ef4444;
+      --danger-alpha: rgba(239, 68, 68, 0.15); --input-bg: #09090b;
+      --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.4); --shadow-glow: 0 10px 30px rgba(139, 92, 246, 0.2);
     }
-    body {
-      font-family: 'Inter', sans-serif; background: var(--bg-base); color: var(--text-main);
-      display: flex; flex-direction: column; align-items: center; min-height: 100vh;
-      padding: 20px; overflow: hidden;
-    }
-    h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 24px; margin-bottom: 20px; text-align: center; }
-    
-    /* Branch Selector */
-    .branch-selector {
-      background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main);
-      padding: 12px 20px; border-radius: 12px; font-size: 16px; font-weight: 600;
-      margin-bottom: 20px; width: 100%; max-width: 500px; outline: none; cursor: pointer;
+    html.light-theme {
+      --bg-base: #f8fafc; --card-bg: #ffffff; --card-bg-alpha: rgba(255, 255, 255, 0.85);
+      --card-border: #e2e8f0; --primary: #4f46e5; --primary-hover: #6366f1;
+      --primary-alpha: rgba(79, 70, 229, 0.1); --text-main: #0f172a; --text-soft: #64748b;
+      --input-bg: #f1f5f9; --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
     }
 
-    /* Camera Area */
-    .scanner-container {
-      position: relative; width: 100%; max-width: 500px; aspect-ratio: 3/4;
-      background: #000; border-radius: 24px; border: 2px solid var(--card-border);
-      overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-    }
-    #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-    #overlay-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; }
-    
-    /* Status Badge */
-    .status-badge {
-      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); padding: 8px 16px;
-      border-radius: 20px; font-size: 14px; font-weight: 600; z-index: 10;
-      white-space: nowrap; transition: 0.3s ease; border: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    /* Action Modal (Clock In / Out) */
-    .action-modal {
-      position: absolute; inset: 0; background: rgba(9, 9, 11, 0.9); backdrop-filter: blur(10px);
-      z-index: 20; display: none; flex-direction: column; align-items: center; justify-content: center;
-      padding: 24px; text-align: center;
-    }
-    .action-modal h2 { font-size: 28px; font-weight: 800; color: var(--success); margin-bottom: 8px; }
-    .action-modal p { font-size: 16px; color: var(--text-soft); margin-bottom: 32px; }
-    
-    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; }
-    .btn {
-      padding: 20px; border: none; border-radius: 16px; font-size: 18px; font-weight: 800;
-      cursor: pointer; color: #fff; transition: 0.2s;
-    }
-    .btn-in { background: var(--success); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
-    .btn-out { background: var(--danger); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); }
-    .btn-cancel { grid-column: span 2; background: transparent; border: 1px solid var(--card-border); margin-top: 10px; padding: 12px; }
-    .btn:active { transform: scale(0.95); }
+    body { font-family: 'Inter', sans-serif; background: var(--bg-base); color: var(--text-main); font-size: 15px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; transition: background-color 0.4s ease; overflow-x: hidden; }
+    .brand-title, .btn-action { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass-effect { background: var(--card-bg-alpha); backdrop-filter: blur(16px); border: 1px solid var(--card-border); }
 
-    /* Loading Screen */
-    #global-loader {
-      position: fixed; inset: 0; background: var(--bg-base); z-index: 9999;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
-    .spinner { width: 50px; height: 50px; border: 4px solid var(--card-border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+    #global-loader { position: fixed; inset: 0; background: rgba(var(--bg-base), 0.9); backdrop-filter: blur(12px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: var(--text-soft); font-weight: 500; }
+    .spinner { width: 48px; height: 48px; border: 4px solid var(--card-border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s infinite; margin-bottom: 20px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    #login-screen { display: none; background: var(--card-bg); padding: 48px 40px; border-radius: 24px; box-shadow: var(--shadow-soft); text-align: center; width: 100%; max-width: 420px; margin-top: 12vh; border: 1px solid var(--card-border); }
+    #login-screen h2 { font-weight: 800; font-size: 28px; margin-bottom: 8px; }
+    #login-screen p { color: var(--text-soft); margin-bottom: 32px; }
+    .input-field { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid var(--card-border); background: var(--input-bg); color: var(--text-main); margin-bottom: 16px; outline: none; }
+    .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-alpha); background: var(--card-bg); }
+    .checkbox-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 24px; font-size: 14px; color: var(--text-soft); cursor: pointer; }
+    .checkbox-row input { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
+    #login-btn { width: 100%; padding: 16px; border-radius: 14px; border: none; background: var(--primary); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    #login-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-glow); }
+    #error-msg { color: var(--danger); font-size: 14px; margin-top: 16px; display: none; background: var(--danger-alpha); padding: 10px; border-radius: 10px; }
+    .password-wrapper { position: relative; width: 100%; margin-bottom: 16px; }
+    .password-wrapper .input-field { margin-bottom: 0; padding-right: 48px; }
+    .toggle-password { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-soft); cursor: pointer; display: flex; transition: color 0.2s; }
+    .toggle-password:hover { color: var(--primary); }
+
+    #dashboard { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 500px; }
+    .header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 24px; padding: 16px 24px; border-radius: 20px; box-shadow: var(--shadow-soft); }
+    .brand-area { display: flex; align-items: center; gap: 14px; }
+    .brand-logo { height: 44px; border-radius: 8px; }
+    .brand-title { font-size: 20px; font-weight: 800; }
+    .brand-tag { font-size: 12px; color: var(--primary); font-weight: 700; text-transform: uppercase; }
+    .header-controls { display: flex; gap: 12px; align-items: center; }
+    #theme-toggle { background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-soft); cursor: pointer; padding: 10px; border-radius: 12px; }
+    .btn-secondary { background: transparent; border: 1px solid var(--card-border); color: var(--text-main); padding: 8px 16px; border-radius: 12px; cursor: pointer; font-weight: 600; }
+
+    .main-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; padding: 32px; width: 100%; position: relative; overflow: hidden; }
+    .main-card::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--primary), #3b82f6); }
+    #video-container { position: relative; background: #000; border-radius: 16px; overflow: hidden; width: 100%; height: 340px; margin-bottom: 24px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
+    #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    #scan-overlay { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.7); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; backdrop-filter: blur(8px); transition: background 0.3s; z-index: 10; text-align: center; width: 90%; max-width: 320px; }
+
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; }
+    .btn-action { padding: 16px; border-radius: 14px; border: none; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-in { background: var(--success); box-shadow: 0 4px 12px var(--success-alpha); }
+    .btn-out { background: var(--danger); box-shadow: 0 4px 12px var(--danger-alpha); }
+    .btn-action:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .btn-action:not(:disabled):hover { filter: brightness(1.1); transform: translateY(-2px); }
+
+    #toast { visibility: hidden; min-width: 300px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 24px; position: fixed; z-index: 10000; bottom: 40px; left: 50%; transform: translate(-50%, 20px); font-size: 15px; font-weight: 600; color: var(--text-main); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s, transform 0.3s, visibility 0.3s; }
+    #toast.show { visibility: visible; opacity: 1; transform: translate(-50%, 0); }
   </style>
 </head>
 <body>
 
-  <div id="global-loader">
-    <div class="spinner"></div>
-    <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px;">Starting Secure Scanner...</h2>
-    <p style="color: var(--text-soft); font-size: 14px; margin-top: 8px;" id="load-text">Loading secure models</p>
+  <div id="global-loader" class="glass-effect"><div class="spinner"></div><p>Loading...</p></div>
+  <div id="toast" class="glass-effect"><div id="toast-icon"></div><div id="toast-msg"></div></div>
+
+  <div id="login-screen">
+    <img src="logo.png" alt="RJ Mobile" style="height: 64px; margin-bottom: 20px; border-radius: 12px;" onerror="this.style.display='none'" />
+    <h2>Terminal Login</h2>
+    <p>Sign in to unlock the branch scanner.</p>
+    <input type="email" id="email-input" class="input-field" placeholder="branch@rjmobile.com" />
+    <div class="password-wrapper">
+      <input type="password" id="password-input" class="input-field" placeholder="Enter password" />
+      <button id="toggle-password-btn" class="toggle-password" type="button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      </button>
+    </div>
+    <label class="checkbox-row"><input type="checkbox" id="remember-me" checked> Keep this device signed in</label>
+    <button id="login-btn">Secure Login</button>
+    <div id="error-msg">Authentication failed.</div>
   </div>
 
-  <h1>RJ Secure Terminal</h1>
-  
-  <select id="branch-selector" class="branch-selector">
-    <option value="" disabled selected>-- Select Station Location --</option>
-    <option value="Murlipura, 1 Number">Murlipura, 1 Number</option>
-    <option value="VKI, 17 Number">VKI, 17 Number</option>
-    <option value="VKI, Lohamandi">VKI, Lohamandi</option>
-    <option value="Shastri Nagar">Shastri Nagar</option>
-    <option value="Murlipura, 6 Number">Murlipura, 6 Number</option>
-  </select>
+  <div id="dashboard">
+    <div class="header glass-effect">
+      <div class="brand-area">
+        <img src="logo.png" alt="RJ Mobile" class="brand-logo" onerror="this.style.display='none'" />
+        <div>
+          <div class="brand-title">RJ Mobile</div>
+          <div class="brand-tag" id="detected-branch-display">Loading...</div>
+        </div>
+      </div>
+      <div class="header-controls">
+        <button id="theme-toggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
+        <button id="logout-btn" class="btn-secondary">Log Out</button>
+      </div>
+    </div>
 
-  <div class="scanner-container">
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="overlay-canvas"></canvas>
-    
-    <div id="status-badge" class="status-badge">Stand in front of the camera</div>
+    <div class="main-card">
+      <div id="video-container">
+        <video id="video" autoplay playsinline muted></video>
+        <div id="scan-overlay">Loading...</div>
+      </div>
 
-    <div id="action-modal" class="action-modal">
-      <h2 id="welcome-name">Subject Identified</h2>
-      <p>Log your attendance for this shift.</p>
-      <div class="btn-grid">
-        <button class="btn btn-in" id="btn-clock-in">Clock IN</button>
-        <button class="btn btn-out" id="btn-clock-out">Clock OUT</button>
-        <button class="btn btn-cancel" id="btn-cancel">Cancel</button>
+      <div class="btn-row">
+        <button id="btn-clock-in" class="btn-action btn-in" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Clock In
+        </button>
+        <button id="btn-clock-out" class="btn-action btn-out" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Clock Out
+        </button>
       </div>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
 
-    // 1. Firebase Configuration (Matches your Admin Panel)
     const firebaseConfig = { 
-      apiKey: "AIzaSyBsAsMlKJqoyOS27IVotwszVvO1ZFCGABs", 
-      authDomain: "staff-review-935f3.firebaseapp.com", 
-      projectId: "staff-review-935f3", 
-      storageBucket: "staff-review-935f3.firebasestorage.app", 
-      messagingSenderId: "91819642184", 
-      appId: "1:91819642184:web:9b78814e6efcfb811a608d"
+      apiKey: "AIzaSyD3nTvimIC_Tnc10x8yivnMlVFsZWyjKwE",
+      authDomain: "staff-bcb17.firebaseapp.com",
+      projectId: "staff-bcb17",
+      storageBucket: "staff-bcb17.firebasestorage.app",
+      messagingSenderId: "19785118704",
+      appId: "1:19785118704:web:915272bdf29ebaefb6a335"
     };
 
-    const app = initializeApp(firebaseConfig);
+    const app = initializeApp(firebaseConfig, "ScannerApp");
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    // Variables
     const video = document.getElementById('video');
-    const canvas = document.getElementById('overlay-canvas');
-    const branchSelector = document.getElementById('branch-selector');
-    const statusBadge = document.getElementById('status-badge');
-    const actionModal = document.getElementById('action-modal');
-    
-    let labeledFaceDescriptors = [];
-    let faceMatcher = null;
+    const overlay = document.getElementById('scan-overlay');
+    const btnClockIn = document.getElementById('btn-clock-in');
+    const btnClockOut = document.getElementById('btn-clock-out');
+
     let isProcessing = false;
-    let recognizedStaffName = null;
-    let scanInterval;
+    let cameraActive = false;
+    let faceMatcher = null;
+    let currentMatchedName = null;
+    let faceDetectionInterval = null;
+    let currentBranch = ""; 
+    let hasBlinked = false; 
 
-    // Helper: Update Loading Text
-    function setLoadText(msg) { document.getElementById('load-text').innerText = msg; }
+    function displayToast(msg, statusType = "success") {
+      const toast = document.getElementById('toast');
+      const icon = document.getElementById('toast-icon');
+      document.getElementById('toast-msg').innerText = msg;
+      if (statusType === "success") icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+      else if (statusType === "error") icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+      else icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
 
-    // Start App Flow
-    async function startApp() {
-      try {
-        setLoadText("Loading AI Models...");
-        // Load the 3 required models
-        await Promise.all([
-          faceapi.nets.ssdMobilenetv1.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models'),
-          faceapi.nets.faceLandmark68Net.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models'),
-          faceapi.nets.faceRecognitionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models')
-        ]);
+      toast.className = "glass-effect show";
+      if (toast.timeout) clearTimeout(toast.timeout);
+      toast.timeout = setTimeout(() => { toast.className = "glass-effect"; }, 4000);
+    }
 
-        setLoadText("Syncing Staff Database...");
-        await loadRegisteredFaces();
+    onAuthStateChanged(auth, (user) => {
+      document.getElementById('global-loader').style.display = 'none';
+      if (user) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'flex';
 
-        setLoadText("Starting Camera...");
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-        video.srcObject = stream;
+        const email = user.email.toLowerCase();
+        if (email.includes('murlipura1')) currentBranch = "Murlipura, 1 Number";
+        else if (email.includes('vki17')) currentBranch = "VKI, 17 Number";
+        else if (email.includes('lohamandi')) currentBranch = "VKI, Lohamandi";
+        else if (email.includes('shastri')) currentBranch = "Shastri Nagar";
+        else if (email.includes('murlipura6')) currentBranch = "Murlipura, 6 Number";
+        else currentBranch = "Testing Mode"; 
 
-        // Hide Loader once video plays
-        video.addEventListener('play', () => {
-          document.getElementById('global-loader').style.display = 'none';
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          startScanningLoop();
-        });
-
-      } catch (error) {
-        console.error(error);
-        alert("System Error: Could not initialize camera or database. Check internet connection and permissions.");
+        document.getElementById('detected-branch-display').innerText = currentBranch;
+        if (!cameraActive) { startCamera(); initializeAI(); cameraActive = true; }
+      } else {
+        document.getElementById('login-screen').style.display = 'block';
+        document.getElementById('dashboard').style.display = 'none';
+        currentBranch = "";
+        if (faceDetectionInterval) clearInterval(faceDetectionInterval);
       }
-    }
-
-    // Fetch Faces from Firebase
-    async function loadRegisteredFaces() {
-      const snapshot = await getDocs(collection(db, "registered_faces"));
-      if (snapshot.empty) {
-        alert("Warning: No registered faces found in database.");
-        return;
-      }
-      
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.descriptor && data.employee_name) {
-          const descArray = new Float32Array(data.descriptor);
-          labeledFaceDescriptors.push(new faceapi.LabeledFaceDescriptors(data.employee_name, [descArray]));
-        }
-      });
-      faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.45); // Strict 0.45 threshold
-    }
-
-    // Main Scanning Loop
-    function startScanningLoop() {
-      scanInterval = setInterval(async () => {
-        if (isProcessing) return;
-
-        const displaySize = { width: video.videoWidth, height: video.videoHeight };
-        faceapi.matchDimensions(canvas, displaySize);
-
-        // Detect Face + Landmarks + Recognition Descriptor
-        const detection = await faceapi.detectSingleFace(video)
-          .withFaceLandmarks()
-          .withFaceDescriptor();
-
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (detection && faceMatcher) {
-          const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
-
-          if (bestMatch.label !== 'unknown') {
-            statusBadge.style.background = 'var(--primary)';
-            statusBadge.innerText = `Subject Identified: ${bestMatch.label}`;
-
-            triggerSuccessProtocol(bestMatch.label);
-
-          } else {
-            statusBadge.style.background = 'var(--danger)';
-            statusBadge.innerText = "Face not recognized in database";
-          }
-        } else {
-          statusBadge.style.background = 'rgba(0,0,0,0.7)';
-          statusBadge.innerText = "Searching for face...";
-        }
-      }, 300); // Scans every 300ms
-    }
-
-    // Triggered when Face is confirmed
-    function triggerSuccessProtocol(name) {
-      isProcessing = true;
-      recognizedStaffName = name;
-      
-      document.getElementById('welcome-name').innerText = name;
-      actionModal.style.display = 'flex';
-      
-      // Stop drawing bounding boxes
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // Cancel Button
-    document.getElementById('btn-cancel').addEventListener('click', () => {
-      actionModal.style.display = 'none';
-      recognizedStaffName = null;
-      setTimeout(() => { isProcessing = false; }, 1000); // 1 sec delay before rescanning
     });
 
-    // Clock In & Clock Out Logic
-    document.getElementById('btn-clock-in').addEventListener('click', () => submitLog('Clock In'));
-    document.getElementById('btn-clock-out').addEventListener('click', () => submitLog('Clock Out'));
+    document.getElementById('password-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') document.getElementById('login-btn').click(); });
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      const e = document.getElementById('email-input').value, p = document.getElementById('password-input').value, r = document.getElementById('remember-me').checked, msg = document.getElementById('error-msg');
+      try { msg.style.display = 'none'; await setPersistence(auth, r ? browserLocalPersistence : browserSessionPersistence); await signInWithEmailAndPassword(auth, e, p); } 
+      catch (err) { msg.style.display = 'block'; msg.innerText = err.message; }
+    });
+    document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
 
-    async function submitLog(actionType) {
-      const branch = branchSelector.value;
-      if (!branch) {
-        alert("SYSTEM HALT: Please select your Branch Station at the top of the screen first.");
-        return;
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } }, 
+          audio: false 
+        });
+        video.srcObject = stream;
+      } catch (err) {
+        overlay.innerText = "Camera Access Denied"; overlay.style.background = "var(--danger)";
+      }
+    }
+
+    async function initializeAI() {
+      // FIX 1: Dynamically grab the exact URL path where index.html lives
+      const currentPath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+      const MODEL_URL = currentPath + '/models';
+
+      try {
+        overlay.innerText = "Loading...";
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+
+        overlay.innerText = "Loading...";
+        const facesSnap = await getDocs(collection(db, "registered_faces"));
+        const labeledDescriptors = [];
+
+        facesSnap.forEach(doc => {
+          const data = doc.data();
+          if (data.descriptor && data.employee_name) {
+            const descArray = new Float32Array(data.descriptor);
+            labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(data.employee_name, [descArray]));
+          }
+        });
+
+        if (labeledDescriptors.length > 0) {
+          faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
+          lockInterface();
+          startFaceDetectionLoop();
+        } else {
+          overlay.innerText = "No Profiles Configured.";
+          overlay.style.background = "var(--danger)";
+        }
+      } catch (err) { 
+        // FIX 2: Print the actual error message to the overlay so we aren't guessing
+        overlay.innerText = "Error: " + err.message; 
+        console.error("AI Load Error:", err);
+      }
+    }
+
+    function getEAR(eye) {
+      const distance = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+      const v1 = distance(eye[1], eye[5]);
+      const v2 = distance(eye[2], eye[4]);
+      const h = distance(eye[0], eye[3]);
+      return (v1 + v2) / (2.0 * h);
+    }
+
+    function startFaceDetectionLoop() {
+      faceDetectionInterval = setInterval(async () => {
+        if (!faceMatcher || isProcessing) return;
+        const detections = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+        if (detections) {
+          const bestMatch = faceMatcher.findBestMatch(detections.descriptor);
+          if (bestMatch.label !== 'unknown') {
+            const landmarks = detections.landmarks;
+            const ear = (getEAR(landmarks.getLeftEye()) + getEAR(landmarks.getRightEye())) / 2;
+            if (ear < 0.25) hasBlinked = true;
+            if (currentMatchedName !== bestMatch.label) { currentMatchedName = bestMatch.label; hasBlinked = false; }
+
+            if (!hasBlinked) {
+                overlay.innerText = `Blink to Verify: ${currentMatchedName}`;
+                overlay.style.background = "var(--primary)";
+                btnClockIn.disabled = true; btnClockOut.disabled = true;
+            } else {
+                overlay.innerText = `Verified: ${currentMatchedName}`;
+                overlay.style.background = "var(--success)";
+                btnClockIn.disabled = false; btnClockOut.disabled = false;
+            }
+          } else { lockInterface(); }
+        } else { lockInterface(); }
+      }, 150); 
+    }
+
+    function lockInterface() {
+      currentMatchedName = null; hasBlinked = false;
+      overlay.innerText = "Scanning...";
+      overlay.style.background = "rgba(0, 0, 0, 0.7)";
+      btnClockIn.disabled = true; btnClockOut.disabled = true;
+    }
+
+    async function logAttendance(targetAction) {
+      if (isProcessing || !currentMatchedName || !hasBlinked) return;
+      isProcessing = true;
+      const staffSelected = currentMatchedName; 
+      displayToast(`Processing ${staffSelected}...`, "primary"); 
+
+      let lastActionState = null;
+      let lastActionTime = null;
+
+      try {
+        const stateQuery = query(collection(db, "attendance_logs"), where("employee_name", "==", staffSelected), orderBy("timestamp", "desc"), limit(1));
+        const snapshot = await getDocs(stateQuery);
+        if (!snapshot.empty) {
+          lastActionState = snapshot.docs[0].data().action;
+          lastActionTime = snapshot.docs[0].data().timestamp.toDate();
+        }
+      } catch (dbError) {
+        console.error("Firestore Error:", dbError); 
+        displayToast("Error: Could not verify history. Check DevTools Console.", "error");
+        isProcessing = false; return;
       }
 
-      // Capture Photo for Uniform Review Dashboard
-      const photoCanvas = document.createElement('canvas');
-      photoCanvas.width = video.videoWidth;
-      photoCanvas.height = video.videoHeight;
-      photoCanvas.getContext('2d').drawImage(video, 0, 0);
-      const photoBase64 = photoCanvas.toDataURL('image/jpeg', 0.6); // Compress slightly
+      const exactTime = new Date();
+      const isSameCalendarDay = lastActionTime && (lastActionTime.toDateString() === exactTime.toDateString());
 
-      actionModal.innerHTML = `<div class="spinner"></div><h2>Saving Secure Log...</h2>`;
+      if (targetAction === "Clock In") {
+        if (lastActionState === "Clock In" && isSameCalendarDay) {
+          displayToast(`Denied: Already Clocked In today.`, "error");
+          isProcessing = false; return;
+        }
+      } else if (targetAction === "Clock Out") {
+        if (!lastActionState || lastActionState === "Clock Out") {
+          displayToast(`Denied: Must Clock In first.`, "error");
+          isProcessing = false; return;
+        }
+        if (lastActionState === "Clock In" && !isSameCalendarDay) {
+          displayToast(`Error: Missed previous Clock Out.`, "error");
+          isProcessing = false; return;
+        }
+      }
+
+      const hiddenCanvas = document.createElement('canvas');
+      hiddenCanvas.width = video.videoWidth || 1280;
+      hiddenCanvas.height = video.videoHeight || 720;
+      const ctx = hiddenCanvas.getContext('2d');
+      ctx.translate(hiddenCanvas.width, 0); ctx.scale(-1, 1);
+
+      let capturedBase64 = "";
+      try {
+        ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        capturedBase64 = hiddenCanvas.toDataURL('image/jpeg', 0.95); 
+      } catch (err) {
+        capturedBase64 = "";
+      }
 
       try {
         await addDoc(collection(db, "attendance_logs"), {
-          employee_name: recognizedStaffName,
-          action: actionType,
-          branch: branch,
-          timestamp: new Date(),
-          photo_capture: photoBase64,
-          uniform_reviewed: false // Admin will check this later
+          employee_name: staffSelected,
+          branch: currentBranch, 
+          action: targetAction,
+          timestamp: exactTime,
+          photo_capture: capturedBase64
         });
-
-        actionModal.innerHTML = `<h2 style="color: var(--success); font-size: 32px;">Success!</h2><p>${actionType} recorded.</p>`;
-        
-        // Reset UI after 2 seconds
-        setTimeout(() => {
-          actionModal.style.display = 'none';
-          // Restore buttons for next person
-          actionModal.innerHTML = `
-            <h2 id="welcome-name">Subject Identified</h2><p>Log your attendance for this shift.</p>
-            <div class="btn-grid">
-              <button class="btn btn-in" id="btn-clock-in">Clock IN</button>
-              <button class="btn btn-out" id="btn-clock-out">Clock OUT</button>
-              <button class="btn btn-cancel" id="btn-cancel">Cancel</button>
-            </div>
-          `;
-          // Re-attach listeners because we overwrote innerHTML
-          document.getElementById('btn-clock-in').addEventListener('click', () => submitLog('Clock In'));
-          document.getElementById('btn-clock-out').addEventListener('click', () => submitLog('Clock Out'));
-          document.getElementById('btn-cancel').addEventListener('click', () => {
-            actionModal.style.display = 'none'; recognizedStaffName = null; setTimeout(() => { isProcessing = false; }, 1000);
-          });
-          
-          recognizedStaffName = null;
-          isProcessing = false;
-        }, 2000);
-
-      } catch (error) {
-        console.error(error);
-        alert("Failed to save to database. Check internet connection.");
-        location.reload(); // Force restart on critical failure
+        displayToast(`Success: Logged ${targetAction}`, "success");
+        lockInterface();
+        setTimeout(() => { isProcessing = false; }, 3000); 
+      } catch (err) {
+        displayToast("Transmission failed.", "error");
+        isProcessing = false;
       }
     }
 
-    // Auto-Save Branch Selection locally so they don't have to select it every day
-    if (localStorage.getItem('rj_branch_pref')) {
-      branchSelector.value = localStorage.getItem('rj_branch_pref');
-    }
-    branchSelector.addEventListener('change', (e) => {
-      localStorage.setItem('rj_branch_pref', e.target.value);
+    const themeBtn = document.getElementById('theme-toggle');
+    themeBtn.addEventListener('click', () => {
+      const isLight = document.documentElement.classList.toggle('light-theme');
+      localStorage.setItem('rj_theme', isLight ? 'light' : 'dark');
     });
 
-    // Boot App
-    startApp();
+    btnClockIn.addEventListener('click', () => logAttendance('Clock In'));
+    btnClockOut.addEventListener('click', () => logAttendance('Clock Out'));
   </script>
 </body>
 </html>
