@@ -70,7 +70,7 @@
     
     #video-container { position: relative; background: #000; border-radius: 16px; overflow: hidden; width: 100%; height: 380px; margin-bottom: 20px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
     /* FIXED: Removed transform: scaleX(-1) so camera is not inverted */
-    #video { width: 100%; height: 100%; object-fit: cover; transform: rotate(180deg); }
+    #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
     
     #flash-overlay { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 20; }
     #flash-overlay.flash { opacity: 0.8; }
@@ -294,12 +294,14 @@
         }
       }
 
+      const hiddenCanvas = document.createElement('canvas');
+      hiddenCanvas.width = video.videoWidth || 1280;
+      hiddenCanvas.height = video.videoHeight || 720;
       const ctx = hiddenCanvas.getContext('2d');
       
-      // Flip the saved photo 180 degrees so it looks normal in the Admin Panel
-      ctx.translate(hiddenCanvas.width / 2, hiddenCanvas.height / 2);
-      ctx.rotate(Math.PI);
-      ctx.translate(-hiddenCanvas.width / 2, -hiddenCanvas.height / 2);
+      // This flips the canvas horizontally so the saved photo matches the mirror effect
+      ctx.translate(hiddenCanvas.width, 0);
+      ctx.scale(-1, 1);
       
       let capturedBase64 = "";
       try {
