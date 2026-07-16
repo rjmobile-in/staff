@@ -194,7 +194,7 @@
         else if (email.includes('lohamandi')) currentBranch = "VKI, Lohamandi";
         else if (email.includes('shastri')) currentBranch = "Shastri Nagar";
         else if (email.includes('murlipura6')) currentBranch = "Murlipura, 6 Number";
-        else currentBranch = "Murlipura, 1 Number (Testing Mode)"; 
+        else currentBranch = "Unassigned Branch";
 
         document.getElementById('detected-branch-display').innerText = currentBranch;
         if (!cameraActive) { startCamera(); loadStaffList(); cameraActive = true; }
