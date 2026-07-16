@@ -294,10 +294,12 @@
         }
       }
 
-      const hiddenCanvas = document.createElement('canvas');
-      hiddenCanvas.width = video.videoWidth || 1280;
-      hiddenCanvas.height = video.videoHeight || 720;
       const ctx = hiddenCanvas.getContext('2d');
+      
+      // Flip the saved photo 180 degrees so it looks normal in the Admin Panel
+      ctx.translate(hiddenCanvas.width / 2, hiddenCanvas.height / 2);
+      ctx.rotate(Math.PI);
+      ctx.translate(-hiddenCanvas.width / 2, -hiddenCanvas.height / 2);
       
       let capturedBase64 = "";
       try {
