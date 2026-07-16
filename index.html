@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RJ Mobile — Secure Terminal</title>
-
+  
   <script>
     if (localStorage.getItem('rj_theme') === 'light') {
       document.documentElement.classList.add('light-theme');
@@ -14,17 +14,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --bg-base: #09090b; --card-bg: #18181b; --card-bg-alpha: rgba(24, 24, 27, 0.75);
-      --card-border: #27272a; --primary: #8b5cf6; --primary-hover: #a78bfa;
-      --primary-alpha: rgba(139, 92, 246, 0.15); --text-main: #f4f4f5; --text-soft: #a1a1aa;
+      --card-border: #27272a; --primary: #3b82f6; --primary-hover: #60a5fa;
+      --primary-alpha: rgba(59, 130, 246, 0.15); --text-main: #f4f4f5; --text-soft: #a1a1aa;
       --success: #10b981; --success-alpha: rgba(16, 185, 129, 0.15); --danger: #ef4444;
       --danger-alpha: rgba(239, 68, 68, 0.15); --input-bg: #09090b;
-      --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.4); --shadow-glow: 0 10px 30px rgba(139, 92, 246, 0.2);
+      --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.4); --shadow-glow: 0 10px 30px rgba(59, 130, 246, 0.2);
     }
     html.light-theme {
       --bg-base: #f8fafc; --card-bg: #ffffff; --card-bg-alpha: rgba(255, 255, 255, 0.85);
@@ -44,7 +43,7 @@
     #login-screen { display: none; background: var(--card-bg); padding: 48px 40px; border-radius: 24px; box-shadow: var(--shadow-soft); text-align: center; width: 100%; max-width: 420px; margin-top: 12vh; border: 1px solid var(--card-border); }
     #login-screen h2 { font-weight: 800; font-size: 28px; margin-bottom: 8px; }
     #login-screen p { color: var(--text-soft); margin-bottom: 32px; }
-    .input-field { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid var(--card-border); background: var(--input-bg); color: var(--text-main); margin-bottom: 16px; outline: none; }
+    .input-field { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid var(--card-border); background: var(--input-bg); color: var(--text-main); margin-bottom: 16px; outline: none; font-size: 16px; font-weight: 600; cursor: pointer; }
     .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-alpha); background: var(--card-bg); }
     .checkbox-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 24px; font-size: 14px; color: var(--text-soft); cursor: pointer; }
     .checkbox-row input { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
@@ -68,9 +67,12 @@
 
     .main-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; padding: 32px; width: 100%; position: relative; overflow: hidden; }
     .main-card::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--primary), #3b82f6); }
-    #video-container { position: relative; background: #000; border-radius: 16px; overflow: hidden; width: 100%; height: 340px; margin-bottom: 24px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
-    #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-    #scan-overlay { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.7); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; backdrop-filter: blur(8px); transition: background 0.3s; z-index: 10; text-align: center; width: 90%; max-width: 320px; }
+    
+    #video-container { position: relative; background: #000; border-radius: 16px; overflow: hidden; width: 100%; height: 380px; margin-bottom: 20px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
+    #video { width: 100%; height: 100%; object-fit: cover; }
+    
+    #flash-overlay { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 20; }
+    #flash-overlay.flash { opacity: 0.8; }
 
     .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; }
     .btn-action { padding: 16px; border-radius: 14px; border: none; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -85,16 +87,16 @@
 </head>
 <body>
 
-  <div id="global-loader" class="glass-effect"><div class="spinner"></div><p>Loading...</p></div>
+  <div id="global-loader" class="glass-effect"><div class="spinner"></div><p>Authenticating...</p></div>
   <div id="toast" class="glass-effect"><div id="toast-icon"></div><div id="toast-msg"></div></div>
 
   <div id="login-screen">
     <img src="logo.png" alt="RJ Mobile" style="height: 64px; margin-bottom: 20px; border-radius: 12px;" onerror="this.style.display='none'" />
     <h2>Terminal Login</h2>
     <p>Sign in to unlock the branch scanner.</p>
-    <input type="email" id="email-input" class="input-field" placeholder="Branch Email" />
+    <input type="email" id="email-input" class="input-field" placeholder="branch@rjmobile.com" />
     <div class="password-wrapper">
-      <input type="password" id="password-input" class="input-field" placeholder="Password" />
+      <input type="password" id="password-input" class="input-field" placeholder="Enter password" />
       <button id="toggle-password-btn" class="toggle-password" type="button">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
       </button>
@@ -110,7 +112,7 @@
         <img src="logo.png" alt="RJ Mobile" class="brand-logo" onerror="this.style.display='none'" />
         <div>
           <div class="brand-title">RJ Mobile</div>
-          <div class="brand-tag" id="detected-branch-display">Loading...</div>
+          <div class="brand-tag" id="detected-branch-display">Detecting...</div>
         </div>
       </div>
       <div class="header-controls">
@@ -122,15 +124,19 @@
     <div class="main-card">
       <div id="video-container">
         <video id="video" autoplay playsinline muted></video>
-        <div id="scan-overlay">Loading...</div>
+        <div id="flash-overlay"></div>
       </div>
+      
+      <select id="staff-select" class="input-field">
+        <option value="" disabled selected>Tap to select your name...</option>
+      </select>
 
       <div class="btn-row">
-        <button id="btn-clock-in" class="btn-action btn-in" disabled>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Clock In
+        <button id="btn-clock-in" class="btn-action btn-in">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> In + Photo
         </button>
-        <button id="btn-clock-out" class="btn-action btn-out" disabled>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Clock Out
+        <button id="btn-clock-out" class="btn-action btn-out">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Out + Photo
         </button>
       </div>
     </div>
@@ -142,12 +148,12 @@
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
 
     const firebaseConfig = { 
-      apiKey: "AIzaSyD3nTvimIC_Tnc10x8yivnMlVFsZWyjKwE",
-      authDomain: "staff-bcb17.firebaseapp.com",
-      projectId: "staff-bcb17",
-      storageBucket: "staff-bcb17.firebasestorage.app",
-      messagingSenderId: "19785118704",
-      appId: "1:19785118704:web:915272bdf29ebaefb6a335"
+      apiKey: "AIzaSyBsAsMlKJqoyOS27IVotwszVvO1ZFCGABs",
+      authDomain: "staff-review-935f3.firebaseapp.com",
+      projectId: "staff-review-935f3",
+      storageBucket: "staff-review-935f3.firebasestorage.app",
+      messagingSenderId: "91819642184",
+      appId: "1:91819642184:web:9b78814e6efcfb811a608d"
     };
 
     const app = initializeApp(firebaseConfig, "ScannerApp");
@@ -155,17 +161,12 @@
     const auth = getAuth(app);
 
     const video = document.getElementById('video');
-    const overlay = document.getElementById('scan-overlay');
-    const btnClockIn = document.getElementById('btn-clock-in');
-    const btnClockOut = document.getElementById('btn-clock-out');
-
+    const flashOverlay = document.getElementById('flash-overlay');
+    const staffSelect = document.getElementById('staff-select');
+    
     let isProcessing = false;
     let cameraActive = false;
-    let faceMatcher = null;
-    let currentMatchedName = null;
-    let faceDetectionInterval = null;
     let currentBranch = ""; 
-    let hasBlinked = false; 
 
     function displayToast(msg, statusType = "success") {
       const toast = document.getElementById('toast');
@@ -174,7 +175,7 @@
       if (statusType === "success") icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
       else if (statusType === "error") icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
       else icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
-
+      
       toast.className = "glass-effect show";
       if (toast.timeout) clearTimeout(toast.timeout);
       toast.timeout = setTimeout(() => { toast.className = "glass-effect"; }, 4000);
@@ -185,22 +186,21 @@
       if (user) {
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('dashboard').style.display = 'flex';
-
+        
         const email = user.email.toLowerCase();
         if (email.includes('murlipura1')) currentBranch = "Murlipura, 1 Number";
         else if (email.includes('vki17')) currentBranch = "VKI, 17 Number";
         else if (email.includes('lohamandi')) currentBranch = "VKI, Lohamandi";
         else if (email.includes('shastri')) currentBranch = "Shastri Nagar";
         else if (email.includes('murlipura6')) currentBranch = "Murlipura, 6 Number";
-        else currentBranch = "Testing Mode"; 
+        else currentBranch = "Murlipura, 1 Number (Testing Mode)"; 
 
         document.getElementById('detected-branch-display').innerText = currentBranch;
-        if (!cameraActive) { startCamera(); initializeAI(); cameraActive = true; }
+        if (!cameraActive) { startCamera(); loadStaffList(); cameraActive = true; }
       } else {
         document.getElementById('login-screen').style.display = 'block';
         document.getElementById('dashboard').style.display = 'none';
         currentBranch = "";
-        if (faceDetectionInterval) clearInterval(faceDetectionInterval);
       }
     });
 
@@ -212,106 +212,49 @@
     });
     document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
 
+    // Hardcoded staff names for testing
+    function loadStaffList() {
+      const staffNames = ["Name 1", "Name 2", "Name 3", "Name 4", "Name 5", "Name 6", "Name 7", "Name 8"];
+      let optionsHTML = '<option value="" disabled selected>Tap to select your name...</option>';
+      staffNames.forEach(name => {
+        optionsHTML += `<option value="${name}">${name}</option>`;
+      });
+      staffSelect.innerHTML = optionsHTML;
+    }
+
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } }, 
+          video: { facingMode: "user" }, 
           audio: false 
         });
         video.srcObject = stream;
       } catch (err) {
-        overlay.innerText = "Camera Access Denied"; overlay.style.background = "var(--danger)";
+        displayToast("Camera Access Denied", "error");
       }
     }
 
-    async function initializeAI() {
-      // FIX 1: Dynamically grab the exact URL path where index.html lives
-      const currentPath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-      const MODEL_URL = currentPath + '/models';
-
-      try {
-        overlay.innerText = "Loading...";
-        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-
-        overlay.innerText = "Loading...";
-        const facesSnap = await getDocs(collection(db, "registered_faces"));
-        const labeledDescriptors = [];
-
-        facesSnap.forEach(doc => {
-          const data = doc.data();
-          if (data.descriptor && data.employee_name) {
-            const descArray = new Float32Array(data.descriptor);
-            labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(data.employee_name, [descArray]));
-          }
-        });
-
-        if (labeledDescriptors.length > 0) {
-          faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
-          lockInterface();
-          startFaceDetectionLoop();
-        } else {
-          overlay.innerText = "No Profiles Configured.";
-          overlay.style.background = "var(--danger)";
-        }
-      } catch (err) { 
-        // FIX 2: Print the actual error message to the overlay so we aren't guessing
-        overlay.innerText = "Error: " + err.message; 
-        console.error("AI Load Error:", err);
-      }
-    }
-
-    function getEAR(eye) {
-      const distance = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-      const v1 = distance(eye[1], eye[5]);
-      const v2 = distance(eye[2], eye[4]);
-      const h = distance(eye[0], eye[3]);
-      return (v1 + v2) / (2.0 * h);
-    }
-
-    function startFaceDetectionLoop() {
-      faceDetectionInterval = setInterval(async () => {
-        if (!faceMatcher || isProcessing) return;
-        const detections = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-        if (detections) {
-          const bestMatch = faceMatcher.findBestMatch(detections.descriptor);
-          if (bestMatch.label !== 'unknown') {
-            const landmarks = detections.landmarks;
-            const ear = (getEAR(landmarks.getLeftEye()) + getEAR(landmarks.getRightEye())) / 2;
-            if (ear < 0.25) hasBlinked = true;
-            if (currentMatchedName !== bestMatch.label) { currentMatchedName = bestMatch.label; hasBlinked = false; }
-
-            if (!hasBlinked) {
-                overlay.innerText = `Blink to Verify: ${currentMatchedName}`;
-                overlay.style.background = "var(--primary)";
-                btnClockIn.disabled = true; btnClockOut.disabled = true;
-            } else {
-                overlay.innerText = `Verified: ${currentMatchedName}`;
-                overlay.style.background = "var(--success)";
-                btnClockIn.disabled = false; btnClockOut.disabled = false;
-            }
-          } else { lockInterface(); }
-        } else { lockInterface(); }
-      }, 150); 
-    }
-
-    function lockInterface() {
-      currentMatchedName = null; hasBlinked = false;
-      overlay.innerText = "Scanning...";
-      overlay.style.background = "rgba(0, 0, 0, 0.7)";
-      btnClockIn.disabled = true; btnClockOut.disabled = true;
+    function triggerFlash() {
+      flashOverlay.classList.add('flash');
+      setTimeout(() => { flashOverlay.classList.remove('flash'); }, 150);
     }
 
     async function logAttendance(targetAction) {
-      if (isProcessing || !currentMatchedName || !hasBlinked) return;
+      const staffSelected = staffSelect.value;
+      if (!staffSelected) {
+        displayToast("Please select your name first!", "error");
+        return;
+      }
+      
+      if (isProcessing) return;
       isProcessing = true;
-      const staffSelected = currentMatchedName; 
-      displayToast(`Processing ${staffSelected}...`, "primary"); 
-
+      
+      triggerFlash();
+      displayToast(`Logging ${staffSelected}...`, "primary"); 
+      
       let lastActionState = null;
       let lastActionTime = null;
-
+      
       try {
         const stateQuery = query(collection(db, "attendance_logs"), where("employee_name", "==", staffSelected), orderBy("timestamp", "desc"), limit(1));
         const snapshot = await getDocs(stateQuery);
@@ -320,8 +263,7 @@
           lastActionTime = snapshot.docs[0].data().timestamp.toDate();
         }
       } catch (dbError) {
-        console.error("Firestore Error:", dbError); 
-        displayToast("Error: Could not verify history. Check DevTools Console.", "error");
+        displayToast("Network Error: Could not verify history.", "error");
         isProcessing = false; return;
       }
 
@@ -330,16 +272,16 @@
 
       if (targetAction === "Clock In") {
         if (lastActionState === "Clock In" && isSameCalendarDay) {
-          displayToast(`Denied: Already Clocked In today.`, "error");
+          displayToast(`Denied: ${staffSelected} is already Clocked In today.`, "error");
           isProcessing = false; return;
         }
       } else if (targetAction === "Clock Out") {
         if (!lastActionState || lastActionState === "Clock Out") {
-          displayToast(`Denied: Must Clock In first.`, "error");
+          displayToast(`Denied: ${staffSelected} must Clock In first.`, "error");
           isProcessing = false; return;
         }
         if (lastActionState === "Clock In" && !isSameCalendarDay) {
-          displayToast(`Error: Missed previous Clock Out.`, "error");
+          displayToast(`Error: Missed previous Clock Out. Please Clock In fresh today.`, "error");
           isProcessing = false; return;
         }
       }
@@ -348,8 +290,7 @@
       hiddenCanvas.width = video.videoWidth || 1280;
       hiddenCanvas.height = video.videoHeight || 720;
       const ctx = hiddenCanvas.getContext('2d');
-      ctx.translate(hiddenCanvas.width, 0); ctx.scale(-1, 1);
-
+      
       let capturedBase64 = "";
       try {
         ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
@@ -366,11 +307,13 @@
           timestamp: exactTime,
           photo_capture: capturedBase64
         });
-        displayToast(`Success: Logged ${targetAction}`, "success");
-        lockInterface();
-        setTimeout(() => { isProcessing = false; }, 3000); 
+        
+        displayToast(`Success: ${targetAction} recorded!`, "success");
+        staffSelect.value = ""; 
+        
+        setTimeout(() => { isProcessing = false; }, 2000); 
       } catch (err) {
-        displayToast("Transmission failed.", "error");
+        displayToast("Database transmission failed.", "error");
         isProcessing = false;
       }
     }
@@ -381,8 +324,8 @@
       localStorage.setItem('rj_theme', isLight ? 'light' : 'dark');
     });
 
-    btnClockIn.addEventListener('click', () => logAttendance('Clock In'));
-    btnClockOut.addEventListener('click', () => logAttendance('Clock Out'));
+    document.getElementById('btn-clock-in').addEventListener('click', () => logAttendance('Clock In'));
+    document.getElementById('btn-clock-out').addEventListener('click', () => logAttendance('Clock Out'));
   </script>
 </body>
 </html>
