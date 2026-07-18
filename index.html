@@ -240,8 +240,8 @@
             const { data: sData } = await supabase.from('staff_directory').select('name').order('name');
             if (sData) {
                 document.getElementById('staff-select').disabled = false;
-                document.getElementById('staff-select').innerHTML = `<option value="" disabled selected>Tap to select your name...</option>` + 
-                sData.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+                document.getElementById('staff-select').placeholder = "Search and select your name...";
+                document.getElementById('staff-list').innerHTML = sData.map(s => `<option value="${s.name}"></option>`).join('');
             }
             
             if (!cameraActive) {
