@@ -74,7 +74,7 @@
     .btn-action { padding: 16px; border-radius: 14px; border: none; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn-in { background: var(--success); box-shadow: 0 4px 12px var(--success-alpha); }
     .btn-out { background: var(--danger); box-shadow: 0 4px 12px var(--danger-alpha); }
-    .btn-action:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .btn-action:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(50%); transform: none !important; box-shadow: none !important; }
     .btn-action:not(:disabled):hover { filter: brightness(1.1); transform: translateY(-2px); }
 
     #toast { visibility: hidden; min-width: 300px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 24px; position: fixed; z-index: 10000; bottom: 40px; left: 50%; transform: translate(-50%, 20px); font-size: 15px; font-weight: 600; color: var(--text-main); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s, transform 0.3s, visibility 0.3s; }
@@ -132,11 +132,12 @@
       </div>
 
       <div class="btn-row">
-        <button id="btn-clock-in" class="btn-action btn-in">
+        <!-- Buttons disabled by default until name is selected -->
+        <button id="btn-clock-in" class="btn-action btn-in" disabled>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> 
           In + Photo
         </button>
-        <button id="btn-clock-out" class="btn-action btn-out">
+        <button id="btn-clock-out" class="btn-action btn-out" disabled>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> 
           Out + Photo
         </button>
@@ -144,10 +145,10 @@
     </div>
   </div>
 
-  <!-- EXACT IMPORT SYSTEM FROM YOUR ACCESSORIES FILE -->
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+    // SUPABASE CREDENTIALS
     const SUPABASE_URL = 'https://rezumapzlsjnkitxvsul.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlenVtYXB6bHNqbmtpdHh2c3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzNTY2NjUsImV4cCI6MjA5OTkzMjY2NX0.IVUZVjZUuiM9qTcKAIIxJth_zSIGJUWTaubUV4Fy0_Y';
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -155,8 +156,11 @@
     let currentBranch = ""; 
     let cameraActive = false;
     let isProcessing = false;
+    
     const video = document.getElementById('video');
     const flashOverlay = document.getElementById('flash-overlay');
+    const btnIn = document.getElementById('btn-clock-in');
+    const btnOut = document.getElementById('btn-clock-out');
 
     function displayToast(msg, statusType = "success") {
       const toast = document.getElementById('toast');
@@ -172,7 +176,7 @@
       toast.timeout = setTimeout(() => { toast.className = "glass-effect"; }, 4000);
     }
 
-    // --- AUTHENTICATION ENGINE (COPIED EXACTLY FROM ACCESSORIES) ---
+    // --- AUTHENTICATION ENGINE ---
     async function checkUser() {
         const { data: { session } } = await supabase.auth.getSession();
         handleAuthChange(session?.user);
@@ -211,6 +215,8 @@
             document.getElementById('login-screen').style.display = 'block';
             document.getElementById('dashboard').style.display = 'none';
             currentBranch = "";
+            btnIn.disabled = true;
+            btnOut.disabled = true;
         }
     }
     checkUser();
@@ -231,14 +237,27 @@
       if (passInput.type === 'password') { passInput.type = 'text'; document.getElementById('toggle-password-btn').style.color = 'var(--primary)'; } else { passInput.type = 'password'; document.getElementById('toggle-password-btn').style.color = 'var(--text-soft)'; }
     });
 
-    // --- CAMERA & ATTENDANCE ENGINE ---
+    // --- CAMERA ENGINE (With Detailed Error Handling) ---
     async function startCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        displayToast("Security Error: Run on HTTPS or Localhost", "error");
+        return;
+      }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
         video.srcObject = stream;
         cameraActive = true;
       } catch (err) {
-        displayToast("Camera Access Denied by Browser", "error");
+        console.error("Camera Error:", err);
+        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+            displayToast("Camera Access Denied by Browser", "error");
+        } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+            displayToast("No Camera Hardware Found!", "error");
+        } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+            displayToast("Camera is already in use by another app", "error");
+        } else {
+            displayToast(`Camera Error: ${err.message}`, "error");
+        }
       }
     }
 
@@ -247,6 +266,57 @@
       setTimeout(() => { flashOverlay.classList.remove('flash'); }, 150);
     }
 
+    // --- VALIDATION: CHECK LATEST STATUS BEFORE ALLOWING IN/OUT ---
+    document.getElementById('staff-select').addEventListener('change', async (e) => {
+        const staffName = e.target.value;
+        if (!staffName) return;
+
+        // Reset and lock buttons while checking
+        btnIn.disabled = true;
+        btnOut.disabled = true;
+        displayToast(`Checking status for ${staffName}...`, "primary");
+
+        try {
+            // Find today's logs for this specific user
+            const todayStart = new Date();
+            todayStart.setHours(0,0,0,0);
+
+            const { data, error } = await supabase
+                .from('attendance_logs')
+                .select('action')
+                .eq('employee_name', staffName)
+                .gte('timestamp', todayStart.toISOString())
+                .order('timestamp', { ascending: false })
+                .limit(1);
+
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                const lastAction = data[0].action;
+                if (lastAction === 'Clock In') {
+                    // Already clocked in -> Can only Clock Out
+                    btnIn.disabled = true;
+                    btnOut.disabled = false;
+                    displayToast(`Welcome back ${staffName.split(' ')[0]}! Ready to Clock Out?`, "success");
+                } else {
+                    // Last action was Clock Out -> Can only Clock In again
+                    btnIn.disabled = false;
+                    btnOut.disabled = true;
+                    displayToast(`${staffName.split(' ')[0]} is currently Clocked Out.`, "primary");
+                }
+            } else {
+                // No logs today -> Must Clock In first
+                btnIn.disabled = false;
+                btnOut.disabled = true;
+                displayToast(`No records found today. Please Clock In.`, "primary");
+            }
+        } catch (err) {
+            console.error("Error fetching status:", err);
+            displayToast("Failed to verify status. Check internet.", "error");
+        }
+    });
+
+    // --- ATTENDANCE & PHOTO UPLOAD LOGIC ---
     async function logAttendance(targetAction) {
       const staffSelected = document.getElementById('staff-select').value;
       if (!staffSelected) {
@@ -258,22 +328,25 @@
       isProcessing = true;
       
       triggerFlash();
-      displayToast(`Processing ${staffSelected}...`, "primary"); 
+      displayToast(`Uploading securely...`, "primary"); 
       
+      // CREATE SMALLER CANVAS FOR FASTER UPLOAD
       const hiddenCanvas = document.createElement('canvas');
-      hiddenCanvas.width = video.videoWidth || 1280;
-      hiddenCanvas.height = video.videoHeight || 720;
+      hiddenCanvas.width = 480; // Compressed width
+      hiddenCanvas.height = 640; // Compressed height
       const ctx = hiddenCanvas.getContext('2d');
       
+      // Mirror the image to match the video feed
       ctx.translate(hiddenCanvas.width, 0);
       ctx.scale(-1, 1);
       
       let capturedBase64 = "";
       try {
         ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
-        capturedBase64 = hiddenCanvas.toDataURL('image/jpeg', 0.85); 
+        // LOWER QUALITY (0.6) to prevent DB Rejection / Out of Memory
+        capturedBase64 = hiddenCanvas.toDataURL('image/jpeg', 0.6); 
       } catch (err) {
-        console.error("Camera Capture Error");
+        console.error("Camera Capture Error", err);
       }
 
       try {
@@ -281,17 +354,23 @@
           employee_name: staffSelected,
           branch: currentBranch, 
           action: targetAction,
+          timestamp: new Date().toISOString(), // EXPLICIT TIMESTAMP ADDED
           photo_capture: capturedBase64
         }]);
         
         if (error) throw error;
         
         displayToast(`Success: ${targetAction} verified!`, "success");
+        
+        // Reset Dropdown & Buttons
         document.getElementById('staff-select').value = ""; 
+        btnIn.disabled = true;
+        btnOut.disabled = true;
         
         setTimeout(() => { isProcessing = false; }, 2000); 
         
       } catch (err) {
+        console.error(err);
         displayToast("Database transmission failed. Try again.", "error");
         isProcessing = false;
       }
