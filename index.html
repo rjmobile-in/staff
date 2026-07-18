@@ -184,6 +184,7 @@
     
     supabase.auth.onAuthStateChange((event, session) => { handleAuthChange(session?.user); });
 
+    // --- AUTHENTICATION & IP SECURITY ENGINE ---
     async function handleAuthChange(user) {
         document.getElementById('global-loader').style.display = 'none';
         if (user) {
@@ -191,8 +192,15 @@
             document.getElementById('dashboard').style.display = 'flex';
             
             const email = user.email.toLowerCase();
-            const { data: branchData } = await supabase.from('branches_directory').select('branch_name').eq('email', email).single();
-            if (branchData) { currentBranch = branchData.branch_name; }
+            
+            // 1. Fetch branch name AND ip_address from Database
+            const { data: branchData } = await supabase.from('branches_directory').select('branch_name, ip_address').eq('email', email).single();
+            
+            let allowedIp = "";
+            if (branchData) { 
+                currentBranch = branchData.branch_name; 
+                allowedIp = branchData.ip_address || ""; 
+            }
             else if (email.includes('murlipura1')) currentBranch = "Murlipura, 1 Number";
             else if (email.includes('vki17')) currentBranch = "VKI, 17 Number";
             else if (email.includes('lohamandi')) currentBranch = "VKI, Lohamandi";
@@ -200,10 +208,38 @@
             else if (email.includes('murlipura6')) currentBranch = "Murlipura, 6 Number";
             else currentBranch = "Central / Unassigned Branch";
 
-            document.getElementById('detected-branch-display').innerText = currentBranch;
+            document.getElementById('detected-branch-display').innerHTML = currentBranch;
+
+            // 2. IP Lock Verification Logic
+            if (allowedIp.trim() !== "") {
+                try {
+                    displayToast("Verifying Network Security...", "primary");
+                    // Fetch current internet IP of the terminal
+                    const ipRes = await fetch('https://api.ipify.org?format=json');
+                    const ipData = await ipRes.json();
+                    const currentIp = ipData.ip;
+                    
+                    if (currentIp !== allowedIp.trim()) {
+                        // IP does not match - BLOCK ACCESS
+                        document.getElementById('detected-branch-display').innerHTML = `${currentBranch} <span style="color:var(--danger)">[NETWORK BLOCKED]</span>`;
+                        document.getElementById('staff-select').disabled = true;
+                        document.getElementById('staff-select').innerHTML = `<option>Access Denied: Connect to Branch Wi-Fi</option>`;
+                        displayToast("Security Alert: Invalid Wi-Fi Network.", "error");
+                        return; // Stop execution here (Camera won't start, logs blocked)
+                    } else {
+                        displayToast("Network Secured.", "success");
+                    }
+                } catch (err) {
+                    console.error("IP Check Failed", err);
+                    displayToast("Network Check Failed. Check Internet connection.", "error");
+                    return;
+                }
+            }
             
+            // 3. If IP matches (or no IP lock is set), load staff and camera
             const { data: sData } = await supabase.from('staff_directory').select('name').order('name');
             if (sData) {
+                document.getElementById('staff-select').disabled = false;
                 document.getElementById('staff-select').innerHTML = `<option value="" disabled selected>Tap to select your name...</option>` + 
                 sData.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
             }
