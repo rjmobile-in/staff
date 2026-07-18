@@ -266,7 +266,7 @@
       setTimeout(() => { flashOverlay.classList.remove('flash'); }, 150);
     }
 
-    // --- VALIDATION: CHECK LATEST STATUS BEFORE ALLOWING IN/OUT ---
+    // --- CHECK IN/OUT STRICT VALIDATION LOGIC ---
     document.getElementById('staff-select').addEventListener('change', async (e) => {
         const staffName = e.target.value;
         if (!staffName) return;
@@ -286,26 +286,30 @@
                 .select('action')
                 .eq('employee_name', staffName)
                 .gte('timestamp', todayStart.toISOString())
-                .order('timestamp', { ascending: false })
-                .limit(1);
+                .order('timestamp', { ascending: false });
 
             if (error) throw error;
 
+            let hasClockedIn = false;
+            let hasClockedOut = false;
+
             if (data && data.length > 0) {
-                const lastAction = data[0].action;
-                if (lastAction === 'Clock In') {
-                    // Already clocked in -> Can only Clock Out
-                    btnIn.disabled = true;
-                    btnOut.disabled = false;
-                    displayToast(`Welcome back ${staffName.split(' ')[0]}! Ready to Clock Out?`, "success");
-                } else {
-                    // Last action was Clock Out -> Can only Clock In again
-                    btnIn.disabled = false;
-                    btnOut.disabled = true;
-                    displayToast(`${staffName.split(' ')[0]} is currently Clocked Out.`, "primary");
-                }
+                hasClockedIn = data.some(log => log.action === 'Clock In');
+                hasClockedOut = data.some(log => log.action === 'Clock Out');
+            }
+
+            if (hasClockedIn && hasClockedOut) {
+                // Done for the day (Strict 1 In, 1 Out)
+                btnIn.disabled = true;
+                btnOut.disabled = true;
+                displayToast(`Shift Complete! You have already clocked in and out today.`, "success");
+            } else if (hasClockedIn && !hasClockedOut) {
+                // Clocked In, waiting for Clock Out
+                btnIn.disabled = true;
+                btnOut.disabled = false;
+                displayToast(`Welcome back ${staffName.split(' ')[0]}! Ready to Clock Out?`, "success");
             } else {
-                // No logs today -> Must Clock In first
+                // Not clocked in at all -> Can only Clock In
                 btnIn.disabled = false;
                 btnOut.disabled = true;
                 displayToast(`No records found today. Please Clock In.`, "primary");
@@ -316,7 +320,7 @@
         }
     });
 
-    // --- ATTENDANCE & PHOTO UPLOAD LOGIC ---
+    // --- ATTENDANCE & COMPRESSED PHOTO UPLOAD LOGIC ---
     async function logAttendance(targetAction) {
       const staffSelected = document.getElementById('staff-select').value;
       if (!staffSelected) {
@@ -330,7 +334,7 @@
       triggerFlash();
       displayToast(`Uploading securely...`, "primary"); 
       
-      // CREATE SMALLER CANVAS FOR FASTER UPLOAD
+      // CREATE SMALLER CANVAS FOR FASTER UPLOAD & AVOID DB REJECTION
       const hiddenCanvas = document.createElement('canvas');
       hiddenCanvas.width = 480; // Compressed width
       hiddenCanvas.height = 640; // Compressed height
@@ -362,7 +366,7 @@
         
         displayToast(`Success: ${targetAction} verified!`, "success");
         
-        // Reset Dropdown & Buttons
+        // Reset Dropdown & Lock Buttons instantly after successful log
         document.getElementById('staff-select').value = ""; 
         btnIn.disabled = true;
         btnOut.disabled = true;
