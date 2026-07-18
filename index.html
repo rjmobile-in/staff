@@ -221,10 +221,12 @@
   </div>
 
   <script>
-    // --- SUPABASE CREDENTIALS DIRECTLY INTEGRATED ---
+    // --- SUPABASE CREDENTIALS ---
     const SUPABASE_URL = 'https://rezumapzlsjnkitxvsul.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlenVtYXB6bHNqbmtpdHh2c3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzNTY2NjUsImV4cCI6MjA5OTkzMjY2NX0.IVUZVjZUuiM9qTcKAIIxJth_zSIGJUWTaubUV4Fy0_Y';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // FIX: Changed variable name to supabaseClient
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // Global State Variables
     const video = document.getElementById('video');
@@ -263,7 +265,7 @@
     });
 
     // Supabase Auth State Change Listener
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('dashboard').style.display = 'flex';
@@ -282,14 +284,12 @@
     document.getElementById('login-btn').addEventListener('click', async () => {
       const email = document.getElementById('email-input').value;
       const password = document.getElementById('password-input').value;
-      const rememberMe = document.getElementById('remember-me').checked;
       const msg = document.getElementById('error-msg');
       
       msg.style.display = 'none';
       document.getElementById('global-loader').style.display = 'flex';
       
-      // Note: Supabase handles session persistence automatically.
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabaseClient.auth.signInWithPassword({
         email: email,
         password: password,
       });
@@ -303,16 +303,15 @@
 
     // Logout Action
     document.getElementById('logout-btn').addEventListener('click', async () => {
-      await supabase.auth.signOut();
+      await supabaseClient.auth.signOut();
     });
 
-    // Initialize Terminal Logic (Fetch Branch Info, Validate IP, Fetch Staff)
+    // Initialize Terminal Logic
     async function initializeTerminal(email) {
       document.getElementById('loader-text').innerText = 'Validating Branch Settings...';
       
       try {
-        // 1. Fetch Branch config from database
-        const { data: branchInfo, error: branchErr } = await supabase
+        const { data: branchInfo, error: branchErr } = await supabaseClient
           .from('branches_directory')
           .select('*')
           .eq('email', email)
@@ -320,14 +319,13 @@
           
         if (branchErr || !branchInfo) {
           displayToast("Configuration Error: Email not mapped to any branch.", "error");
-          await supabase.auth.signOut();
+          await supabaseClient.auth.signOut();
           return;
         }
         
         currentBranchData = branchInfo;
         document.getElementById('detected-branch-display').innerText = branchInfo.branch_name;
 
-        // 2. Geofencing / Wi-Fi IP Validation
         if (branchInfo.ip_address && branchInfo.ip_address.trim() !== "") {
           document.getElementById('loader-text').innerText = 'Verifying Network Security...';
           const ipRes = await fetch('https://api.ipify.org?format=json');
@@ -338,16 +336,14 @@
             document.getElementById('btn-clock-in').disabled = true;
             document.getElementById('btn-clock-out').disabled = true;
             document.getElementById('global-loader').style.display = 'none';
-            // Alert user visually
             document.getElementById('detected-branch-display').innerText = "NETWORK BLOCKED";
             document.getElementById('detected-branch-display').style.color = "var(--danger)";
             return;
           }
         }
 
-        // 3. Load Dynamic Staff List
         document.getElementById('loader-text').innerText = 'Loading Staff Roster...';
-        const { data: staffList, error: staffErr } = await supabase
+        const { data: staffList, error: staffErr } = await supabaseClient
           .from('staff_directory')
           .select('name')
           .order('name');
@@ -360,7 +356,6 @@
         }
         staffSelect.innerHTML = optionsHTML;
 
-        // 4. Start Camera
         if (!cameraActive) {
           await startCamera();
         }
@@ -373,7 +368,6 @@
       }
     }
 
-    // Camera Access
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -387,13 +381,11 @@
       }
     }
 
-    // Camera Flash Animation
     function triggerFlash() {
       flashOverlay.classList.add('flash');
       setTimeout(() => { flashOverlay.classList.remove('flash'); }, 150);
     }
 
-    // Main Attendance Logic
     async function logAttendance(targetAction) {
       const staffSelected = staffSelect.value;
       if (!staffSelected) {
@@ -407,7 +399,6 @@
       triggerFlash();
       displayToast(`Processing ${staffSelected}...`, "primary"); 
       
-      // 1. Capture Photo Logic (Flip Canvas to match Mirror Effect)
       const hiddenCanvas = document.createElement('canvas');
       hiddenCanvas.width = video.videoWidth || 1280;
       hiddenCanvas.height = video.videoHeight || 720;
@@ -419,15 +410,13 @@
       let capturedBase64 = "";
       try {
         ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
-        // Compress image slightly to save database space
         capturedBase64 = hiddenCanvas.toDataURL('image/jpeg', 0.85); 
       } catch (err) {
         console.error("Camera Capture Error");
       }
 
-      // 2. Transmit to Supabase Database
       try {
-        const { error } = await supabase.from('attendance_logs').insert([{
+        const { error } = await supabaseClient.from('attendance_logs').insert([{
           employee_name: staffSelected,
           branch: currentBranchData.branch_name, 
           action: targetAction,
@@ -437,7 +426,7 @@
         if (error) throw error;
         
         displayToast(`Success: ${targetAction} verified!`, "success");
-        staffSelect.value = ""; // Reset dropdown
+        staffSelect.value = ""; 
         
         setTimeout(() => { isProcessing = false; }, 2000); 
         
@@ -447,16 +436,12 @@
       }
     }
 
-    // Theme Toggle Logic
     const themeBtn = document.getElementById('theme-toggle');
     themeBtn.addEventListener('click', () => {
       const isLight = document.documentElement.classList.toggle('light-theme');
       localStorage.setItem('rj_theme', isLight ? 'light' : 'dark');
     });
 
-    // Event Listeners for Clocking
     document.getElementById('btn-clock-in').addEventListener('click', () => logAttendance('Clock In'));
     document.getElementById('btn-clock-out').addEventListener('click', () => logAttendance('Clock Out'));
   </script>
-</body>
-</html>
