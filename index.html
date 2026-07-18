@@ -191,7 +191,11 @@
     // SUPABASE CREDENTIALS
     const SUPABASE_URL = 'https://rezumapzlsjnkitxvsul.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlenVtYXB6bHNqbmtpdHh2c3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzNTY2NjUsImV4cCI6MjA5OTkzMjY2NX0.IVUZVjZUuiM9qTcKAIIxJth_zSIGJUWTaubUV4Fy0_Y';
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        storageKey: 'rj_attendance_terminal_auth', // <-- Unique name for this specific app
+      }
+    });
 
     let currentBranch = ""; 
     let cameraActive = false;
