@@ -119,9 +119,8 @@
     <!-- Active Cashier Select -->
     <div class="main-card card-border-top" style="padding: 16px 24px; margin-bottom: 16px;">
       <label style="font-size: 12px; font-weight: 700; color: var(--text-soft); text-transform: uppercase;">Active Employee</label>
-      <select id="staff-select" class="input-field" style="margin-bottom: 0; margin-top: 8px;">
-        <option value="" disabled selected>Tap to select your name...</option>
-      </select>
+      <input type="text" id="staff-select" class="input-field" list="staff-list" placeholder="Search and select your name..." style="margin-bottom: 0; margin-top: 8px;" autocomplete="off" />
+<datalist id="staff-list"></datalist>
     </div>
 
     <!-- Scanner Feed Card -->
