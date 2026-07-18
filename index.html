@@ -222,7 +222,8 @@
                         // IP does not match - BLOCK ACCESS
                         document.getElementById('detected-branch-display').innerHTML = `${currentBranch} <span style="color:var(--danger)">[NETWORK BLOCKED]</span>`;
                         document.getElementById('staff-select').disabled = true;
-                        document.getElementById('staff-select').innerHTML = `<option>Access Denied: Connect to Branch Wi-Fi</option>`;
+                        document.getElementById('staff-select').placeholder = "Access Denied: Connect to Branch Wi-Fi";
+                        document.getElementById('staff-select').value = "";
                         displayToast("Security Alert: Invalid Wi-Fi Network.", "error");
                         return; // Stop execution here (Camera won't start, logs blocked)
                     } else {
