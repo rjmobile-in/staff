@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Attendance | Secure Terminal</title>
+  <title>Attendance | Professional Terminal</title>
   
   <script>
     if (localStorage.getItem('rj_theme') === 'light') { document.documentElement.classList.add('light-theme'); }
@@ -13,85 +13,162 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   
-  <!-- Yahan Same POS wali Library add ki gayi hai -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
   <style>
+    /* =========================================================
+       1. ROOT VARIABLES & THEME (Matched to Admin/POS)
+       ========================================================= */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
     :root {
-      --bg-base: #09090b; --card-bg: #18181b; --card-bg-alpha: rgba(24, 24, 27, 0.75);
-      --card-border: #27272a; --primary: #3b82f6; --primary-hover: #60a5fa;
-      --primary-alpha: rgba(59, 130, 246, 0.15); --text-main: #f4f4f5; --text-soft: #a1a1aa;
-      --success: #10b981; --success-alpha: rgba(16, 185, 129, 0.15); --danger: #ef4444;
-      --danger-alpha: rgba(239, 68, 68, 0.15); --input-bg: #09090b;
-      --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.4); --shadow-glow: 0 10px 30px rgba(59, 130, 246, 0.2);
-    }
-    html.light-theme {
-      --bg-base: #f8fafc; --card-bg: #ffffff; --card-bg-alpha: rgba(255, 255, 255, 0.85);
-      --card-border: #e2e8f0; --primary: #4f46e5; --primary-hover: #6366f1;
-      --primary-alpha: rgba(79, 70, 229, 0.1); --text-main: #0f172a; --text-soft: #64748b;
-      --input-bg: #f1f5f9; --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
+      /* Dark Theme (Default) - Refined Slate Palette */
+      --bg-base: #0f172a; 
+      --bg-surface: #1e293b;
+      --card-bg: #1e293b; 
+      --card-bg-alpha: rgba(30, 41, 59, 0.85);
+      --card-border: #334155;
+      
+      --primary: #3b82f6; 
+      --primary-hover: #2563eb; 
+      --primary-alpha: rgba(59, 130, 246, 0.15);
+      
+      --text-main: #f8fafc; 
+      --text-soft: #94a3b8;
+      
+      --success: #10b981; --success-alpha: rgba(16, 185, 129, 0.15);
+      --danger: #ef4444; --danger-alpha: rgba(239, 68, 68, 0.15);
+      --warning: #f59e0b; --warning-alpha: rgba(245, 158, 11, 0.15);
+      
+      --input-bg: #0f172a; 
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
     }
 
-    body { font-family: 'Inter', sans-serif; background: var(--bg-base); color: var(--text-main); font-size: 15px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; transition: background-color 0.4s ease; overflow-x: hidden; }
-    .brand-title, .btn-action { font-family: 'Plus Jakarta Sans', sans-serif; }
+    html.light-theme {
+      --bg-base: #f1f5f9; 
+      --bg-surface: #ffffff;
+      --card-bg: #ffffff; 
+      --card-bg-alpha: rgba(255, 255, 255, 0.9);
+      --card-border: #e2e8f0;
+      
+      --primary: #4f46e5; 
+      --primary-hover: #4338ca; 
+      --primary-alpha: rgba(79, 70, 229, 0.1);
+      
+      --text-main: #0f172a; 
+      --text-soft: #64748b; 
+      
+      --input-bg: #f8fafc; 
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    }
+
+    body { 
+        font-family: 'Inter', sans-serif; 
+        background: var(--bg-base); 
+        color: var(--text-main); 
+        font-size: 14px; 
+        min-height: 100vh; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        padding: 24px 16px; 
+        transition: background-color 0.4s ease; 
+        overflow-x: hidden; 
+        -webkit-font-smoothing: antialiased;
+    }
+    
+    .brand-title, .btn-action, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
     .glass-effect { background: var(--card-bg-alpha); backdrop-filter: blur(16px); border: 1px solid var(--card-border); }
 
-    #global-loader { position: fixed; inset: 0; background: var(--bg-base); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: var(--text-soft); font-weight: 500; }
-    .spinner { width: 48px; height: 48px; border: 4px solid var(--card-border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s infinite; margin-bottom: 20px; }
+    /* =========================================================
+       2. TYPOGRAPHY & BUTTONS
+       ========================================================= */
+    .btn-secondary { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 10px 16px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
+    .btn-secondary:hover { background: var(--input-bg); border-color: var(--primary); color: var(--primary); }
+
+    .btn-action { width: 100%; padding: 16px; border-radius: var(--radius-md); border: none; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: var(--shadow-sm); }
+    .btn-in { background: var(--success); }
+    .btn-out { background: var(--danger); }
+    .btn-action:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; filter: grayscale(50%); }
+    .btn-action:not(:disabled):hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+    /* =========================================================
+       3. FORM INPUTS & UTILITIES
+       ========================================================= */
+    .input-field { width: 100%; padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--card-border); background: var(--input-bg); color: var(--text-main); margin-bottom: 16px; outline: none; font-size: 14px; font-weight: 500; font-family: 'Inter', sans-serif; transition: all 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); }
+    .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-alpha); background: var(--card-bg); }
+    
+    #global-loader { position: fixed; inset: 0; background: var(--bg-base); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: var(--text-soft); font-weight: 600; font-size: 15px; }
+    .spinner { width: 44px; height: 44px; border: 4px solid var(--card-border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 24px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    #login-screen { display: none; background: var(--card-bg); padding: 48px 40px; border-radius: 24px; box-shadow: var(--shadow-soft); text-align: center; width: 100%; max-width: 420px; margin-top: 12vh; border: 1px solid var(--card-border); }
-    #login-screen h2 { font-weight: 800; font-size: 28px; margin-bottom: 8px; }
-    #login-screen p { color: var(--text-soft); margin-bottom: 32px; }
-    .input-field { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid var(--card-border); background: var(--input-bg); color: var(--text-main); margin-bottom: 16px; outline: none; font-size: 16px; font-weight: 600; cursor: pointer;}
-    .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-alpha); background: var(--card-bg); }
-    #login-btn { width: 100%; padding: 16px; border-radius: 14px; border: none; background: var(--primary); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-    #login-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-glow); }
-    #error-msg { color: var(--danger); font-size: 14px; margin-top: 16px; display: none; background: var(--danger-alpha); padding: 10px; border-radius: 10px; }
+    #toast { visibility: hidden; min-width: 300px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 24px; position: fixed; z-index: 10000; bottom: 40px; left: 50%; transform: translate(-50%, 20px); font-size: 14px; font-weight: 600; color: var(--text-main); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    #toast.show { visibility: visible; opacity: 1; transform: translate(-50%, 0); }
+
+    /* =========================================================
+       4. LOGIN SCREEN
+       ========================================================= */
+    #login-screen { display: none; background: var(--card-bg); padding: 48px 40px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); text-align: center; width: 100%; max-width: 420px; margin-top: 10vh; border: 1px solid var(--card-border); }
+    #login-screen h2 { font-weight: 800; font-size: 26px; margin-bottom: 12px; color: var(--text-main); }
+    #login-screen p { color: var(--text-soft); margin-bottom: 32px; font-size: 14px; }
+    
+    #login-btn { width: 100%; padding: 14px; border-radius: var(--radius-md); border: none; background: var(--primary); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px; box-shadow: var(--shadow-sm); }
+    #login-btn:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    
+    #error-msg { color: var(--danger); font-size: 13px; font-weight: 600; margin-top: 16px; display: none; background: var(--danger-alpha); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--danger-alpha); }
     
     .password-wrapper { position: relative; width: 100%; margin-bottom: 16px; }
     .password-wrapper .input-field { margin-bottom: 0; padding-right: 48px; }
     .toggle-password { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-soft); cursor: pointer; display: flex; transition: color 0.2s; }
-    .toggle-password:hover { color: var(--primary); }
+    .toggle-password:hover { color: var(--text-main); }
 
-    #dashboard { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 500px; }
-    .header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 16px; padding: 16px 24px; border-radius: 20px; box-shadow: var(--shadow-soft); }
+    /* =========================================================
+       5. DASHBOARD LAYOUT & COMPONENTS
+       ========================================================= */
+    #dashboard { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 540px; }
+    
+    .header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 24px; padding: 16px 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
     .brand-area { display: flex; align-items: center; gap: 14px; }
-    .brand-title { font-size: 20px; font-weight: 800; }
-    .brand-tag { font-size: 12px; color: var(--primary); font-weight: 700; text-transform: uppercase; }
+    .brand-title { font-size: 18px; font-weight: 800; }
+    .brand-tag { font-size: 11px; color: var(--text-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;}
     .header-controls { display: flex; gap: 12px; align-items: center; }
-    #theme-toggle { background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-soft); cursor: pointer; padding: 10px; border-radius: 12px; }
-    .btn-secondary { background: transparent; border: 1px solid var(--card-border); color: var(--text-main); padding: 8px 16px; border-radius: 12px; cursor: pointer; font-weight: 600; }
+    #theme-toggle { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-soft); cursor: pointer; padding: 10px; border-radius: var(--radius-md); transition: 0.2s; }
+    #theme-toggle:hover { background: var(--input-bg); color: var(--text-main); }
 
-    .main-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; padding: 24px; width: 100%; position: relative; overflow: visible; margin-bottom: 24px; }
-    .card-border-top::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--primary), #3b82f6); border-top-left-radius: 24px; border-top-right-radius: 24px; }
+    .main-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 24px; width: 100%; position: relative; overflow: visible; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
+    .card-border-top::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--primary), #3b82f6); border-top-left-radius: 20px; border-top-right-radius: 20px; }
     
-    /* --- CUSTOM DROPDOWN STYLES --- */
+    /* =========================================================
+       6. CUSTOM SEARCHABLE DROPDOWN (Matched POS Logic)
+       ========================================================= */
     .custom-dropdown { position: relative; width: 100%; margin-top: 8px; }
-    .custom-dropdown-trigger { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid var(--card-border); background: var(--input-bg); color: var(--text-soft); font-size: 16px; font-weight: 600; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
-    .custom-dropdown-trigger:hover { border-color: var(--card-border); background: var(--card-bg); }
-    .custom-dropdown-trigger.selected { color: var(--text-main); }
-    .custom-dropdown-trigger.disabled { opacity: 0.5; cursor: not-allowed; }
+    .custom-dropdown-trigger { width: 100%; padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--card-border); background: var(--input-bg); color: var(--text-soft); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+    .custom-dropdown-trigger:hover { border-color: var(--primary); }
+    .custom-dropdown-trigger.selected { color: var(--text-main); font-weight: 600; }
+    .custom-dropdown-trigger.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
     
-    .custom-dropdown-menu { position: absolute; top: 100%; left: 0; right: 0; margin-top: 8px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; box-shadow: var(--shadow-glow); z-index: 100; display: none; flex-direction: column; overflow: hidden; }
+    .custom-dropdown-menu { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); z-index: 100; display: none; flex-direction: column; overflow: hidden; }
     .custom-dropdown-menu.show { display: flex; }
+    
     .custom-dropdown-search-wrapper { padding: 12px; border-bottom: 1px solid var(--card-border); background: var(--card-bg); }
-    .custom-dropdown-search { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--card-border); background: var(--input-bg); color: var(--text-main); outline: none; font-size: 15px; font-weight: 500; }
+    .custom-dropdown-search { width: 100%; padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--card-border); background: var(--bg-base); color: var(--text-main); outline: none; font-size: 14px; font-weight: 500; }
     .custom-dropdown-search:focus { border-color: var(--primary); }
-    .custom-dropdown-options { max-height: 220px; overflow-y: auto; padding: 8px; }
     
-    .custom-dropdown-options::-webkit-scrollbar { width: 6px; }
-    .custom-dropdown-options::-webkit-scrollbar-track { background: transparent; }
-    .custom-dropdown-options::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 10px; }
-    
-    .custom-option { padding: 12px 16px; border-radius: 8px; cursor: pointer; color: var(--text-main); font-weight: 500; transition: background 0.2s; }
-    .custom-option:hover { background: var(--primary-alpha); color: var(--primary); }
+    .custom-dropdown-options { max-height: 220px; overflow-y: auto; padding: 8px 0; }
+    .custom-option { padding: 10px 16px; cursor: pointer; color: var(--text-main); font-weight: 500; transition: background 0.2s; font-size: 13px; }
+    .custom-option:hover { background: var(--input-bg); color: var(--primary); }
     .custom-option.disabled-option { color: var(--text-soft); cursor: default; text-align: center; }
     .custom-option.disabled-option:hover { background: transparent; color: var(--text-soft); }
 
-    /* HTML5-QRCode Container Styling */
-    #video-wrapper { position: relative; background: #000; border-radius: 16px; overflow: hidden; width: 100%; height: 380px; margin-bottom: 20px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
+    /* =========================================================
+       7. HTML5-QRCode Container & Action Row
+       ========================================================= */
+    #video-wrapper { position: relative; background: #000; border-radius: var(--radius-md); overflow: hidden; width: 100%; height: 380px; margin-bottom: 24px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
     #video-container { width: 100%; height: 100%; }
     #video-container video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
     #video-container.mirrored video { transform: scaleX(-1); }
@@ -99,21 +176,13 @@
     #flash-overlay { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 20; }
     #flash-overlay.flash { opacity: 0.8; }
 
-    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; }
-    .btn-action { padding: 16px; border-radius: 14px; border: none; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-in { background: var(--success); box-shadow: 0 4px 12px var(--success-alpha); }
-    .btn-out { background: var(--danger); box-shadow: 0 4px 12px var(--danger-alpha); }
-    .btn-action:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(50%); transform: none !important; box-shadow: none !important; }
-    .btn-action:not(:disabled):hover { filter: brightness(1.1); transform: translateY(-2px); }
-
-    #toast { visibility: hidden; min-width: 300px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 24px; position: fixed; z-index: 10000; bottom: 40px; left: 50%; transform: translate(-50%, 20px); font-size: 15px; font-weight: 600; color: var(--text-main); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s, transform 0.3s, visibility 0.3s; }
-    #toast.show { visibility: visible; opacity: 1; transform: translate(-50%, 0); }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   </style>
 </head>
 <body>
 
   <div id="global-loader" class="glass-effect"><div class="spinner"></div><p>Connecting Secure Session...</p></div>
-  <div id="toast" class="glass-effect"><div id="toast-icon"></div><div id="toast-msg"></div></div>
+  <div id="toast"><div id="toast-icon"></div><div id="toast-msg"></div></div>
 
   <!-- Login Screen -->
   <div id="login-screen">
@@ -123,7 +192,7 @@
     <div class="password-wrapper">
       <input type="password" id="password-input" class="input-field" placeholder="Enter terminal password" />
       <button id="toggle-password-btn" class="toggle-password" type="button">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
       </button>
     </div>
     <button id="login-btn">Secure Login</button>
@@ -140,14 +209,14 @@
         </div>
       </div>
       <div class="header-controls">
-        <button id="theme-toggle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
+        <button id="theme-toggle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
         <button id="logout-btn" class="btn-secondary">Log Out</button>
       </div>
     </div>
 
     <!-- Active Cashier Select -->
-    <div class="main-card card-border-top" style="padding: 16px 24px; margin-bottom: 16px;">
-      <label style="font-size: 12px; font-weight: 700; color: var(--text-soft); text-transform: uppercase;">Active Employee</label>
+    <div class="main-card card-border-top" style="padding: 20px 24px; margin-bottom: 24px;">
+      <label style="font-size: 11px; font-weight: 700; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.5px;">Active Employee</label>
       
       <div class="custom-dropdown" id="staff-dropdown">
         <div class="custom-dropdown-trigger disabled" id="staff-dropdown-trigger">
@@ -167,11 +236,11 @@
     </div>
 
     <!-- Scanner Feed Card -->
-    <div class="main-card" style="overflow: hidden;">
+    <div class="main-card">
       
       <!-- EXACT POS SWITCH BUTTON -->
-      <button id="switch-camera-btn" class="btn-secondary" style="width: 100%; margin-bottom: 16px; display: flex; justify-content: center; align-items: center; gap: 8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9"/><path d="M9 22V12h6v10M2 10.6L12 2l10 8.6"/></svg>
+      <button id="switch-camera-btn" class="btn-secondary" style="width: 100%; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9"/><path d="M9 22V12h6v10M2 10.6L12 2l10 8.6"/></svg>
         Switch Camera (Front/Back)
       </button>
 
@@ -222,13 +291,13 @@
       const icon = document.getElementById('toast-icon');
       document.getElementById('toast-msg').innerText = msg;
       
-      if (statusType === "success") icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
-      else if (statusType === "error") icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
-      else icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+      if (statusType === "success") icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+      else if (statusType === "error") icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+      else icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
       
-      toast.className = "glass-effect show";
+      toast.className = "show";
       if (toast.timeout) clearTimeout(toast.timeout);
-      toast.timeout = setTimeout(() => { toast.className = "glass-effect"; }, 4000);
+      toast.timeout = setTimeout(() => { toast.className = ""; }, 4000);
     }
 
     async function checkUser() {
@@ -289,7 +358,7 @@
     function startCamera(facingMode) {
       const container = document.getElementById('video-container');
       
-      // Changed: Return promise & apply mirrored only after successful start
+      // Return promise & apply mirrored only after successful start
       return html5Qrcode.start(
           { facingMode: facingMode }, 
           { fps: 10 }, 
