@@ -291,6 +291,8 @@
             currentBranch = "";
             btnIn.disabled = true;
             btnOut.disabled = true;
+            stopCurrentCamera(); // HATA DIYA: Logout hone pe camera band ho jayega
+            cameraActive = false;
         }
     }
     checkUser();
@@ -367,17 +369,32 @@
       if (passInput.type === 'password') { passInput.type = 'text'; document.getElementById('toggle-password-btn').style.color = 'var(--primary)'; } else { passInput.type = 'password'; document.getElementById('toggle-password-btn').style.color = 'var(--text-soft)'; }
     });
 
-    // --- CAMERA ENGINE (With Switch Support) ---
+    // --- CAMERA ENGINE (With Switch Support & Bug Fixes) ---
+
+    // NEW FUNCTION: Completely stop current camera hardware
+    function stopCurrentCamera() {
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => {
+                track.stop(); // Releases hardware lock
+            });
+            currentStream = null;
+        }
+        if (video.srcObject) {
+            video.srcObject = null;
+        }
+    }
+
     async function startCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         displayToast("Security Error: Run on HTTPS or Localhost", "error");
         return;
       }
       
-      // Stop old stream before switching to prevent freeze or hardware crash
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
+      // 1. Explicitly stop existing camera and clear video source
+      stopCurrentCamera();
+
+      // 2. IMPORTANT FIX: Add a small delay so mobile hardware can fully release the lock
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
