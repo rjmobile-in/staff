@@ -88,7 +88,13 @@
     .custom-option.disabled-option:hover { background: transparent; color: var(--text-soft); }
 
     #video-container { position: relative; background: #000; border-radius: 16px; overflow: hidden; width: 100%; height: 380px; margin-bottom: 20px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
+    /* Removed transform from CSS, as it's now handled by JS dynamically */
     #video { width: 100%; height: 100%; object-fit: cover; }
+    
+    /* --- CAMERA SWITCH BUTTON STYLES --- */
+    #btn-switch-camera { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 30; transition: background 0.2s, transform 0.2s; }
+    #btn-switch-camera:hover { background: rgba(0,0,0,0.8); transform: scale(1.05); }
+    #btn-switch-camera:active { transform: scale(0.95); }
 
     #flash-overlay { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 20; }
     #flash-overlay.flash { opacity: 0.8; }
@@ -143,6 +149,7 @@
     <div class="main-card card-border-top" style="padding: 16px 24px; margin-bottom: 16px;">
       <label style="font-size: 12px; font-weight: 700; color: var(--text-soft); text-transform: uppercase;">Active Employee</label>
       
+      <!-- Custom Search Dropdown Component -->
       <div class="custom-dropdown" id="staff-dropdown">
         <div class="custom-dropdown-trigger disabled" id="staff-dropdown-trigger">
           <span id="staff-trigger-text">Connecting...</span>
@@ -162,19 +169,23 @@
 
     <!-- Scanner Feed Card -->
     <div class="main-card" style="overflow: hidden;">
-      
-      <!-- NEW CAMERA SWITCH BUTTON STYLE MATCHING POS -->
-      <button id="switch-camera-btn" class="btn-secondary" style="width: 100%; margin-bottom: 16px; display: flex; justify-content: center; align-items: center; gap: 8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9"/><path d="M9 22V12h6v10M2 10.6L12 2l10 8.6"/></svg>
-        Switch Camera (Front/Back)
-      </button>
-
       <div id="video-container">
         <video id="video" autoplay playsinline muted></video>
+        
+        <!-- NEW CAMERA SWITCH BUTTON -->
+        <button id="btn-switch-camera" title="Switch Camera">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
+            <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
+          </svg>
+        </button>
+
         <div id="flash-overlay"></div>
       </div>
 
       <div class="btn-row">
+        <!-- Buttons disabled by default until name is selected -->
         <button id="btn-clock-in" class="btn-action btn-in" disabled>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> 
           In + Photo
@@ -190,10 +201,13 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+    // SUPABASE CREDENTIALS
     const SUPABASE_URL = 'https://rezumapzlsjnkitxvsul.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlenVtYXB6bHNqbmtpdHh2c3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzNTY2NjUsImV4cCI6MjA5OTkzMjY2NX0.IVUZVjZUuiM9qTcKAIIxJth_zSIGJUWTaubUV4Fy0_Y';
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { storageKey: 'rj_branch_terminal_auth' }
+      auth: {
+        storageKey: 'rj_branch_terminal_auth',
+      }
     });
 
     let currentBranch = ""; 
@@ -224,12 +238,15 @@
       toast.timeout = setTimeout(() => { toast.className = "glass-effect"; }, 4000);
     }
 
+    // --- AUTHENTICATION ENGINE ---
     async function checkUser() {
         const { data: { session } } = await supabase.auth.getSession();
         handleAuthChange(session?.user);
     }
+    
     supabase.auth.onAuthStateChange((event, session) => { handleAuthChange(session?.user); });
 
+    // --- WIFI RESTRICTION REMOVED ---
     async function handleAuthChange(user) {
         document.getElementById('global-loader').style.display = 'none';
         if (user) {
@@ -237,9 +254,13 @@
             document.getElementById('dashboard').style.display = 'flex';
             
             const email = user.email.toLowerCase();
+            
+            // 1. Fetch branch name ONLY (IP lock removed)
             const { data: branchData } = await supabase.from('branches_directory').select('branch_name').eq('email', email).single();
             
-            if (branchData) { currentBranch = branchData.branch_name; }
+            if (branchData) { 
+                currentBranch = branchData.branch_name; 
+            }
             else if (email.includes('murlipura1')) currentBranch = "Murlipura, 1 Number";
             else if (email.includes('vki17')) currentBranch = "VKI, 17 Number";
             else if (email.includes('lohamandi')) currentBranch = "VKI, Lohamandi";
@@ -250,16 +271,19 @@
             document.getElementById('detected-branch-display').innerHTML = currentBranch;
             displayToast("Branch Session Active.", "success");
             
+            // 2. Direct database staff loading (Skipped Network Security phase)
             const { data: sData } = await supabase.from('staff_directory').select('name').order('name');
             if (sData) {
                 masterStaffNames = sData.map(s => s.name);
+                
                 document.getElementById('staff-dropdown-trigger').classList.remove('disabled');
                 document.getElementById('staff-trigger-text').innerText = "Tap to select your name...";
+                
                 renderStaffDropdown(masterStaffNames);
             }
             
             if (!cameraActive) {
-                await startCamera();
+                startCamera();
             }
         } else {
             document.getElementById('login-screen').style.display = 'block';
@@ -267,14 +291,11 @@
             currentBranch = "";
             btnIn.disabled = true;
             btnOut.disabled = true;
-            
-            // Fire and forget cleanly on logout
-            stopCurrentCamera(); 
-            cameraActive = false;
         }
     }
     checkUser();
 
+    // --- CUSTOM DROPDOWN ENGINE ---
     const dropdownTrigger = document.getElementById('staff-dropdown-trigger');
     const dropdownMenu = document.getElementById('staff-dropdown-menu');
     const searchInput = document.getElementById('staff-search');
@@ -286,35 +307,43 @@
             optionsContainer.innerHTML = `<div class="custom-option disabled-option">No results found</div>`;
             return;
         }
+        
         optionsContainer.innerHTML = list.map(name => `<div class="custom-option" data-value="${name}">${name}</div>`).join('');
         
+        // Attach click listeners to options
         document.querySelectorAll('.custom-option:not(.disabled-option)').forEach(opt => {
             opt.addEventListener('click', () => {
                 staffSelected = opt.getAttribute('data-value');
                 triggerText.innerText = staffSelected;
                 dropdownTrigger.classList.add('selected');
                 dropdownMenu.classList.remove('show');
+                
+                // Fire validation
                 checkStaffStatus(staffSelected);
             });
         });
     }
 
+    // Toggle menu Open/Close
     dropdownTrigger.addEventListener('click', () => {
         if (dropdownTrigger.classList.contains('disabled')) return;
         dropdownMenu.classList.toggle('show');
+        
         if (dropdownMenu.classList.contains('show')) {
-            searchInput.value = "";
-            renderStaffDropdown(masterStaffNames);
-            searchInput.focus(); 
+            searchInput.value = ""; // Clear search on open
+            renderStaffDropdown(masterStaffNames); // Reset list to full
+            searchInput.focus(); // Focus instantly
         }
     });
 
+    // Filtering logic via Input
     searchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const filteredList = masterStaffNames.filter(name => name.toLowerCase().includes(searchTerm));
         renderStaffDropdown(filteredList);
     });
 
+    // Close Dropdown when clicking outside
     document.addEventListener('click', (e) => {
         const dropdown = document.getElementById('staff-dropdown');
         if (dropdown && !dropdown.contains(e.target)) {
@@ -330,41 +359,29 @@
     });
     
     document.getElementById('logout-btn').addEventListener('click', async () => { await supabase.auth.signOut(); });
+    
     document.getElementById('password-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') document.getElementById('login-btn').click(); });
+    
     document.getElementById('toggle-password-btn').addEventListener('click', () => {
       const passInput = document.getElementById('password-input');
       if (passInput.type === 'password') { passInput.type = 'text'; document.getElementById('toggle-password-btn').style.color = 'var(--primary)'; } else { passInput.type = 'password'; document.getElementById('toggle-password-btn').style.color = 'var(--text-soft)'; }
     });
 
-    // --- ENHANCED CAMERA ENGINE WITH ASYNC PROMISE FIX ---
-
-    // Stop current camera safely and WAIT for OS hardware lock to release
-    function stopCurrentCamera() {
-        return new Promise((resolve) => {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => {
-                    track.stop();
-                    currentStream.removeTrack(track); // Clear tracks internally
-                });
-                currentStream = null;
-            }
-            if (video.srcObject) {
-                video.srcObject = null;
-            }
-            // Add a clean 500ms delay that acts exactly like html5-qrcode's safety buffer
-            setTimeout(resolve, 500); 
-        });
-    }
-
+    // --- CAMERA ENGINE (With Switch Support) ---
     async function startCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         displayToast("Security Error: Run on HTTPS or Localhost", "error");
         return;
       }
       
+      // Stop old stream before switching to prevent freeze or hardware crash
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: { ideal: currentFacingMode } }, // Changed to 'ideal' for safer switching compatibility
+            video: { facingMode: currentFacingMode }, 
             audio: false 
         });
         
@@ -381,27 +398,22 @@
         cameraActive = true;
       } catch (err) {
         console.error("Camera Error:", err);
-        displayToast("Camera in use or denied. Please reload.", "error");
+        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+            displayToast("Camera Access Denied by Browser", "error");
+        } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+            displayToast("No Camera Hardware Found!", "error");
+        } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+            displayToast("Camera is already in use by another app", "error");
+        } else {
+            displayToast(`Camera Error: ${err.message}`, "error");
+        }
       }
     }
 
-    // Connect Camera Switch Button with proper async flow!
-    document.getElementById('switch-camera-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('switch-camera-btn');
-      btn.disabled = true; // Lock button to prevent double-tapping
-      btn.innerHTML = "Switching...";
-
-      currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
-      
-      // Step 1: Wait for camera to fully stop and unlock
-      await stopCurrentCamera();
-      
-      // Step 2: Safely start the new camera
-      await startCamera();
-
-      // Step 3: Restore button state
-      btn.disabled = false;
-      btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9"/><path d="M9 22V12h6v10M2 10.6L12 2l10 8.6"/></svg> Switch Camera (Front/Back)`;
+    // Connect Camera Switch Button
+    document.getElementById('btn-switch-camera').addEventListener('click', () => {
+      currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+      startCamera();
     });
 
     function triggerFlash() {
@@ -409,14 +421,17 @@
       setTimeout(() => { flashOverlay.classList.remove('flash'); }, 150);
     }
 
+    // --- CHECK IN/OUT STRICT VALIDATION LOGIC ---
     async function checkStaffStatus(staffName) {
         if (!staffName) return;
 
+        // Reset and lock buttons while checking
         btnIn.disabled = true;
         btnOut.disabled = true;
         displayToast(`Checking status for ${staffName}...`, "primary");
 
         try {
+            // Find today's logs for this specific user
             const todayStart = new Date();
             todayStart.setHours(0,0,0,0);
 
@@ -438,14 +453,17 @@
             }
 
             if (hasClockedIn && hasClockedOut) {
+                // Done for the day (Strict 1 In, 1 Out)
                 btnIn.disabled = true;
                 btnOut.disabled = true;
                 displayToast(`Shift Complete! You have already clocked in and out today.`, "success");
             } else if (hasClockedIn && !hasClockedOut) {
+                // Clocked In, waiting for Clock Out
                 btnIn.disabled = true;
                 btnOut.disabled = false;
                 displayToast(`Welcome back ${staffName.split(' ')[0]}! Ready to Clock Out?`, "success");
             } else {
+                // Not clocked in at all -> Can only Clock In
                 btnIn.disabled = false;
                 btnOut.disabled = true;
                 displayToast(`No records found today. Please Clock In.`, "primary");
@@ -456,6 +474,7 @@
         }
     }
 
+    // --- ATTENDANCE & COMPRESSED PHOTO UPLOAD LOGIC ---
     async function logAttendance(targetAction) {
       if (!staffSelected) {
         displayToast("Please select your name first!", "error");
@@ -468,11 +487,13 @@
       triggerFlash();
       displayToast(`Uploading securely...`, "primary"); 
       
+      // CREATE SMALLER CANVAS FOR FASTER UPLOAD & AVOID DB REJECTION
       const hiddenCanvas = document.createElement('canvas');
-      hiddenCanvas.width = 480; 
-      hiddenCanvas.height = 640; 
+      hiddenCanvas.width = 480; // Compressed width
+      hiddenCanvas.height = 640; // Compressed height
       const ctx = hiddenCanvas.getContext('2d');
       
+      // Mirror the image to match the video feed ONLY if using the front camera
       if (currentFacingMode === "user") {
           ctx.translate(hiddenCanvas.width, 0);
           ctx.scale(-1, 1);
@@ -481,6 +502,7 @@
       let capturedBase64 = "";
       try {
         ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        // LOWER QUALITY (0.6) to prevent DB Rejection / Out of Memory
         capturedBase64 = hiddenCanvas.toDataURL('image/jpeg', 0.6); 
       } catch (err) {
         console.error("Camera Capture Error", err);
@@ -491,7 +513,7 @@
           employee_name: staffSelected,
           branch: currentBranch, 
           action: targetAction,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString(), // EXPLICIT TIMESTAMP ADDED
           photo_capture: capturedBase64
         }]);
         
@@ -499,6 +521,7 @@
         
         displayToast(`Success: ${targetAction} verified!`, "success");
         
+        // Reset Dropdown & Lock Buttons instantly after successful log
         staffSelected = "";
         triggerText.innerText = "Tap to select your name...";
         dropdownTrigger.classList.remove('selected');
