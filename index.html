@@ -12,6 +12,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Yahan Same POS wali Library add ki gayi hai -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -87,9 +90,12 @@
     .custom-option.disabled-option { color: var(--text-soft); cursor: default; text-align: center; }
     .custom-option.disabled-option:hover { background: transparent; color: var(--text-soft); }
 
-    #video-container { position: relative; background: #000; border-radius: 16px; overflow: hidden; width: 100%; height: 380px; margin-bottom: 20px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
-    #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-    
+    /* HTML5-QRCode Container Styling */
+    #video-wrapper { position: relative; background: #000; border-radius: 16px; overflow: hidden; width: 100%; height: 380px; margin-bottom: 20px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
+    #video-container { width: 100%; height: 100%; }
+    #video-container video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+    #video-container.mirrored video { transform: scaleX(-1); }
+
     #flash-overlay { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 20; }
     #flash-overlay.flash { opacity: 0.8; }
 
@@ -143,7 +149,6 @@
     <div class="main-card card-border-top" style="padding: 16px 24px; margin-bottom: 16px;">
       <label style="font-size: 12px; font-weight: 700; color: var(--text-soft); text-transform: uppercase;">Active Employee</label>
       
-      <!-- Custom Search Dropdown Component -->
       <div class="custom-dropdown" id="staff-dropdown">
         <div class="custom-dropdown-trigger disabled" id="staff-dropdown-trigger">
           <span id="staff-trigger-text">Connecting...</span>
@@ -161,9 +166,17 @@
       </div>
     </div>
 
+    <!-- Scanner Feed Card -->
     <div class="main-card" style="overflow: hidden;">
-      <div id="video-container">
-        <video id="video" autoplay playsinline muted></video>
+      
+      <!-- EXACT POS SWITCH BUTTON -->
+      <button id="switch-camera-btn" class="btn-secondary" style="width: 100%; margin-bottom: 16px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9"/><path d="M9 22V12h6v10M2 10.6L12 2l10 8.6"/></svg>
+        Switch Camera (Front/Back)
+      </button>
+
+      <div id="video-wrapper">
+        <div id="video-container"></div>
         <div id="flash-overlay"></div>
       </div>
 
@@ -183,22 +196,22 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // SUPABASE CREDENTIALS
     const SUPABASE_URL = 'https://rezumapzlsjnkitxvsul.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlenVtYXB6bHNqbmtpdHh2c3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzNTY2NjUsImV4cCI6MjA5OTkzMjY2NX0.IVUZVjZUuiM9qTcKAIIxJth_zSIGJUWTaubUV4Fy0_Y';
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: {
-        storageKey: 'rj_branch_terminal_auth',
-      }
+      auth: { storageKey: 'rj_branch_terminal_auth' }
     });
 
-    let currentBranch = ""; 
+    // POS Wala Camera Manager
+    let html5Qrcode = null;
+    let currentFacingMode = "user"; // Attendance me default Front Camera chalega
     let cameraActive = false;
+
+    let currentBranch = ""; 
     let isProcessing = false;
     let masterStaffNames = []; 
     let staffSelected = ""; 
     
-    const video = document.getElementById('video');
     const flashOverlay = document.getElementById('flash-overlay');
     const btnIn = document.getElementById('btn-clock-in');
     const btnOut = document.getElementById('btn-clock-out');
@@ -217,37 +230,12 @@
       toast.timeout = setTimeout(() => { toast.className = "glass-effect"; }, 4000);
     }
 
-    // --- DISTANCE CALCULATION ENGINE ---
-    function getDistanceInMeters(lat1, lon1, lat2, lon2) {
-      const R = 6371e3; // Earth radius in meters
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c; 
-    }
-
-    function getCurrentPosition() {
-      return new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { 
-            enableHighAccuracy: true, 
-            timeout: 10000, 
-            maximumAge: 0 
-        });
-      });
-    }
-
-    // --- AUTHENTICATION ENGINE ---
     async function checkUser() {
         const { data: { session } } = await supabase.auth.getSession();
         handleAuthChange(session?.user);
     }
-    
     supabase.auth.onAuthStateChange((event, session) => { handleAuthChange(session?.user); });
 
-    // --- AUTHENTICATION & LOCATION SECURITY ENGINE ---
     async function handleAuthChange(user) {
         document.getElementById('global-loader').style.display = 'none';
         if (user) {
@@ -255,67 +243,29 @@
             document.getElementById('dashboard').style.display = 'flex';
             
             const email = user.email.toLowerCase();
+            const { data: branchData } = await supabase.from('branches_directory').select('branch_name').eq('email', email).single();
             
-            // 1. Fetch branch name AND allowed_lat/lng from Database
-            const { data: branchData } = await supabase.from('branches_directory')
-                .select('branch_name, allowed_lat, allowed_lng')
-                .eq('email', email).single();
-            
-            let allowedLat = null;
-            let allowedLng = null;
-
-            if (branchData) { 
-                currentBranch = branchData.branch_name; 
-                allowedLat = branchData.allowed_lat;
-                allowedLng = branchData.allowed_lng;
-            } else {
-                currentBranch = "Unassigned Branch";
-            }
+            if (branchData) { currentBranch = branchData.branch_name; }
+            else if (email.includes('murlipura1')) currentBranch = "Murlipura, 1 Number";
+            else if (email.includes('vki17')) currentBranch = "VKI, 17 Number";
+            else if (email.includes('lohamandi')) currentBranch = "VKI, Lohamandi";
+            else if (email.includes('shastri')) currentBranch = "Shastri Nagar";
+            else if (email.includes('murlipura6')) currentBranch = "Murlipura, 6 Number";
+            else currentBranch = "Central / Unassigned Branch";
 
             document.getElementById('detected-branch-display').innerHTML = currentBranch;
-
-            // 2. GPS Lock Verification Logic
-            if (allowedLat && allowedLng) {
-                try {
-                    displayToast("Verifying GPS Location...", "primary");
-                    const position = await getCurrentPosition();
-                    const currentLat = position.coords.latitude;
-                    const currentLng = position.coords.longitude;
-                    
-                    const distance = getDistanceInMeters(allowedLat, allowedLng, currentLat, currentLng);
-                    
-                    if (distance > 50) {
-                        // Location does not match - BLOCK ACCESS
-                        document.getElementById('detected-branch-display').innerHTML = `${currentBranch} <span style="color:var(--danger)">[OUT OF RANGE]</span>`;
-                        document.getElementById('staff-dropdown-trigger').classList.add('disabled');
-                        document.getElementById('staff-trigger-text').innerText = `Access Denied: You are ${Math.round(distance)}m away`;
-                        displayToast("Security Alert: Not in 50m branch radius.", "error");
-                        return; // Stop execution here (Camera won't start, logs blocked)
-                    } else {
-                        displayToast(`Location Secured (${Math.round(distance)}m).`, "success");
-                    }
-                } catch (err) {
-                    console.error("Location Check Failed", err);
-                    document.getElementById('staff-dropdown-trigger').classList.add('disabled');
-                    document.getElementById('staff-trigger-text').innerText = `Location Access Required`;
-                    displayToast("Please allow Location permission in browser.", "error");
-                    return;
-                }
-            }
+            displayToast("Branch Session Active.", "success");
             
-            // 3. If Location matches (or no Location lock is set), load staff and camera
             const { data: sData } = await supabase.from('staff_directory').select('name').order('name');
             if (sData) {
                 masterStaffNames = sData.map(s => s.name);
-                
                 document.getElementById('staff-dropdown-trigger').classList.remove('disabled');
                 document.getElementById('staff-trigger-text').innerText = "Tap to select your name...";
-                
                 renderStaffDropdown(masterStaffNames);
             }
             
             if (!cameraActive) {
-                startCamera();
+                initScanner();
             }
         } else {
             document.getElementById('login-screen').style.display = 'block';
@@ -323,11 +273,52 @@
             currentBranch = "";
             btnIn.disabled = true;
             btnOut.disabled = true;
+            
+            stopScanner();
         }
     }
     checkUser();
 
-    // --- CUSTOM DROPDOWN ENGINE ---
+    // --- POS WALA EXACT CAMERA ENGINE ---
+    function initScanner() {
+      if (!html5Qrcode) html5Qrcode = new Html5Qrcode("video-container");
+      startCamera(currentFacingMode);
+    }
+
+    function startCamera(facingMode) {
+      const container = document.getElementById('video-container');
+      if (facingMode === "user") container.classList.add("mirrored"); else container.classList.remove("mirrored");
+      
+      // Starting Feed without QR Box since we just need the camera to take a photo
+      html5Qrcode.start(
+          { facingMode: facingMode }, 
+          { fps: 10 }, 
+          () => {}, // Ignore Scans
+          () => {}  // Ignore Scan Errors
+      ).then(() => {
+          cameraActive = true;
+      }).catch((err) => {
+          console.error(err);
+          displayToast("Camera access denied or in use.", "error");
+      });
+    }
+
+    function stopScanner() {
+      if (html5Qrcode && html5Qrcode.isScanning) { 
+          html5Qrcode.stop().then(() => { html5Qrcode.clear(); cameraActive = false; }).catch(err => console.error(err)); 
+      }
+    }
+
+    // EXACT POS SWITCH BUTTON LOGIC
+    document.getElementById('switch-camera-btn').addEventListener('click', () => {
+      currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+      if (html5Qrcode && html5Qrcode.isScanning) { 
+          html5Qrcode.stop().then(() => startCamera(currentFacingMode)); 
+      } else { 
+          startCamera(currentFacingMode); 
+      }
+    });
+
     const dropdownTrigger = document.getElementById('staff-dropdown-trigger');
     const dropdownMenu = document.getElementById('staff-dropdown-menu');
     const searchInput = document.getElementById('staff-search');
@@ -339,7 +330,6 @@
             optionsContainer.innerHTML = `<div class="custom-option disabled-option">No results found</div>`;
             return;
         }
-        
         optionsContainer.innerHTML = list.map(name => `<div class="custom-option" data-value="${name}">${name}</div>`).join('');
         
         document.querySelectorAll('.custom-option:not(.disabled-option)').forEach(opt => {
@@ -356,10 +346,9 @@
     dropdownTrigger.addEventListener('click', () => {
         if (dropdownTrigger.classList.contains('disabled')) return;
         dropdownMenu.classList.toggle('show');
-        
         if (dropdownMenu.classList.contains('show')) {
-            searchInput.value = ""; 
-            renderStaffDropdown(masterStaffNames); 
+            searchInput.value = "";
+            renderStaffDropdown(masterStaffNames);
             searchInput.focus(); 
         }
     });
@@ -385,40 +374,17 @@
     });
     
     document.getElementById('logout-btn').addEventListener('click', async () => { await supabase.auth.signOut(); });
-    
     document.getElementById('password-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') document.getElementById('login-btn').click(); });
-    
     document.getElementById('toggle-password-btn').addEventListener('click', () => {
       const passInput = document.getElementById('password-input');
       if (passInput.type === 'password') { passInput.type = 'text'; document.getElementById('toggle-password-btn').style.color = 'var(--primary)'; } else { passInput.type = 'password'; document.getElementById('toggle-password-btn').style.color = 'var(--text-soft)'; }
     });
-
-    // --- CAMERA ENGINE ---
-    async function startCamera() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        displayToast("Security Error: Run on HTTPS or Localhost", "error");
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-        video.srcObject = stream;
-        cameraActive = true;
-      } catch (err) {
-        console.error("Camera Error:", err);
-        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-            displayToast("Camera Access Denied by Browser", "error");
-        } else {
-            displayToast(`Camera Error: ${err.message}`, "error");
-        }
-      }
-    }
 
     function triggerFlash() {
       flashOverlay.classList.add('flash');
       setTimeout(() => { flashOverlay.classList.remove('flash'); }, 150);
     }
 
-    // --- CHECK IN/OUT STRICT VALIDATION LOGIC ---
     async function checkStaffStatus(staffName) {
         if (!staffName) return;
 
@@ -466,7 +432,6 @@
         }
     }
 
-    // --- ATTENDANCE & COMPRESSED PHOTO UPLOAD LOGIC ---
     async function logAttendance(targetAction) {
       if (!staffSelected) {
         displayToast("Please select your name first!", "error");
@@ -484,12 +449,18 @@
       hiddenCanvas.height = 640; 
       const ctx = hiddenCanvas.getContext('2d');
       
-      ctx.translate(hiddenCanvas.width, 0);
-      ctx.scale(-1, 1);
+      if (currentFacingMode === "user") {
+          ctx.translate(hiddenCanvas.width, 0);
+          ctx.scale(-1, 1);
+      }
       
       let capturedBase64 = "";
       try {
-        ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        // html5-qrcode creates the <video> tag dynamically, grab it to draw the image!
+        const dynamicVideo = document.querySelector('#video-container video');
+        if(!dynamicVideo) throw new Error("Video feed not found");
+        
+        ctx.drawImage(dynamicVideo, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
         capturedBase64 = hiddenCanvas.toDataURL('image/jpeg', 0.6); 
       } catch (err) {
         console.error("Camera Capture Error", err);
@@ -500,7 +471,7 @@
           employee_name: staffSelected,
           branch: currentBranch, 
           action: targetAction,
-          timestamp: new Date().toISOString(), 
+          timestamp: new Date().toISOString(),
           photo_capture: capturedBase64
         }]);
         
