@@ -61,7 +61,6 @@
     #theme-toggle { background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-soft); cursor: pointer; padding: 10px; border-radius: 12px; }
     .btn-secondary { background: transparent; border: 1px solid var(--card-border); color: var(--text-main); padding: 8px 16px; border-radius: 12px; cursor: pointer; font-weight: 600; }
 
-    /* Changed overflow from hidden to visible so dropdown can break out of the card */
     .main-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; padding: 24px; width: 100%; position: relative; overflow: visible; margin-bottom: 24px; }
     .card-border-top::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--primary), #3b82f6); border-top-left-radius: 24px; border-top-right-radius: 24px; }
     
@@ -79,7 +78,6 @@
     .custom-dropdown-search:focus { border-color: var(--primary); }
     .custom-dropdown-options { max-height: 220px; overflow-y: auto; padding: 8px; }
     
-    /* Custom Scrollbar */
     .custom-dropdown-options::-webkit-scrollbar { width: 6px; }
     .custom-dropdown-options::-webkit-scrollbar-track { background: transparent; }
     .custom-dropdown-options::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 10px; }
@@ -90,8 +88,14 @@
     .custom-option.disabled-option:hover { background: transparent; color: var(--text-soft); }
 
     #video-container { position: relative; background: #000; border-radius: 16px; overflow: hidden; width: 100%; height: 380px; margin-bottom: 20px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
-    #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    /* Removed transform from CSS, as it's now handled by JS dynamically */
+    #video { width: 100%; height: 100%; object-fit: cover; }
     
+    /* --- CAMERA SWITCH BUTTON STYLES --- */
+    #btn-switch-camera { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 30; transition: background 0.2s, transform 0.2s; }
+    #btn-switch-camera:hover { background: rgba(0,0,0,0.8); transform: scale(1.05); }
+    #btn-switch-camera:active { transform: scale(0.95); }
+
     #flash-overlay { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 20; }
     #flash-overlay.flash { opacity: 0.8; }
 
@@ -164,10 +168,19 @@
     </div>
 
     <!-- Scanner Feed Card -->
-    <!-- Wrapping in an overflow-hidden div specifically for video border radiuses to prevent clipping into the dropdown above it -->
     <div class="main-card" style="overflow: hidden;">
       <div id="video-container">
         <video id="video" autoplay playsinline muted></video>
+        
+        <!-- NEW CAMERA SWITCH BUTTON -->
+        <button id="btn-switch-camera" title="Switch Camera">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
+            <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
+          </svg>
+        </button>
+
         <div id="flash-overlay"></div>
       </div>
 
@@ -201,7 +214,10 @@
     let cameraActive = false;
     let isProcessing = false;
     let masterStaffNames = []; 
-    let staffSelected = ""; // Tracks the currently active user
+    let staffSelected = ""; 
+    
+    let currentStream = null;
+    let currentFacingMode = "user"; // Tracks if camera is front ("user") or back ("environment")
     
     const video = document.getElementById('video');
     const flashOverlay = document.getElementById('flash-overlay');
@@ -230,7 +246,7 @@
     
     supabase.auth.onAuthStateChange((event, session) => { handleAuthChange(session?.user); });
 
-    // --- AUTHENTICATION & IP SECURITY ENGINE ---
+    // --- WIFI RESTRICTION REMOVED ---
     async function handleAuthChange(user) {
         document.getElementById('global-loader').style.display = 'none';
         if (user) {
@@ -239,13 +255,11 @@
             
             const email = user.email.toLowerCase();
             
-            // 1. Fetch branch name AND ip_address from Database
-            const { data: branchData } = await supabase.from('branches_directory').select('branch_name, ip_address').eq('email', email).single();
+            // 1. Fetch branch name ONLY (IP lock removed)
+            const { data: branchData } = await supabase.from('branches_directory').select('branch_name').eq('email', email).single();
             
-            let allowedIp = "";
             if (branchData) { 
                 currentBranch = branchData.branch_name; 
-                allowedIp = branchData.ip_address || ""; 
             }
             else if (email.includes('murlipura1')) currentBranch = "Murlipura, 1 Number";
             else if (email.includes('vki17')) currentBranch = "VKI, 17 Number";
@@ -255,33 +269,9 @@
             else currentBranch = "Central / Unassigned Branch";
 
             document.getElementById('detected-branch-display').innerHTML = currentBranch;
-
-            // 2. IP Lock Verification Logic
-            if (allowedIp.trim() !== "") {
-                try {
-                    displayToast("Verifying Network Security...", "primary");
-                    const ipRes = await fetch('https://api.ipify.org?format=json');
-                    const ipData = await ipRes.json();
-                    const currentIp = ipData.ip;
-                    
-                    if (currentIp !== allowedIp.trim()) {
-                        // IP does not match - BLOCK ACCESS
-                        document.getElementById('detected-branch-display').innerHTML = `${currentBranch} <span style="color:var(--danger)">[NETWORK BLOCKED]</span>`;
-                        document.getElementById('staff-dropdown-trigger').classList.add('disabled');
-                        document.getElementById('staff-trigger-text').innerText = "Access Denied: Connect to Branch Wi-Fi";
-                        displayToast("Security Alert: Invalid Wi-Fi Network.", "error");
-                        return; // Stop execution here (Camera won't start, logs blocked)
-                    } else {
-                        displayToast("Network Secured.", "success");
-                    }
-                } catch (err) {
-                    console.error("IP Check Failed", err);
-                    displayToast("Network Check Failed. Check Internet connection.", "error");
-                    return;
-                }
-            }
+            displayToast("Branch Session Active.", "success");
             
-            // 3. If IP matches (or no IP lock is set), load staff and camera
+            // 2. Direct database staff loading (Skipped Network Security phase)
             const { data: sData } = await supabase.from('staff_directory').select('name').order('name');
             if (sData) {
                 masterStaffNames = sData.map(s => s.name);
@@ -361,7 +351,6 @@
         }
     });
 
-
     document.getElementById('login-btn').addEventListener('click', async () => {
       const e = document.getElementById('email-input').value, p = document.getElementById('password-input').value, msg = document.getElementById('error-msg');
       msg.style.display = 'none'; 
@@ -378,15 +367,34 @@
       if (passInput.type === 'password') { passInput.type = 'text'; document.getElementById('toggle-password-btn').style.color = 'var(--primary)'; } else { passInput.type = 'password'; document.getElementById('toggle-password-btn').style.color = 'var(--text-soft)'; }
     });
 
-    // --- CAMERA ENGINE (With Detailed Error Handling) ---
+    // --- CAMERA ENGINE (With Switch Support) ---
     async function startCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         displayToast("Security Error: Run on HTTPS or Localhost", "error");
         return;
       }
+      
+      // Stop old stream before switching to prevent freeze or hardware crash
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: currentFacingMode }, 
+            audio: false 
+        });
+        
+        currentStream = stream;
         video.srcObject = stream;
+        
+        // Dynamically mirror the video if it's the selfie camera
+        if (currentFacingMode === "user") {
+            video.style.transform = "scaleX(-1)";
+        } else {
+            video.style.transform = "scaleX(1)";
+        }
+
         cameraActive = true;
       } catch (err) {
         console.error("Camera Error:", err);
@@ -401,6 +409,12 @@
         }
       }
     }
+
+    // Connect Camera Switch Button
+    document.getElementById('btn-switch-camera').addEventListener('click', () => {
+      currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+      startCamera();
+    });
 
     function triggerFlash() {
       flashOverlay.classList.add('flash');
@@ -479,9 +493,11 @@
       hiddenCanvas.height = 640; // Compressed height
       const ctx = hiddenCanvas.getContext('2d');
       
-      // Mirror the image to match the video feed
-      ctx.translate(hiddenCanvas.width, 0);
-      ctx.scale(-1, 1);
+      // Mirror the image to match the video feed ONLY if using the front camera
+      if (currentFacingMode === "user") {
+          ctx.translate(hiddenCanvas.width, 0);
+          ctx.scale(-1, 1);
+      }
       
       let capturedBase64 = "";
       try {
