@@ -206,6 +206,7 @@
     let html5Qrcode = null;
     let currentFacingMode = "user"; // Attendance me default Front Camera chalega
     let cameraActive = false;
+    let isSwitchingCamera = false; // Camera switch ka flag
 
     let currentBranch = ""; 
     let isProcessing = false;
@@ -287,16 +288,17 @@
 
     function startCamera(facingMode) {
       const container = document.getElementById('video-container');
-      if (facingMode === "user") container.classList.add("mirrored"); else container.classList.remove("mirrored");
       
-      // Starting Feed without QR Box since we just need the camera to take a photo
-      html5Qrcode.start(
+      // Changed: Return promise & apply mirrored only after successful start
+      return html5Qrcode.start(
           { facingMode: facingMode }, 
           { fps: 10 }, 
           () => {}, // Ignore Scans
           () => {}  // Ignore Scan Errors
       ).then(() => {
           cameraActive = true;
+          if (facingMode === "user") container.classList.add("mirrored"); 
+          else container.classList.remove("mirrored");
       }).catch((err) => {
           console.error(err);
           displayToast("Camera access denied or in use.", "error");
@@ -309,13 +311,35 @@
       }
     }
 
-    // EXACT POS SWITCH BUTTON LOGIC
-    document.getElementById('switch-camera-btn').addEventListener('click', () => {
+    // EXACT POS SWITCH BUTTON LOGIC (Fixed for double-taps and UI glitches)
+    document.getElementById('switch-camera-btn').addEventListener('click', async () => {
+      // Prevent multiple clicks while switching
+      if (isSwitchingCamera) return; 
+      isSwitchingCamera = true;
+      
+      const btn = document.getElementById('switch-camera-btn');
+      const originalText = btn.innerHTML;
+      
+      // Show switching feedback
+      btn.innerHTML = 'Switching...';
+      btn.style.opacity = '0.6';
+      btn.style.cursor = 'wait';
+
       currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
-      if (html5Qrcode && html5Qrcode.isScanning) { 
-          html5Qrcode.stop().then(() => startCamera(currentFacingMode)); 
-      } else { 
-          startCamera(currentFacingMode); 
+      
+      try {
+          if (html5Qrcode && html5Qrcode.isScanning) { 
+              await html5Qrcode.stop(); 
+          }
+          await startCamera(currentFacingMode); 
+      } catch (err) {
+          console.error("Camera Switch Error:", err);
+      } finally {
+          // Re-enable button
+          isSwitchingCamera = false;
+          btn.innerHTML = originalText;
+          btn.style.opacity = '1';
+          btn.style.cursor = 'pointer';
       }
     });
 
