@@ -6,7 +6,9 @@
   <title>Attendance | Professional Terminal</title>
   
   <script>
-    if (localStorage.getItem('rj_theme') === 'light') { document.documentElement.classList.add('light-theme'); }
+    if (localStorage.getItem('rj_theme') === 'light') { 
+      document.documentElement.classList.add('light-theme'); 
+    }
   </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -20,7 +22,11 @@
     /* =========================================================
        1. ROOT VARIABLES & THEME (Matched to Admin/POS)
        ========================================================= */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+    }
     
     :root {
       --bg-base: #0f172a; 
@@ -36,9 +42,12 @@
       --text-main: #f8fafc; 
       --text-soft: #94a3b8;
       
-      --success: #10b981; --success-alpha: rgba(16, 185, 129, 0.15);
-      --danger: #ef4444; --danger-alpha: rgba(239, 68, 68, 0.15);
-      --warning: #f59e0b; --warning-alpha: rgba(245, 158, 11, 0.15);
+      --success: #10b981; 
+      --success-alpha: rgba(16, 185, 129, 0.15);
+      --danger: #ef4444; 
+      --danger-alpha: rgba(239, 68, 68, 0.15);
+      --warning: #f59e0b; 
+      --warning-alpha: rgba(245, 158, 11, 0.15);
       
       --input-bg: #0f172a; 
       --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -68,18 +77,18 @@
     }
 
     body { 
-        font-family: 'Inter', sans-serif; 
-        background: var(--bg-base); 
-        color: var(--text-main); 
-        font-size: 14px; 
-        min-height: 100vh; 
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
-        padding: 24px 16px; 
-        transition: background-color 0.4s ease; 
-        overflow-x: hidden; 
-        -webkit-font-smoothing: antialiased;
+      font-family: 'Inter', sans-serif; 
+      background: var(--bg-base); 
+      color: var(--text-main); 
+      font-size: 14px; 
+      min-height: 100vh; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      padding: 24px 16px; 
+      transition: background-color 0.4s ease; 
+      overflow-x: hidden; 
+      -webkit-font-smoothing: antialiased;
     }
     
     .brand-title, .btn-action, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -107,7 +116,31 @@
     .spinner { width: 44px; height: 44px; border: 4px solid var(--card-border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 24px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    #toast { visibility: hidden; min-width: 300px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 24px; position: fixed; z-index: 10000; bottom: 40px; left: 50%; transform: translate(-50%, 20px); font-size: 14px; font-weight: 600; color: var(--text-main); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    /* Updated Toast CSS - pointer-events added */
+    #toast { 
+      visibility: hidden; 
+      min-width: 300px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 12px; 
+      padding: 16px 24px; 
+      position: fixed; 
+      z-index: 10000; 
+      bottom: 40px; 
+      left: 50%; 
+      transform: translate(-50%, 20px); 
+      font-size: 14px; 
+      font-weight: 600; 
+      color: var(--text-main); 
+      background: var(--card-bg); 
+      border: 1px solid var(--card-border); 
+      border-radius: var(--radius-lg); 
+      box-shadow: var(--shadow-md); 
+      opacity: 0; 
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+      pointer-events: none; 
+    }
     #toast.show { visibility: visible; opacity: 1; transform: translate(-50%, 0); }
 
     /* =========================================================
@@ -308,9 +341,15 @@
       const icon = document.getElementById('toast-icon');
       document.getElementById('toast-msg').innerText = msg;
       
-      if (statusType === "success") icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
-      else if (statusType === "error") icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
-      else icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+      if (statusType === "success") {
+        icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+      }
+      else if (statusType === "error") {
+        icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+      }
+      else {
+        icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+      }
       
       toast.className = "show";
       if (toast.timeout) clearTimeout(toast.timeout);
@@ -528,10 +567,14 @@
         const { data: { session } } = await supabase.auth.getSession();
         handleAuthChange(session?.user);
     }
-    supabase.auth.onAuthStateChange((event, session) => { handleAuthChange(session?.user); });
+    
+    supabase.auth.onAuthStateChange((event, session) => { 
+        handleAuthChange(session?.user); 
+    });
 
     async function handleAuthChange(user) {
         document.getElementById('global-loader').style.display = 'none';
+        
         if (user) {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('dashboard').style.display = 'flex';
@@ -552,6 +595,7 @@
             
             // FETCH STAFF & FILTER: ONLY STAFF WITHOUT FACE DESCRIPTORS APPEAR IN DROPDOWN
             const { data: sData } = await supabase.from('staff_directory').select('name, face_descriptor').order('name');
+            
             if (sData) {
                 // Filter out anyone who already has a face_descriptor assigned
                 masterStaffNames = sData.filter(s => !s.face_descriptor || s.face_descriptor.length === 0).map(s => s.name);
@@ -562,6 +606,7 @@
             }
             
             if (!cameraActive) initScanner();
+            
         } else {
             document.getElementById('login-screen').style.display = 'block';
             document.getElementById('dashboard').style.display = 'none';
@@ -571,28 +616,29 @@
             stopScanner();
         }
     }
+    
     checkUser();
 
     // Switch Camera Logic
     document.getElementById('switch-camera-btn').addEventListener('click', async () => {
-      if (isSwitchingCamera) return; 
-      isSwitchingCamera = true;
-      const btn = document.getElementById('switch-camera-btn');
-      const originalText = btn.innerHTML;
-      btn.innerHTML = 'Switching...';
-      btn.style.opacity = '0.6';
+        if (isSwitchingCamera) return; 
+        isSwitchingCamera = true;
+        const btn = document.getElementById('switch-camera-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Switching...';
+        btn.style.opacity = '0.6';
 
-      currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
-      
-      try {
-          await startCamera(currentFacingMode); 
-      } catch (err) {
-          console.error("Camera Switch Error:", err);
-      } finally {
-          isSwitchingCamera = false;
-          btn.innerHTML = originalText;
-          btn.style.opacity = '1';
-      }
+        currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+        
+        try {
+            await startCamera(currentFacingMode); 
+        } catch (err) {
+            console.error("Camera Switch Error:", err);
+        } finally {
+            isSwitchingCamera = false;
+            btn.innerHTML = originalText;
+            btn.style.opacity = '1';
+        }
     });
 
     // Dropdown Handlers
@@ -603,10 +649,12 @@
 
     function renderStaffDropdown(list) {
         const optionsContainer = document.getElementById('staff-options');
+        
         if (list.length === 0) {
             optionsContainer.innerHTML = `<div class="custom-option disabled-option">All staff are registered!</div>`;
             return;
         }
+        
         optionsContainer.innerHTML = list.map(name => `<div class="custom-option" data-value="${name}">${name}</div>`).join('');
         
         document.querySelectorAll('.custom-option:not(.disabled-option)').forEach(opt => {
@@ -615,10 +663,13 @@
                 
                 // Manual Override active so AI doesn't switch it back instantly
                 manualOverride = true;
-                triggerText.innerText = `${staffSelected} (Manual Override)`;
+                
+                // Clean formatting applied - "(Manual Override)" removed
+                triggerText.innerText = `${staffSelected}`;
                 
                 dropdownTrigger.classList.add('selected');
                 dropdownMenu.classList.remove('show');
+                
                 checkStaffStatus(staffSelected);
             });
         });
@@ -651,23 +702,41 @@
     });
 
     document.getElementById('login-btn').addEventListener('click', async () => {
-      const e = document.getElementById('email-input').value, p = document.getElementById('password-input').value, msg = document.getElementById('error-msg');
-      msg.style.display = 'none'; 
-      const { error } = await supabase.auth.signInWithPassword({ email: e, password: p });
-      if(error) { msg.style.display = 'block'; msg.innerText = error.message; }
+        const e = document.getElementById('email-input').value;
+        const p = document.getElementById('password-input').value;
+        const msg = document.getElementById('error-msg');
+        
+        msg.style.display = 'none'; 
+        const { error } = await supabase.auth.signInWithPassword({ email: e, password: p });
+        
+        if(error) { 
+            msg.style.display = 'block'; 
+            msg.innerText = error.message; 
+        }
     });
     
-    document.getElementById('logout-btn').addEventListener('click', async () => { await supabase.auth.signOut(); });
-    document.getElementById('password-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') document.getElementById('login-btn').click(); });
+    document.getElementById('logout-btn').addEventListener('click', async () => { 
+        await supabase.auth.signOut(); 
+    });
+    
+    document.getElementById('password-input').addEventListener('keypress', (e) => { 
+        if(e.key === 'Enter') document.getElementById('login-btn').click(); 
+    });
+    
     document.getElementById('toggle-password-btn').addEventListener('click', () => {
-      const passInput = document.getElementById('password-input');
-      if (passInput.type === 'password') { passInput.type = 'text'; document.getElementById('toggle-password-btn').style.color = 'var(--primary)'; } 
-      else { passInput.type = 'password'; document.getElementById('toggle-password-btn').style.color = 'var(--text-soft)'; }
+        const passInput = document.getElementById('password-input');
+        if (passInput.type === 'password') { 
+            passInput.type = 'text'; 
+            document.getElementById('toggle-password-btn').style.color = 'var(--primary)'; 
+        } else { 
+            passInput.type = 'password'; 
+            document.getElementById('toggle-password-btn').style.color = 'var(--text-soft)'; 
+        }
     });
 
     function triggerFlash() {
-      flashOverlay.classList.add('flash');
-      setTimeout(() => { flashOverlay.classList.remove('flash'); }, 150);
+        flashOverlay.classList.add('flash');
+        setTimeout(() => { flashOverlay.classList.remove('flash'); }, 150);
     }
 
     // --- 5. Verify Staff Attendance Status ---
@@ -718,80 +787,80 @@
 
     // --- 6. Log Attendance (Instant Capture & Base64 Insertion) ---
     async function logAttendance(targetAction) {
-      if (!staffSelected) {
-        displayToast("Please select or show your face to identify!", "error");
-        return;
-      }
-      
-      if (isProcessing) return;
-      isProcessing = true;
-      btnIn.disabled = true;
-      btnOut.disabled = true;
-      
-      const dynamicVideo = document.getElementById('native-video');
-      if(!dynamicVideo) {
-          displayToast("Camera feed not active.", "error");
-          isProcessing = false;
-          return;
-      }
-
-      // INSTANT CAPTURE
-      triggerFlash();
-      displayToast(`Logging attendance securely...`, "primary"); 
-      
-      const hiddenCanvas = document.createElement('canvas');
-      hiddenCanvas.width = 480; 
-      hiddenCanvas.height = 640; 
-      const ctx = hiddenCanvas.getContext('2d');
-      
-      // Mirror Correction
-      if (currentFacingMode === "user") {
-          ctx.translate(hiddenCanvas.width, 0);
-          ctx.scale(-1, 1);
-      }
-      
-      // Draw video frame to canvas
-      ctx.drawImage(dynamicVideo, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
-      
-      // Compress to 0.6 Quality Base64 JPEG directly
-      const base64Data = hiddenCanvas.toDataURL('image/jpeg', 0.6);
-      
-      try {
-        // Direct Database Insert - ZERO CLOUD STORAGE BUCKETS
-        const { error: dbError } = await supabase.from('attendance_logs').insert([{
-          employee_name: staffSelected,
-          branch: currentBranch, 
-          action: targetAction,
-          timestamp: new Date().toISOString(),
-          photo_capture: base64Data
-        }]);
-        
-        if (dbError) throw dbError;
-
-        // Auto-Enroll / Update Face Descriptor if live face vector is active and it's a first-time manual override
-        if (currentLiveDescriptor && manualOverride) {
-            const descriptorArray = Array.from(currentLiveDescriptor);
-            await supabase.from('staff_directory')
-                .update({ face_descriptor: descriptorArray })
-                .eq('name', staffSelected);
-                
-            await loadKnownFaces(); 
-            
-            // Immediately slice out the newly registered person from dropdown
-            masterStaffNames = masterStaffNames.filter(n => n !== staffSelected);
-            renderStaffDropdown(masterStaffNames);
+        if (!staffSelected) {
+            displayToast("Please select or show your face to identify!", "error");
+            return;
         }
         
-        displayToast(`🎉 Success: ${targetAction} verified!`, "success");
+        if (isProcessing) return;
+        isProcessing = true;
+        btnIn.disabled = true;
+        btnOut.disabled = true;
         
-        // Trigger 4-Second Cooldown
-        initiateCooldown();
+        const dynamicVideo = document.getElementById('native-video');
+        if(!dynamicVideo) {
+            displayToast("Camera feed not active.", "error");
+            isProcessing = false;
+            return;
+        }
+
+        // INSTANT CAPTURE
+        triggerFlash();
+        displayToast(`Logging attendance securely...`, "primary"); 
         
-      } catch (err) {
-        console.error("Log Error:", err);
-        displayToast("Database transmission failed. Try again.", "error");
-        isProcessing = false;
-      }
+        const hiddenCanvas = document.createElement('canvas');
+        hiddenCanvas.width = 480; 
+        hiddenCanvas.height = 640; 
+        const ctx = hiddenCanvas.getContext('2d');
+        
+        // Mirror Correction
+        if (currentFacingMode === "user") {
+            ctx.translate(hiddenCanvas.width, 0);
+            ctx.scale(-1, 1);
+        }
+        
+        // Draw video frame to canvas
+        ctx.drawImage(dynamicVideo, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        
+        // Compress to 0.6 Quality Base64 JPEG directly
+        const base64Data = hiddenCanvas.toDataURL('image/jpeg', 0.6);
+        
+        try {
+            // Direct Database Insert - ZERO CLOUD STORAGE BUCKETS
+            const { error: dbError } = await supabase.from('attendance_logs').insert([{
+                employee_name: staffSelected,
+                branch: currentBranch, 
+                action: targetAction,
+                timestamp: new Date().toISOString(),
+                photo_capture: base64Data
+            }]);
+            
+            if (dbError) throw dbError;
+
+            // Auto-Enroll / Update Face Descriptor if live face vector is active and it's a first-time manual override
+            if (currentLiveDescriptor && manualOverride) {
+                const descriptorArray = Array.from(currentLiveDescriptor);
+                await supabase.from('staff_directory')
+                    .update({ face_descriptor: descriptorArray })
+                    .eq('name', staffSelected);
+                    
+                await loadKnownFaces(); 
+                
+                // Immediately slice out the newly registered person from dropdown
+                masterStaffNames = masterStaffNames.filter(n => n !== staffSelected);
+                renderStaffDropdown(masterStaffNames);
+            }
+            
+            displayToast(`🎉 Success: ${targetAction} verified!`, "success");
+            
+            // Trigger 4-Second Cooldown
+            initiateCooldown();
+            
+        } catch (err) {
+            console.error("Log Error:", err);
+            displayToast("Database transmission failed. Try again.", "error");
+            isProcessing = false;
+        }
     }
 
     function initiateCooldown() {
