@@ -117,7 +117,6 @@
     .spinner { width: 44px; height: 44px; border: 4px solid var(--card-border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 24px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Updated Toast CSS - pointer-events added */
     #toast { 
       visibility: hidden; 
       min-width: 300px; 
@@ -311,7 +310,7 @@
       auth: { storageKey: 'rj_branch_terminal_auth' }
     });
 
-    // --- Face Recognition Engine State ---
+    // --- Relational & State Variables ---
     let currentFacingMode = "user";
     let cameraActive = false;
     let isSwitchingCamera = false;
@@ -325,10 +324,17 @@
     let manualOverride = false; 
     let faceLostTimer = null; 
 
-    let currentBranch = ""; 
+    // Relational Identity vars
+    let currentBranchId = null;
+    let currentBranchName = ""; 
+    
+    let staffMap = {}; // Maps id to { id, name }
+    let unregisteredStaffList = []; // Array of objects { id, name }
+    
+    let currentStaffId = null; 
+    let currentStaffName = "";
+    
     let isProcessing = false;
-    let masterStaffNames = []; // Array of UNREGISTERED names ONLY
-    let staffSelected = ""; 
     
     const flashOverlay = document.getElementById('flash-overlay');
     const btnIn = document.getElementById('btn-clock-in');
@@ -382,14 +388,15 @@
     // Load registered face descriptors from Supabase
     async function loadKnownFaces() {
         statusEl.innerText = "Syncing Face Profiles...";
-        const { data: staffData } = await supabase.from('staff_directory').select('name, face_descriptor');
+        const { data: staffData } = await supabase.from('staff_directory').select('id, name, face_descriptor');
         
         if (staffData && staffData.length > 0) {
             const labeledDescriptors = [];
             staffData.forEach(staff => {
-                if (staff.face_descriptor && Array.isArray(staff.face_descriptor)) {
+                if (staff.face_descriptor && Array.isArray(staff.face_descriptor) && staff.face_descriptor.length > 0) {
                     const descriptorArray = new Float32Array(staff.face_descriptor);
-                    labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(staff.name, [descriptorArray]));
+                    // Use staff.id as the core identifying label in the AI
+                    labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(staff.id, [descriptorArray]));
                 }
             });
 
@@ -462,21 +469,26 @@
                     
                     if (bestMatch.label !== 'unknown') {
                         // ==== REGISTERED FACE DETECTED ====
+                        // bestMatch.label is the UUID. Resolve name from map.
+                        const matchedId = bestMatch.label;
+                        const matchedName = staffMap[matchedId] ? staffMap[matchedId].name : "Unknown Staff";
                         const confidence = Math.round((1 - bestMatch.distance) * 100);
-                        statusEl.innerText = `Recognized: ${bestMatch.label} (${confidence}%)`;
+                        
+                        statusEl.innerText = `Recognized: ${matchedName.split(' ')[0]} (${confidence}%)`;
                         statusEl.className = "detected";
 
                         // SPOOF PROTECTION: Force lock to recognized face and kill any manual override
-                        if (staffSelected !== bestMatch.label) {
-                            staffSelected = bestMatch.label;
+                        if (currentStaffId !== matchedId) {
+                            currentStaffId = matchedId;
+                            currentStaffName = matchedName;
                             manualOverride = false;
                             
                             const trigger = document.getElementById('staff-dropdown-trigger');
-                            document.getElementById('staff-trigger-text').innerText = `${staffSelected} (Auto-Identified)`;
+                            document.getElementById('staff-trigger-text').innerText = `${currentStaffName} (Auto-Identified)`;
                             trigger.classList.add('selected');
                             trigger.classList.add('disabled'); // Lock the dropdown entirely
                             
-                            checkStaffStatus(staffSelected);
+                            checkStaffStatus(currentStaffId, currentStaffName);
                         }
                     } else {
                         // ==== UNREGISTERED FACE DETECTED ====
@@ -487,8 +499,8 @@
                         if(!manualOverride) {
                             trigger.classList.remove('disabled'); 
                             statusEl.innerText = "New Face: Select Name Below";
-                        } else if (manualOverride && staffSelected) {
-                            statusEl.innerText = `Ready to Register: ${staffSelected}`;
+                        } else if (manualOverride && currentStaffId) {
+                            statusEl.innerText = `Ready to Register: ${currentStaffName.split(' ')[0]}`;
                             statusEl.className = "detected";
                         }
                     }
@@ -512,13 +524,13 @@
                 }
 
                 // Smart Inactivity & Fresh Reset Timer (4 Seconds without face)
-                if (!faceLostTimer && (staffSelected || manualOverride)) {
+                if (!faceLostTimer && (currentStaffId || manualOverride)) {
                     faceLostTimer = setTimeout(() => {
                         resetTerminalState();
                         statusEl.innerText = "Scanning for Face...";
                         statusEl.className = "";
                     }, 4000);
-                } else if (!faceLostTimer && !staffSelected) {
+                } else if (!faceLostTimer && !currentStaffId) {
                     // Ensures standard state messaging if completely idle
                     statusEl.innerText = "Scanning for Face...";
                     statusEl.className = "";
@@ -529,7 +541,8 @@
 
     function resetTerminalState() {
         manualOverride = false;
-        staffSelected = "";
+        currentStaffId = null;
+        currentStaffName = "";
         allowedAction = null;
         
         const trigger = document.getElementById('staff-dropdown-trigger');
@@ -557,7 +570,7 @@
         btnIn.disabled = true;
         btnOut.disabled = true;
         
-        if (isFaceDetected && staffSelected) {
+        if (isFaceDetected && currentStaffId) {
             if (allowedAction === 'in') btnIn.disabled = false;
             if (allowedAction === 'out') btnOut.disabled = false;
         }
@@ -581,29 +594,39 @@
             document.getElementById('dashboard').style.display = 'flex';
             
             const email = user.email.toLowerCase();
-            const { data: branchData } = await supabase.from('branches_directory').select('branch_name').eq('email', email).single();
+            const { data: branchData } = await supabase.from('branches_directory').select('id, branch_name').eq('email', email).single();
             
-            if (branchData) { currentBranch = branchData.branch_name; }
-            else if (email.includes('murlipura1')) currentBranch = "Murlipura, 1 Number";
-            else if (email.includes('vki17')) currentBranch = "VKI, 17 Number";
-            else if (email.includes('lohamandi')) currentBranch = "VKI, Lohamandi";
-            else if (email.includes('shastri')) currentBranch = "Shastri Nagar";
-            else if (email.includes('murlipura6')) currentBranch = "Murlipura, 6 Number";
-            else currentBranch = "Central / Unassigned Branch";
+            if (branchData) { 
+                currentBranchId = branchData.id; 
+                currentBranchName = branchData.branch_name; 
+            }
+            // Safe fallbacks if branch isn't connected to email yet
+            else if (email.includes('murlipura1')) currentBranchName = "Murlipura, 1 Number";
+            else if (email.includes('vki17')) currentBranchName = "VKI, 17 Number";
+            else if (email.includes('lohamandi')) currentBranchName = "VKI, Lohamandi";
+            else if (email.includes('shastri')) currentBranchName = "Shastri Nagar";
+            else if (email.includes('murlipura6')) currentBranchName = "Murlipura, 6 Number";
+            else currentBranchName = "Central / Unassigned Branch";
 
-            document.getElementById('detected-branch-display').innerHTML = currentBranch;
+            document.getElementById('detected-branch-display').innerHTML = currentBranchName;
             displayToast("Branch Session Active.", "success");
             
-            // FETCH STAFF & FILTER: ONLY STAFF WITHOUT FACE DESCRIPTORS APPEAR IN DROPDOWN
-            const { data: sData } = await supabase.from('staff_directory').select('name, face_descriptor').order('name');
+            // FETCH STAFF & FILTER
+            const { data: sData } = await supabase.from('staff_directory').select('id, name, face_descriptor').order('name');
             
             if (sData) {
-                // Filter out anyone who already has a face_descriptor assigned
-                masterStaffNames = sData.filter(s => !s.face_descriptor || s.face_descriptor.length === 0).map(s => s.name);
+                // Populate global staff map for instant resolution from UUIDs
+                staffMap = {};
+                sData.forEach(s => {
+                    staffMap[s.id] = { id: s.id, name: s.name };
+                });
+
+                // Filter out anyone who already has a face_descriptor assigned for the dropdown list
+                unregisteredStaffList = sData.filter(s => !s.face_descriptor || s.face_descriptor.length === 0).map(s => ({ id: s.id, name: s.name }));
                 
                 document.getElementById('staff-dropdown-trigger').classList.remove('disabled');
                 document.getElementById('staff-trigger-text').innerText = "Face scanner active (Select if 1st time)...";
-                renderStaffDropdown(masterStaffNames);
+                renderStaffDropdown(unregisteredStaffList);
             }
             
             if (!cameraActive) initScanner();
@@ -611,7 +634,8 @@
         } else {
             document.getElementById('login-screen').style.display = 'block';
             document.getElementById('dashboard').style.display = 'none';
-            currentBranch = "";
+            currentBranchId = null;
+            currentBranchName = "";
             btnIn.disabled = true;
             btnOut.disabled = true;
             stopScanner();
@@ -656,22 +680,22 @@
             return;
         }
         
-        optionsContainer.innerHTML = list.map(name => `<div class="custom-option" data-value="${name}">${name}</div>`).join('');
+        optionsContainer.innerHTML = list.map(s => `<div class="custom-option" data-id="${s.id}">${s.name}</div>`).join('');
         
         document.querySelectorAll('.custom-option:not(.disabled-option)').forEach(opt => {
             opt.addEventListener('click', () => {
-                staffSelected = opt.getAttribute('data-value');
+                currentStaffId = opt.getAttribute('data-id');
+                currentStaffName = opt.innerText;
                 
                 // Manual Override active so AI doesn't switch it back instantly
                 manualOverride = true;
                 
-                // Clean formatting applied - "(Manual Override)" removed
-                triggerText.innerText = `${staffSelected}`;
+                triggerText.innerText = `${currentStaffName}`;
                 
                 dropdownTrigger.classList.add('selected');
                 dropdownMenu.classList.remove('show');
                 
-                checkStaffStatus(staffSelected);
+                checkStaffStatus(currentStaffId, currentStaffName);
             });
         });
     }
@@ -684,14 +708,14 @@
         dropdownMenu.classList.toggle('show');
         if (dropdownMenu.classList.contains('show')) {
             searchInput.value = "";
-            renderStaffDropdown(masterStaffNames);
+            renderStaffDropdown(unregisteredStaffList);
             searchInput.focus(); 
         }
     });
 
     searchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
-        const filteredList = masterStaffNames.filter(name => name.toLowerCase().includes(searchTerm));
+        const filteredList = unregisteredStaffList.filter(s => s.name.toLowerCase().includes(searchTerm));
         renderStaffDropdown(filteredList);
     });
 
@@ -741,21 +765,22 @@
     }
 
     // --- 5. Verify Staff Attendance Status ---
-    async function checkStaffStatus(staffName) {
-        if (!staffName) return;
+    async function checkStaffStatus(sId, sName) {
+        if (!sId) return;
 
         btnIn.disabled = true;
         btnOut.disabled = true;
-        displayToast(`Checking status for ${staffName}...`, "primary");
+        displayToast(`Checking status for ${sName.split(' ')[0]}...`, "primary");
 
         try {
             const todayStart = new Date();
             todayStart.setHours(0,0,0,0);
 
+            // Check database specifically via staff_id
             const { data, error } = await supabase
                 .from('attendance_logs')
                 .select('action')
-                .eq('employee_name', staffName)
+                .eq('staff_id', sId)
                 .gte('timestamp', todayStart.toISOString())
                 .order('timestamp', { ascending: false });
 
@@ -774,10 +799,10 @@
                 displayToast(`Shift Complete! Already clocked in and out today.`, "success");
             } else if (hasClockedIn && !hasClockedOut) {
                 allowedAction = 'out';
-                displayToast(`Welcome back ${staffName.split(' ')[0]}! Ready to Clock Out?`, "success");
+                displayToast(`Welcome back ${sName.split(' ')[0]}! Ready to Clock Out?`, "success");
             } else {
                 allowedAction = 'in';
-                displayToast(`Verified: ${staffName}. Ready to Clock In.`, "primary");
+                displayToast(`Verified: ${sName.split(' ')[0]}. Ready to Clock In.`, "primary");
             }
             updateButtonStates();
         } catch (err) {
@@ -788,7 +813,7 @@
 
     // --- 6. Log Attendance (Instant Capture & Base64 Insertion) ---
     async function logAttendance(targetAction) {
-        if (!staffSelected) {
+        if (!currentStaffId) {
             displayToast("Please select or show your face to identify!", "error");
             return;
         }
@@ -827,10 +852,12 @@
         const base64Data = hiddenCanvas.toDataURL('image/jpeg', 0.6);
         
         try {
-            // Direct Database Insert - ZERO CLOUD STORAGE BUCKETS
+            // Direct Database Insert - Relational + Fallbacks
             const { error: dbError } = await supabase.from('attendance_logs').insert([{
-                employee_name: staffSelected,
-                branch: currentBranch, 
+                staff_id: currentStaffId,
+                employee_name: currentStaffName, // Fallback historical text
+                branch_id: currentBranchId,
+                branch: currentBranchName, // Fallback historical text
                 action: targetAction,
                 timestamp: new Date().toISOString(),
                 photo_capture: base64Data
@@ -843,13 +870,13 @@
                 const descriptorArray = Array.from(currentLiveDescriptor);
                 await supabase.from('staff_directory')
                     .update({ face_descriptor: descriptorArray })
-                    .eq('name', staffSelected);
+                    .eq('id', currentStaffId);
                     
                 await loadKnownFaces(); 
                 
                 // Immediately slice out the newly registered person from dropdown
-                masterStaffNames = masterStaffNames.filter(n => n !== staffSelected);
-                renderStaffDropdown(masterStaffNames);
+                unregisteredStaffList = unregisteredStaffList.filter(s => s.id !== currentStaffId);
+                renderStaffDropdown(unregisteredStaffList);
             }
             
             displayToast(`🎉 Success: ${targetAction} verified!`, "success");
