@@ -16,9 +16,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   
-  <!-- face-api.js -->
-  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-
   <style>
     /* =========================================================
        1. ROOT VARIABLES & THEME (Matched to Admin/POS)
@@ -199,18 +196,13 @@
     .custom-option.disabled-option:hover { background: transparent; color: var(--text-soft); }
 
     /* =========================================================
-       7. AI Camera Container & Action Row
+       7. Camera Container & Action Row
        ========================================================= */
     #video-wrapper { position: relative; background: #000; border-radius: var(--radius-md); overflow: hidden; width: 100%; height: 380px; margin-bottom: 24px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
     
     #native-video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
     .mirrored { transform: scaleX(-1); }
-    #face-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
     
-    #face-status { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--card-bg-alpha); backdrop-filter: blur(4px); padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; color: var(--text-main); border: 1px solid var(--card-border); z-index: 15; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.2s; white-space: nowrap;}
-    #face-status.detected { color: var(--success); border-color: var(--success); }
-    #face-status.warning { color: var(--warning); border-color: var(--warning); }
-
     #flash-overlay { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 20; }
     #flash-overlay.flash { opacity: 0.8; }
 
@@ -264,7 +256,7 @@
         
         <div class="custom-dropdown-menu" id="staff-dropdown-menu">
           <div class="custom-dropdown-search-wrapper">
-            <input type="text" id="staff-search" class="custom-dropdown-search" placeholder="🔍 Search name (1st time only)..." autocomplete="off" />
+            <input type="text" id="staff-search" class="custom-dropdown-search" placeholder="🔍 Search name..." autocomplete="off" />
           </div>
           <div class="custom-dropdown-options" id="staff-options">
             <div class="custom-option disabled-option">Loading...</div>
@@ -283,8 +275,6 @@
 
       <div id="video-wrapper">
         <video id="native-video" autoplay muted playsinline></video>
-        <canvas id="face-canvas"></canvas>
-        <div id="face-status">Waiting for AI...</div>
         <div id="flash-overlay"></div>
       </div>
 
@@ -315,21 +305,15 @@
     let cameraActive = false;
     let isSwitchingCamera = false;
     let localStream = null;
-    let detectionInterval = null;
     
-    let isFaceDetected = false;
     let allowedAction = null; 
-    let faceMatcher = null;   
-    let currentLiveDescriptor = null; 
-    let manualOverride = false; 
-    let faceLostTimer = null; 
 
     // Relational Identity vars
     let currentBranchId = null;
     let currentBranchName = ""; 
     
     let staffMap = {}; // Maps id to { id, name }
-    let unregisteredStaffList = []; // Array of objects { id, name }
+    let allStaffList = []; // Array of all staff { id, name }
     
     let currentStaffId = null; 
     let currentStaffName = "";
@@ -340,8 +324,6 @@
     const btnIn = document.getElementById('btn-clock-in');
     const btnOut = document.getElementById('btn-clock-out');
     const videoEl = document.getElementById('native-video');
-    const canvasEl = document.getElementById('face-canvas');
-    const statusEl = document.getElementById('face-status');
 
     function displayToast(msg, statusType = "success") {
       const toast = document.getElementById('toast');
@@ -363,195 +345,65 @@
       toast.timeout = setTimeout(() => { toast.className = ""; }, 4000);
     }
 
-    // --- 1. Load Recognition Models & Supabase Face Embeddings ---
+    // --- 1. Camera Initialization ---
     async function initScanner() {
         if(cameraActive) return;
-        statusEl.innerText = "Loading AI Models...";
-        try {
-            const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
-            
-            // Load Detection, Landmark, and Recognition networks
-            await Promise.all([
-                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
-                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-            ]);
-
-            await loadKnownFaces();
-            startCamera(currentFacingMode);
-        } catch(err) {
-            console.error("AI Model Load Error:", err);
-            displayToast("Failed to initialize Face Recognition AI.", "error");
-        }
-    }
-
-    // Load registered face descriptors from Supabase
-    async function loadKnownFaces() {
-        statusEl.innerText = "Syncing Face Profiles...";
-        const { data: staffData } = await supabase.from('staff_directory').select('id, name, face_descriptor');
-        
-        if (staffData && staffData.length > 0) {
-            const labeledDescriptors = [];
-            staffData.forEach(staff => {
-                if (staff.face_descriptor && Array.isArray(staff.face_descriptor) && staff.face_descriptor.length > 0) {
-                    const descriptorArray = new Float32Array(staff.face_descriptor);
-                    // Use staff.id as the core identifying label in the AI
-                    labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(staff.id, [descriptorArray]));
-                }
-            });
-
-            if (labeledDescriptors.length > 0) {
-                // Distance threshold 0.5 (lower = stricter match)
-                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.50);
-            }
-        }
+        startCamera(currentFacingMode);
     }
 
     // --- 2. Camera Controls ---
     async function startCamera(facingMode) {
         try {
-            if (localStream) localStream.getTracks().forEach(track => track.stop());
-            localStream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: facingMode, width: { ideal: 640 }, height: { ideal: 480 } } 
-            });
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                // Mobile hardware lock ko release hone ke liye thoda time chahiye
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            // Strict width/height hata diya hai taaki phone reject na kare
+            const constraints = {
+                video: { facingMode: facingMode === "environment" ? { exact: "environment" } : "user" }
+            };
+
+            try {
+                // Pehle strict back camera try karenge
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (fallbackErr) {
+                // Agar kuch Android phones 'exact' keyword ko reject karein, toh normal try karenge
+                console.warn("Exact match failed, trying normal fallback...");
+                localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
+            }
             
             videoEl.srcObject = localStream;
             
             if (facingMode === "user") {
                 videoEl.classList.add("mirrored");
-                canvasEl.classList.add("mirrored");
             } else {
                 videoEl.classList.remove("mirrored");
-                canvasEl.classList.remove("mirrored");
             }
             
             cameraActive = true;
-            statusEl.innerText = "Scanning for Face...";
         } catch (err) {
-            console.error(err);
-            displayToast("Camera access denied.", "error");
+            console.error("Camera Start Error:", err);
+            // Ab exact error screen par dikhega taaki pata chale issue kya hai
+            displayToast(`Error: ${err.name || "Camera access denied"}`, "error");
+            
+            if (facingMode === "environment") {
+                currentFacingMode = "user"; // Error aane par wapas user variable set karein
+            }
         }
     }
 
-    // --- 3. Live Detection & Recognition Loop ---
-    videoEl.addEventListener('play', () => {
-        const displaySize = { width: videoEl.clientWidth, height: videoEl.clientHeight };
-        faceapi.matchDimensions(canvasEl, displaySize);
-        
-        if (detectionInterval) clearInterval(detectionInterval);
-        
-        detectionInterval = setInterval(async () => {
-            if(!cameraActive || isSwitchingCamera || isProcessing) return;
-
-            // Single face detection + landmark + descriptor extraction
-            const detection = await faceapi.detectSingleFace(
-                videoEl, 
-                new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
-            ).withFaceLandmarks(true).withFaceDescriptor();
-
-            // Clear canvas every frame to ensure NO VISUAL BOUNDING BOXES are drawn
-            const ctx = canvasEl.getContext('2d');
-            ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-
-            if (detection) {
-                // Instantly clear the reset timer if face returns to frame
-                if (faceLostTimer) {
-                    clearTimeout(faceLostTimer);
-                    faceLostTimer = null;
-                }
-
-                currentLiveDescriptor = detection.descriptor; // Save current vector
-                isFaceDetected = true;
-
-                // Match against known staff database
-                if (faceMatcher) {
-                    const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
-                    
-                    if (bestMatch.label !== 'unknown') {
-                        // ==== REGISTERED FACE DETECTED ====
-                        // bestMatch.label is the UUID. Resolve name from map.
-                        const matchedId = bestMatch.label;
-                        const matchedName = staffMap[matchedId] ? staffMap[matchedId].name : "Unknown Staff";
-                        const confidence = Math.round((1 - bestMatch.distance) * 100);
-                        
-                        statusEl.innerText = `Recognized: ${matchedName.split(' ')[0]} (${confidence}%)`;
-                        statusEl.className = "detected";
-
-                        // SPOOF PROTECTION: Force lock to recognized face and kill any manual override
-                        if (currentStaffId !== matchedId) {
-                            currentStaffId = matchedId;
-                            currentStaffName = matchedName;
-                            manualOverride = false;
-                            
-                            const trigger = document.getElementById('staff-dropdown-trigger');
-                            document.getElementById('staff-trigger-text').innerText = `${currentStaffName} (Auto-Identified)`;
-                            trigger.classList.add('selected');
-                            trigger.classList.add('disabled'); // Lock the dropdown entirely
-                            
-                            checkStaffStatus(currentStaffId, currentStaffName);
-                        }
-                    } else {
-                        // ==== UNREGISTERED FACE DETECTED ====
-                        statusEl.className = "warning";
-                        
-                        const trigger = document.getElementById('staff-dropdown-trigger');
-                        // Unlock dropdown ONLY for unknown faces so they can register
-                        if(!manualOverride) {
-                            trigger.classList.remove('disabled'); 
-                            statusEl.innerText = "New Face: Select Name Below";
-                        } else if (manualOverride && currentStaffId) {
-                            statusEl.innerText = `Ready to Register: ${currentStaffName.split(' ')[0]}`;
-                            statusEl.className = "detected";
-                        }
-                    }
-                } else {
-                    // No database exists yet at all
-                    statusEl.innerText = "Face Detected (Select Name Below)";
-                    statusEl.className = "warning";
-                    document.getElementById('staff-dropdown-trigger').classList.remove('disabled');
-                }
-
-                updateButtonStates();
-            } else {
-                // ==== NO FACE DETECTED ====
-                if (isFaceDetected) {
-                    isFaceDetected = false;
-                    currentLiveDescriptor = null;
-                    updateButtonStates(); // Instantly disable buttons upon drop-out while retaining manual override
-                    
-                    statusEl.innerText = "Face Lost (Waiting...)";
-                    statusEl.className = "warning";
-                }
-
-                // Smart Inactivity & Fresh Reset Timer (4 Seconds without face)
-                if (!faceLostTimer && (currentStaffId || manualOverride)) {
-                    faceLostTimer = setTimeout(() => {
-                        resetTerminalState();
-                        statusEl.innerText = "Scanning for Face...";
-                        statusEl.className = "";
-                    }, 4000);
-                } else if (!faceLostTimer && !currentStaffId) {
-                    // Ensures standard state messaging if completely idle
-                    statusEl.innerText = "Scanning for Face...";
-                    statusEl.className = "";
-                }
-            }
-        }, 200);
-    });
-
     function resetTerminalState() {
-        manualOverride = false;
         currentStaffId = null;
         currentStaffName = "";
         allowedAction = null;
         
         const trigger = document.getElementById('staff-dropdown-trigger');
-        document.getElementById('staff-trigger-text').innerText = "Face scanner active (Select if 1st time)...";
+        document.getElementById('staff-trigger-text').innerText = "Select Employee Name...";
         trigger.classList.remove('selected');
-        trigger.classList.remove('disabled'); // Re-enable for the next potential new person
         
         updateButtonStates();
-        faceLostTimer = null;
     }
 
     function stopScanner() {
@@ -559,18 +411,14 @@
             localStream.getTracks().forEach(track => track.stop());
             localStream = null;
         }
-        if (detectionInterval) clearInterval(detectionInterval);
-        if (faceLostTimer) { clearTimeout(faceLostTimer); faceLostTimer = null; }
         cameraActive = false;
-        isFaceDetected = false;
-        canvasEl.getContext('2d').clearRect(0, 0, canvasEl.width, canvasEl.height);
     }
 
     function updateButtonStates() {
         btnIn.disabled = true;
         btnOut.disabled = true;
         
-        if (isFaceDetected && currentStaffId) {
+        if (currentStaffId) {
             if (allowedAction === 'in') btnIn.disabled = false;
             if (allowedAction === 'out') btnOut.disabled = false;
         }
@@ -611,22 +459,22 @@
             document.getElementById('detected-branch-display').innerHTML = currentBranchName;
             displayToast("Branch Session Active.", "success");
             
-            // FETCH STAFF & FILTER
-            const { data: sData } = await supabase.from('staff_directory').select('id, name, face_descriptor').order('name');
+            // FETCH ALL STAFF
+            const { data: sData } = await supabase.from('staff_directory').select('id, name').order('name');
             
             if (sData) {
-                // Populate global staff map for instant resolution from UUIDs
+                // Populate global staff map
                 staffMap = {};
                 sData.forEach(s => {
                     staffMap[s.id] = { id: s.id, name: s.name };
                 });
 
-                // Filter out anyone who already has a face_descriptor assigned for the dropdown list
-                unregisteredStaffList = sData.filter(s => !s.face_descriptor || s.face_descriptor.length === 0).map(s => ({ id: s.id, name: s.name }));
+                // Display ALL staff in the dropdown
+                allStaffList = sData.map(s => ({ id: s.id, name: s.name }));
                 
                 document.getElementById('staff-dropdown-trigger').classList.remove('disabled');
-                document.getElementById('staff-trigger-text').innerText = "Face scanner active (Select if 1st time)...";
-                renderStaffDropdown(unregisteredStaffList);
+                document.getElementById('staff-trigger-text').innerText = "Select Employee Name...";
+                renderStaffDropdown(allStaffList);
             }
             
             if (!cameraActive) initScanner();
@@ -655,15 +503,11 @@
 
         currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
         
-        try {
-            await startCamera(currentFacingMode); 
-        } catch (err) {
-            console.error("Camera Switch Error:", err);
-        } finally {
-            isSwitchingCamera = false;
-            btn.innerHTML = originalText;
-            btn.style.opacity = '1';
-        }
+        await startCamera(currentFacingMode); 
+        
+        isSwitchingCamera = false;
+        btn.innerHTML = originalText;
+        btn.style.opacity = '1';
     });
 
     // Dropdown Handlers
@@ -676,7 +520,7 @@
         const optionsContainer = document.getElementById('staff-options');
         
         if (list.length === 0) {
-            optionsContainer.innerHTML = `<div class="custom-option disabled-option">All staff are registered!</div>`;
+            optionsContainer.innerHTML = `<div class="custom-option disabled-option">No staff found</div>`;
             return;
         }
         
@@ -686,9 +530,6 @@
             opt.addEventListener('click', () => {
                 currentStaffId = opt.getAttribute('data-id');
                 currentStaffName = opt.innerText;
-                
-                // Manual Override active so AI doesn't switch it back instantly
-                manualOverride = true;
                 
                 triggerText.innerText = `${currentStaffName}`;
                 
@@ -701,21 +542,17 @@
     }
 
     dropdownTrigger.addEventListener('click', () => {
-        if (dropdownTrigger.classList.contains('disabled')) {
-            displayToast("Dropdown locked. Auto-identified face in frame.", "error");
-            return;
-        }
         dropdownMenu.classList.toggle('show');
         if (dropdownMenu.classList.contains('show')) {
             searchInput.value = "";
-            renderStaffDropdown(unregisteredStaffList);
+            renderStaffDropdown(allStaffList);
             searchInput.focus(); 
         }
     });
 
     searchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
-        const filteredList = unregisteredStaffList.filter(s => s.name.toLowerCase().includes(searchTerm));
+        const filteredList = allStaffList.filter(s => s.name.toLowerCase().includes(searchTerm));
         renderStaffDropdown(filteredList);
     });
 
@@ -814,7 +651,7 @@
     // --- 6. Log Attendance (Instant Capture & Base64 Insertion) ---
     async function logAttendance(targetAction) {
         if (!currentStaffId) {
-            displayToast("Please select or show your face to identify!", "error");
+            displayToast("Please select your name first!", "error");
             return;
         }
         
@@ -864,24 +701,10 @@
             }]);
             
             if (dbError) throw dbError;
-
-            // Auto-Enroll / Update Face Descriptor if live face vector is active and it's a first-time manual override
-            if (currentLiveDescriptor && manualOverride) {
-                const descriptorArray = Array.from(currentLiveDescriptor);
-                await supabase.from('staff_directory')
-                    .update({ face_descriptor: descriptorArray })
-                    .eq('id', currentStaffId);
-                    
-                await loadKnownFaces(); 
-                
-                // Immediately slice out the newly registered person from dropdown
-                unregisteredStaffList = unregisteredStaffList.filter(s => s.id !== currentStaffId);
-                renderStaffDropdown(unregisteredStaffList);
-            }
             
             displayToast(`🎉 Success: ${targetAction} verified!`, "success");
             
-            // Trigger 4-Second Cooldown
+            // Trigger Cooldown
             initiateCooldown();
             
         } catch (err) {
@@ -892,26 +715,17 @@
     }
 
     function initiateCooldown() {
-        cameraActive = false; // Pause background detection cycle
-        
         resetTerminalState();
         btnIn.disabled = true;
         btnOut.disabled = true;
         
-        let cooldownLeft = 4;
-        statusEl.innerText = `Scan Complete. Cooldown (${cooldownLeft}s)...`;
-        statusEl.className = "warning";
+        let cooldownLeft = 3;
         
         const cooldownInterval = setInterval(() => {
             cooldownLeft--;
-            if (cooldownLeft > 0) {
-                statusEl.innerText = `Scan Complete. Cooldown (${cooldownLeft}s)...`;
-            } else {
+            if (cooldownLeft <= 0) {
                 clearInterval(cooldownInterval);
-                cameraActive = true; // Resume background detection cycle
                 isProcessing = false;
-                statusEl.innerText = "Scanning for Face...";
-                statusEl.className = "";
             }
         }, 1000);
     }
