@@ -220,7 +220,7 @@
         
         <div class="custom-dropdown-menu" id="staff-dropdown-menu">
           <div class="custom-dropdown-search-wrapper">
-            <input type="text" id="staff-search" class="custom-dropdown-search" placeholder="🔍 Search name..." autocomplete="off" />
+            <input type="text" id="staff-search" class="custom-dropdown-search" placeholder="Search name..." autocomplete="off" />
           </div>
           <div class="custom-dropdown-options" id="staff-options">
             <div class="custom-option disabled-option">Loading...</div>
@@ -236,7 +236,7 @@
         <div id="flash-overlay"></div>
       </div>
 
-      <!-- DYNAMIC SMART BUTTONS (Default set to display: none) -->
+      <!-- DYNAMIC SMART BUTTONS -->
       <div class="btn-row" id="dynamic-btn-row">
         <!-- 1. Default Clock In -->
         <button id="btn-clock-in" class="btn-action btn-in" style="display: none;">
@@ -244,19 +244,19 @@
           Clock In + Photo
         </button>
         
-        <!-- 2. Start Travel (Shows when working) -->
+        <!-- 2. Start Travel -->
         <button id="btn-travel-start" class="btn-action btn-travel" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg> 
           Start Travel
         </button>
         
-        <!-- 3. Reached Destination (Shows when traveling) -->
+        <!-- 3. Reached Destination -->
         <button id="btn-travel-end" class="btn-action btn-reach" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> 
           Reached
         </button>
 
-        <!-- 4. Clock Out (Shows when working or traveling) -->
+        <!-- 4. Clock Out -->
         <button id="btn-clock-out" class="btn-action btn-out" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> 
           Clock Out + Photo
@@ -270,22 +270,11 @@
 
     const SUPABASE_URL = 'https://rezumapzlsjnkitxvsul.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlenVtYXB6bHNqbmtpdHh2c3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzNTY2NjUsImV4cCI6MjA5OTkzMjY2NX0.IVUZVjZUuiM9qTcKAIIxJth_zSIGJUWTaubUV4Fy0_Y';
-    const customCookieStorage = {
-      getItem: (key) => {
-        const value = document.cookie.split('; ').find((row) => row.startsWith(`${key}=`))?.split('=')[1];
-        return value ? decodeURIComponent(value) : null;
-      },
-      setItem: (key, value) => {
-        document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax; Secure`;
-      },
-      removeItem: (key) => {
-        document.cookie = `${key}=; path=/; max-age=0; SameSite=Lax; Secure`;
-      }
-    };
 
+    // UPDATED: Using localStorage directly inside the client config
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { 
-        storage: customCookieStorage,
+        storage: window.localStorage,
         storageKey: 'rj_attendance_branch_auth',
         persistSession: true,
         autoRefreshToken: true,
@@ -344,7 +333,6 @@
 
     async function startCamera() {
         try {
-            // Clean up any existing stream
             if (videoEl.srcObject) {
                 videoEl.pause();
                 videoEl.srcObject = null;
@@ -355,7 +343,6 @@
                 localStream = null;
             }
             
-            // Lock strictly to the front camera ('user')
             localStream = await navigator.mediaDevices.getUserMedia({ 
                 video: { facingMode: "user" } 
             });
@@ -368,7 +355,7 @@
                 if (playErr.name !== 'AbortError') console.error(playErr);
             }
 
-            videoEl.classList.add("mirrored"); // Mirror front camera so it acts like a mirror
+            videoEl.classList.add("mirrored"); 
             cameraActive = true;
             
         } catch (err) {
@@ -403,7 +390,6 @@
     }
 
     function updateButtonStates() {
-        // Reset all to hidden
         btnIn.style.display = 'none';
         btnTravelStart.style.display = 'none';
         btnTravelEnd.style.display = 'none';
@@ -411,7 +397,6 @@
         
         btnIn.disabled = false; btnTravelStart.disabled = false; btnTravelEnd.disabled = false; btnOut.disabled = false;
 
-        // Only show buttons IF a staff is selected
         if (currentStaffId) {
             if (allowedAction === 'none') {
                 btnIn.style.display = 'flex';
@@ -422,14 +407,12 @@
                 btnTravelEnd.style.display = 'flex';
                 btnOut.style.display = 'flex';
             } else if (allowedAction === 'completed') {
-                // If shift is complete, show the buttons but keep them disabled
                 btnIn.style.display = 'flex';
                 btnOut.style.display = 'flex';
                 btnIn.disabled = true;
                 btnOut.disabled = true;
             }
         }
-        // If no staff is selected (!currentStaffId), all buttons stay 'none' (hidden)
     }
 
     async function checkUser() {
@@ -539,11 +522,9 @@
         flashOverlay.classList.add('flash'); setTimeout(() => { flashOverlay.classList.remove('flash'); }, 150);
     }
 
-    // --- 5. Verify Staff Attendance Route ---
     async function checkStaffStatus(sId, sName) {
         if (!sId) return;
 
-        // Hide buttons while checking
         btnIn.style.display = 'none'; btnTravelStart.style.display = 'none'; 
         btnTravelEnd.style.display = 'none'; btnOut.style.display = 'none';
         
@@ -552,13 +533,12 @@
         try {
             const todayStart = new Date(); todayStart.setHours(0,0,0,0);
 
-            // Fetch all logs for today to reconstruct state
             const { data, error } = await supabase
                 .from('attendance_logs')
                 .select('action')
                 .eq('staff_id', sId)
                 .gte('timestamp', todayStart.toISOString())
-                .order('timestamp', { ascending: false }); // Get latest action first
+                .order('timestamp', { ascending: false });
 
             if (error) throw error;
 
@@ -567,12 +547,11 @@
                 const lastAction = data[0].action;
                 if (lastAction === 'Clock Out') currentState = 'completed';
                 else if (lastAction === 'Transit Start') currentState = 'traveling';
-                else currentState = 'working'; // 'Clock In' or 'Transit End'
+                else currentState = 'working';
             }
 
             allowedAction = currentState;
 
-            // Display contextual feedback
             if (currentState === 'completed') {
                 displayToast(`Shift Complete! Already clocked out today.`, "success");
             } else if (currentState === 'traveling') {
@@ -590,7 +569,6 @@
         }
     }
 
-    // --- 6. Log Dynamic Actions ---
     async function logAttendance(targetAction) {
         if (!currentStaffId) { displayToast("Please select your name first!", "error"); return; }
         if (isProcessing) return;
@@ -610,7 +588,6 @@
         hiddenCanvas.width = 480; hiddenCanvas.height = 640; 
         const ctx = hiddenCanvas.getContext('2d');
         
-        // Front camera mirror effect ALWAYS applied
         ctx.translate(hiddenCanvas.width, 0); 
         ctx.scale(-1, 1); 
         ctx.drawImage(dynamicVideo, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
@@ -629,7 +606,7 @@
             }]);
             if (dbError) throw dbError;
             
-            let successMsg = targetAction === 'Transit Start' ? "🚗 Travel started safely!" : targetAction === 'Transit End' ? "📍 Location Reached!" : `🎉 Success: ${targetAction} verified!`;
+            let successMsg = targetAction === 'Transit Start' ? "Travel started safely!" : targetAction === 'Transit End' ? "Location Reached!" : `Success: ${targetAction} verified!`;
             displayToast(successMsg, "success");
             initiateCooldown();
             
@@ -648,7 +625,6 @@
         }, 1000);
     }
 
-    // Bind specific actions to new buttons
     btnIn.addEventListener('click', () => logAttendance('Clock In'));
     btnTravelStart.addEventListener('click', () => logAttendance('Transit Start'));
     btnTravelEnd.addEventListener('click', () => logAttendance('Transit End'));
