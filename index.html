@@ -351,24 +351,55 @@
 
     async function startCamera(facingMode) {
         try {
+            // 1. Kill the video element feed completely (CRITICAL FOR MOBILE)
+            if (videoEl.srcObject) {
+                videoEl.srcObject.getTracks().forEach(t => t.stop());
+                videoEl.pause();
+                videoEl.srcObject = null;
+                videoEl.removeAttribute('src'); 
+                videoEl.load(); // Forces Safari/Chrome to flush the hardware buffer
+            }
+
+            // 2. Kill the global stream variable tracks
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
-                await new Promise(resolve => setTimeout(resolve, 300));
+                localStream = null;
             }
             
-            const constraints = { video: { facingMode: facingMode === "environment" ? { exact: "environment" } : "user" } };
+            // 3. WAIT for the mobile OS to actually turn off the camera lens (500ms)
+            await new Promise(resolve => setTimeout(resolve, 500)); 
+            
+            // 4. Request new camera. Try 'exact' first to force lens swap, fallback to 'ideal'
+            let newStream;
             try {
-                localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            } catch (fallbackErr) {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
+                newStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: facingMode === "environment" ? { exact: "environment" } : "user" }
+                });
+            } catch (err) {
+                console.warn("Strict facingMode failed, falling back to ideal:", err);
+                newStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: facingMode } }
+                });
             }
             
+            // 5. Assign and Play safely
+            localStream = newStream;
             videoEl.srcObject = localStream;
-            if (facingMode === "user") videoEl.classList.add("mirrored"); else videoEl.classList.remove("mirrored");
+            
+            const playPromise = videoEl.play();
+            if (playPromise !== undefined) {
+                await playPromise;
+            }
+
+            if (facingMode === "user") videoEl.classList.add("mirrored"); 
+            else videoEl.classList.remove("mirrored");
+            
             cameraActive = true;
         } catch (err) {
+            console.error("Camera Error details:", err);
             displayToast(`Error: ${err.name || "Camera access denied"}`, "error");
-            if (facingMode === "environment") currentFacingMode = "user"; 
+            // Revert state so the next click tries to switch back
+            currentFacingMode = currentFacingMode === "environment" ? "user" : "environment"; 
         }
     }
 
@@ -385,7 +416,17 @@
     }
 
     function stopScanner() {
-        if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
+        if (videoEl.srcObject) { 
+            videoEl.srcObject.getTracks().forEach(t => t.stop());
+            videoEl.pause(); 
+            videoEl.srcObject = null; 
+            videoEl.removeAttribute('src');
+            videoEl.load();
+        }
+        if (localStream) { 
+            localStream.getTracks().forEach(track => track.stop()); 
+            localStream = null; 
+        }
         cameraActive = false;
     }
 
