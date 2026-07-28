@@ -181,16 +181,37 @@
   <!-- Login Screen -->
   <div id="login-screen">
     <h2>Attendance Terminal</h2>
-    <p>Sign in to unlock your branch scanner.</p>
-    <input type="email" id="email-input" class="input-field" placeholder="branch@rjmobile.com" />
-    <div class="password-wrapper">
-      <input type="password" id="password-input" class="input-field" placeholder="Enter terminal password" />
-      <button id="toggle-password-btn" class="toggle-password" type="button">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-      </button>
+    <p id="login-desc">Enter branch email to receive an OTP.</p>
+
+    <!-- Step 1: Enter Email -->
+    <div id="step-email">
+      <input type="email" id="email-input" class="input-field" placeholder="branch@rjmobile.com" />
+      <button id="send-otp-btn" class="btn-action btn-reach" style="width: 100%; border-radius: var(--radius-md);">Send Login OTP</button>
     </div>
-    <button id="login-btn">Secure Login</button>
+
+    <!-- Step 2: Enter OTP (Hidden by default) -->
+    <div id="step-otp" style="display: none;">
+      <p style="font-size: 13px; color: var(--primary); font-weight: 600; margin-bottom: 12px;">OTP sent successfully! Check email.</p>
+      <input type="number" id="otp-input" class="input-field" placeholder="Enter 6-digit OTP" />
+      <button id="verify-otp-btn" class="btn-action btn-in" style="width: 100%; border-radius: var(--radius-md);">Verify & Login</button>
+      <button id="back-to-email-btn" style="background:none; border:none; color:var(--text-soft); font-size:13px; margin-top:16px; cursor:pointer; text-decoration:underline;">Change Email</button>
+    </div>
+
     <div id="error-msg">Authentication failed.</div>
+  </div>
+
+  <!-- ==========================================
+       BRANCH SELECTION SCREEN (New)
+       ========================================== -->
+  <div id="branch-selection-screen" style="display: none; background: var(--card-bg); padding: 48px 40px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); text-align: center; width: 100%; max-width: 420px; margin-top: 10vh; border: 1px solid var(--card-border);">
+    <h2 style="margin-bottom: 8px;">Select Branch</h2>
+    <p style="color: var(--text-soft); font-size: 14px; margin-bottom: 24px;">Which branch is this terminal located at?</p>
+    
+    <select id="branch-select" class="input-field" style="margin-bottom: 24px; cursor: pointer; appearance: auto;">
+      <option value="">-- Loading Branches... --</option>
+    </select>
+    
+    <button id="save-branch-btn" class="btn-action btn-in" style="width: 100%;">Save & Continue</button>
   </div>
 
   <!-- Main Terminal Application -->
@@ -407,40 +428,88 @@
     supabase.auth.onAuthStateChange((event, session) => handleAuthChange(session?.user));
 
     async function handleAuthChange(user) {
-        document.getElementById('global-loader').style.display = 'none';
+      document.getElementById('global-loader').style.display = 'none';
+      
+      if (user) {
+        document.getElementById('login-screen').style.display = 'none';
         
-        if (user) {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'flex';
-            
-            const email = user.email.toLowerCase();
-            const { data: branchData } = await supabase.from('branches_directory').select('id, branch_name').eq('email', email).single();
-            
-            if (branchData) { currentBranchId = branchData.id; currentBranchName = branchData.branch_name; }
-            else if (email.includes('murlipura1')) currentBranchName = "Murlipura, 1 Number";
-            else if (email.includes('vki17')) currentBranchName = "VKI, 17 Number";
-            else currentBranchName = "Central / Unassigned Branch";
+        // Check if branch is already saved in this device's memory
+        const savedBranchId = localStorage.getItem('rj_terminal_branch_id');
+        const savedBranchName = localStorage.getItem('rj_terminal_branch_name');
 
-            document.getElementById('detected-branch-display').innerHTML = currentBranchName;
-            displayToast("Branch Session Active.", "success");
-            
-            const { data: sData } = await supabase.from('staff_directory').select('id, name').order('name');
-            if (sData) {
-                allStaffList = sData.map(s => ({ id: s.id, name: s.name }));
-                document.getElementById('staff-dropdown-trigger').classList.remove('disabled');
-                document.getElementById('staff-trigger-text').innerText = "Select Employee Name...";
-                renderStaffDropdown(allStaffList);
-            }
-            if (!cameraActive) initScanner();
-            
+        if (savedBranchId && savedBranchName) {
+          // Skip selection, go straight to dashboard
+          currentBranchId = savedBranchId;
+          currentBranchName = savedBranchName;
+          await loadDashboard();
         } else {
-            document.getElementById('login-screen').style.display = 'block';
-            document.getElementById('dashboard').style.display = 'none';
-            currentBranchId = null; currentBranchName = "";
-            stopScanner();
-            updateButtonStates();
+          // Show branch selection screen
+          document.getElementById('branch-selection-screen').style.display = 'block';
+          
+          // Fetch all branches from database
+          const { data: branches } = await supabase.from('branches_directory').select('id, branch_name').order('branch_name');
+          
+          const selectEl = document.getElementById('branch-select');
+          if (branches && branches.length > 0) {
+            selectEl.innerHTML = '<option value="">-- Choose Branch --</option>' + 
+                                 branches.map(b => `<option value="${b.id}">${b.branch_name}</option>`).join('');
+          } else {
+            selectEl.innerHTML = '<option value="">No branches found in database</option>';
+          }
         }
+        
+      } else {
+        // Logged out state
+        document.getElementById('login-screen').style.display = 'block';
+        document.getElementById('branch-selection-screen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'none';
+        
+        currentBranchId = null; currentBranchName = "";
+        localStorage.removeItem('rj_terminal_branch_id');
+        localStorage.removeItem('rj_terminal_branch_name');
+        
+        stopScanner();
+        updateButtonStates();
+      }
     }
+
+    // New Function to load dashboard after branch is known
+    async function loadDashboard() {
+      document.getElementById('branch-selection-screen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'flex';
+
+      document.getElementById('detected-branch-display').innerHTML = currentBranchName;
+      displayToast("Branch Session Active.", "success");
+      
+      const { data: sData } = await supabase.from('staff_directory').select('id, name').order('name');
+      if (sData) {
+        allStaffList = sData.map(s => ({ id: s.id, name: s.name }));
+        document.getElementById('staff-dropdown-trigger').classList.remove('disabled');
+        document.getElementById('staff-trigger-text').innerText = "Select Employee Name...";
+        renderStaffDropdown(allStaffList);
+      }
+      if (!cameraActive) initScanner();
+    }
+
+    // Save Branch Button Click Event
+    document.getElementById('save-branch-btn').addEventListener('click', async () => {
+      const selectEl = document.getElementById('branch-select');
+      if (!selectEl.value) {
+        displayToast("Please select a branch from the list.", "error");
+        return;
+      }
+      
+      const selectedName = selectEl.options[selectEl.selectedIndex].text;
+      
+      // Save permanently in phone/tablet memory
+      localStorage.setItem('rj_terminal_branch_id', selectEl.value);
+      localStorage.setItem('rj_terminal_branch_name', selectedName);
+      
+      currentBranchId = selectEl.value;
+      currentBranchName = selectedName;
+      
+      await loadDashboard();
+    });
     checkUser();
 
     document.getElementById('switch-camera-btn').addEventListener('click', async () => {
@@ -498,21 +567,74 @@
         if (dropdown && !dropdown.contains(e.target)) dropdownMenu.classList.remove('show');
     });
 
-    document.getElementById('login-btn').addEventListener('click', async () => {
-        const e = document.getElementById('email-input').value; const p = document.getElementById('password-input').value;
-        const msg = document.getElementById('error-msg'); msg.style.display = 'none'; 
-        const { error } = await supabase.auth.signInWithPassword({ email: e, password: p });
-        if(error) { msg.style.display = 'block'; msg.innerText = error.message; }
+    // ==========================================
+    // OTP LOGIN LOGIC
+    // ==========================================
+
+    const stepEmail = document.getElementById('step-email');
+    const stepOtp = document.getElementById('step-otp');
+    const emailInput = document.getElementById('email-input');
+    const otpInput = document.getElementById('otp-input');
+    const errorMsg = document.getElementById('error-msg');
+    const loginDesc = document.getElementById('login-desc');
+
+    document.getElementById('send-otp-btn').addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      errorMsg.style.display = 'none';
+      
+      if (!email) { 
+        errorMsg.style.display = 'block'; errorMsg.innerText = "Please enter branch email."; return; 
+      }
+
+      const btn = document.getElementById('send-otp-btn');
+      btn.innerText = "Sending OTP..."; btn.disabled = true;
+
+      try {
+        const { error } = await supabase.auth.signInWithOtp({ email: email });
+        if (error) throw error;
+        
+        stepEmail.style.display = 'none';
+        stepOtp.style.display = 'block';
+        loginDesc.innerText = `Enter the 6-digit OTP sent to ${email}`;
+      } catch (err) {
+        errorMsg.style.display = 'block'; errorMsg.innerText = err.message;
+      } finally {
+        btn.disabled = false; btn.innerText = "Send Login OTP";
+      }
     });
-    
-    document.getElementById('logout-btn').addEventListener('click', async () => { await supabase.auth.signOut(); });
-    
-    document.getElementById('password-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') document.getElementById('login-btn').click(); });
-    
-    document.getElementById('toggle-password-btn').addEventListener('click', () => {
-        const passInput = document.getElementById('password-input');
-        if (passInput.type === 'password') { passInput.type = 'text'; document.getElementById('toggle-password-btn').style.color = 'var(--primary)'; } 
-        else { passInput.type = 'password'; document.getElementById('toggle-password-btn').style.color = 'var(--text-soft)'; }
+
+    document.getElementById('verify-otp-btn').addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      const token = otpInput.value.trim();
+      errorMsg.style.display = 'none';
+
+      if (!token) { 
+        errorMsg.style.display = 'block'; errorMsg.innerText = "Please enter the OTP."; return; 
+      }
+
+      const btn = document.getElementById('verify-otp-btn');
+      btn.innerText = "Verifying..."; btn.disabled = true;
+
+      try {
+        const { error } = await supabase.auth.verifyOtp({ email: email, token: token, type: 'email' });
+        if (error) throw error;
+        otpInput.value = ""; 
+      } catch (err) {
+        errorMsg.style.display = 'block'; errorMsg.innerText = "Invalid OTP or expired.";
+      } finally {
+        btn.disabled = false; btn.innerText = "Verify & Login";
+      }
+    });
+
+    document.getElementById('back-to-email-btn').addEventListener('click', () => {
+      stepOtp.style.display = 'none';
+      stepEmail.style.display = 'block';
+      errorMsg.style.display = 'none';
+      loginDesc.innerText = "Enter branch email to receive an OTP.";
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', async () => { 
+      await supabase.auth.signOut(); 
     });
 
     function triggerFlash() {
