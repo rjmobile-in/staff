@@ -231,11 +231,6 @@
 
     <!-- Scanner Feed Card -->
     <div class="main-card">
-      <button id="switch-camera-btn" class="btn-secondary" style="width: 100%; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 8px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9"/><path d="M9 22V12h6v10M2 10.6L12 2l10 8.6"/></svg>
-        Switch Camera (Front/Back)
-      </button>
-
       <div id="video-wrapper">
         <video id="native-video" autoplay muted playsinline></video>
         <div id="flash-overlay"></div>
@@ -299,9 +294,7 @@
     });
 
     // --- Relational & State Variables ---
-    let currentFacingMode = "user";
     let cameraActive = false;
-    let isSwitchingCamera = false;
     let localStream = null;
     
     let allowedAction = 'none'; // 'none', 'working', 'traveling', 'completed'
@@ -346,61 +339,41 @@
 
     async function initScanner() {
         if(cameraActive) return;
-        startCamera(currentFacingMode);
+        startCamera();
     }
 
-    async function startCamera(facingMode) {
+    async function startCamera() {
         try {
-            // 1. Unplug the video element cleanly WITHOUT using .load()
+            // Clean up any existing stream
             if (videoEl.srcObject) {
                 videoEl.pause();
                 videoEl.srcObject = null;
                 videoEl.src = ''; 
             }
-
-            // 2. Kill hardware tracks
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
             }
             
-            // 3. Give the OS a moment to swap physical lenses
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Lock strictly to the front camera ('user')
+            localStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user" } 
+            });
             
-            // 4. Request new stream
-            let newStream;
-            try {
-                newStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: facingMode === "environment" ? { exact: "environment" } : "user" }
-                });
-            } catch (err) {
-                // The OverconstrainedError happens here, fallback to ideal
-                newStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { ideal: facingMode } }
-                });
-            }
-            
-            // 5. Assign stream
-            localStream = newStream;
             videoEl.srcObject = localStream;
             
-            // 6. Play safely, ignoring harmless AbortErrors
             try {
                 await videoEl.play();
             } catch (playErr) {
-                if (playErr.name !== 'AbortError') {
-                    console.error("Video play failed:", playErr);
-                }
+                if (playErr.name !== 'AbortError') console.error(playErr);
             }
 
-            if (facingMode === "user") videoEl.classList.add("mirrored"); 
-            else videoEl.classList.remove("mirrored");
-            
+            videoEl.classList.add("mirrored"); // Mirror front camera so it acts like a mirror
             cameraActive = true;
+            
         } catch (err) {
-            console.error("Camera Error details:", err);
-            displayToast(`Error: ${err.name || "Camera access denied"}`, "error");
-            if (facingMode === "environment") currentFacingMode = "user"; 
+            console.error("Camera Error:", err);
+            displayToast("Camera access denied. Please check permissions.", "error");
         }
     }
 
@@ -501,18 +474,6 @@
         }
     }
     checkUser();
-
-    document.getElementById('switch-camera-btn').addEventListener('click', async () => {
-        if (isSwitchingCamera) return; 
-        isSwitchingCamera = true;
-        const btn = document.getElementById('switch-camera-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = 'Switching...'; btn.style.opacity = '0.6';
-        currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
-        await startCamera(currentFacingMode); 
-        isSwitchingCamera = false;
-        btn.innerHTML = originalText; btn.style.opacity = '1';
-    });
 
     const dropdownTrigger = document.getElementById('staff-dropdown-trigger');
     const dropdownMenu = document.getElementById('staff-dropdown-menu');
@@ -648,8 +609,12 @@
         const hiddenCanvas = document.createElement('canvas');
         hiddenCanvas.width = 480; hiddenCanvas.height = 640; 
         const ctx = hiddenCanvas.getContext('2d');
-        if (currentFacingMode === "user") { ctx.translate(hiddenCanvas.width, 0); ctx.scale(-1, 1); }
+        
+        // Front camera mirror effect ALWAYS applied
+        ctx.translate(hiddenCanvas.width, 0); 
+        ctx.scale(-1, 1); 
         ctx.drawImage(dynamicVideo, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        
         const base64Data = hiddenCanvas.toDataURL('image/jpeg', 0.6);
         
         try {
