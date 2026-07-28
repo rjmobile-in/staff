@@ -351,44 +351,46 @@
 
     async function startCamera(facingMode) {
         try {
-            // 1. Kill the video element feed completely (CRITICAL FOR MOBILE)
+            // 1. Unplug the video element cleanly WITHOUT using .load()
             if (videoEl.srcObject) {
-                videoEl.srcObject.getTracks().forEach(t => t.stop());
                 videoEl.pause();
                 videoEl.srcObject = null;
-                videoEl.removeAttribute('src'); 
-                videoEl.load(); // Forces Safari/Chrome to flush the hardware buffer
+                videoEl.src = ''; 
             }
 
-            // 2. Kill the global stream variable tracks
+            // 2. Kill hardware tracks
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
             }
             
-            // 3. WAIT for the mobile OS to actually turn off the camera lens (500ms)
-            await new Promise(resolve => setTimeout(resolve, 500)); 
+            // 3. Give the OS a moment to swap physical lenses
+            await new Promise(resolve => setTimeout(resolve, 300));
             
-            // 4. Request new camera. Try 'exact' first to force lens swap, fallback to 'ideal'
+            // 4. Request new stream
             let newStream;
             try {
                 newStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: facingMode === "environment" ? { exact: "environment" } : "user" }
                 });
             } catch (err) {
-                console.warn("Strict facingMode failed, falling back to ideal:", err);
+                // The OverconstrainedError happens here, fallback to ideal
                 newStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: { ideal: facingMode } }
                 });
             }
             
-            // 5. Assign and Play safely
+            // 5. Assign stream
             localStream = newStream;
             videoEl.srcObject = localStream;
             
-            const playPromise = videoEl.play();
-            if (playPromise !== undefined) {
-                await playPromise;
+            // 6. Play safely, ignoring harmless AbortErrors
+            try {
+                await videoEl.play();
+            } catch (playErr) {
+                if (playErr.name !== 'AbortError') {
+                    console.error("Video play failed:", playErr);
+                }
             }
 
             if (facingMode === "user") videoEl.classList.add("mirrored"); 
@@ -398,8 +400,7 @@
         } catch (err) {
             console.error("Camera Error details:", err);
             displayToast(`Error: ${err.name || "Camera access denied"}`, "error");
-            // Revert state so the next click tries to switch back
-            currentFacingMode = currentFacingMode === "environment" ? "user" : "environment"; 
+            if (facingMode === "environment") currentFacingMode = "user"; 
         }
     }
 
@@ -417,11 +418,9 @@
 
     function stopScanner() {
         if (videoEl.srcObject) { 
-            videoEl.srcObject.getTracks().forEach(t => t.stop());
             videoEl.pause(); 
             videoEl.srcObject = null; 
-            videoEl.removeAttribute('src');
-            videoEl.load();
+            videoEl.src = '';
         }
         if (localStream) { 
             localStream.getTracks().forEach(track => track.stop()); 
