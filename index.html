@@ -115,6 +115,44 @@
     #toast.show { visibility: visible; opacity: 1; transform: translate(-50%, 0); }
 
     /* =========================================================
+       ✨ BRANCH DETECTED POPUP STYLES
+       ========================================================= */
+    .popup-overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; z-index: 10001;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .popup-overlay.show { opacity: 1; pointer-events: auto; }
+    
+    .popup-content {
+      background: var(--card-bg); padding: 32px 24px; border-radius: var(--radius-lg);
+      text-align: center; transform: translateY(20px) scale(0.95); 
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 90%; max-width: 320px; border: 1px solid var(--primary-alpha); 
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative;
+    }
+    .popup-overlay.show .popup-content { transform: translateY(0) scale(1); }
+    
+    .popup-icon-wrapper {
+      width: 64px; height: 64px; background: var(--success-alpha);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px; color: var(--success);
+      animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes popIn { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    
+    .popup-subtitle { font-size: 12px; color: var(--text-soft); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 4px; }
+    .popup-branch-name { font-size: 24px; font-weight: 800; color: var(--primary); margin-bottom: 8px; font-family: 'Plus Jakarta Sans', sans-serif;}
+    .popup-action-desc { font-size: 14px; color: var(--text-main); font-weight: 500; margin-bottom: 24px;}
+    
+    .btn-popup-close {
+      width: 100%; padding: 14px; border-radius: var(--radius-md); border: none;
+      background: var(--primary); color: #fff; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);
+    }
+    .btn-popup-close:hover { filter: brightness(1.1); }
+
+    /* =========================================================
        4. LOGIN SCREEN
        ========================================================= */
     #login-screen { display: none; background: var(--card-bg); padding: 48px 40px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); text-align: center; width: 100%; max-width: 420px; margin-top: 10vh; border: 1px solid var(--card-border); }
@@ -146,7 +184,7 @@
     .main-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 24px; width: 100%; position: relative; overflow: visible; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
     
     /* =========================================================
-       6. STATS VIEW (Enhanced)
+       6. STATS VIEW 
        ========================================================= */
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
     .stat-card { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 16px; text-align: center; transition: 0.2s; }
@@ -177,6 +215,21 @@
 
   <div id="global-loader" class="glass-effect"><div class="spinner"></div><p>Connecting Secure Session...</p></div>
   <div id="toast"><div id="toast-icon"></div><div id="toast-msg"></div></div>
+
+  <!-- BRANCH DETECTED POPUP -->
+  <div id="branch-popup" class="popup-overlay">
+    <div class="popup-content glass-effect">
+      <div class="popup-icon-wrapper">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle>
+        </svg>
+      </div>
+      <div class="popup-subtitle">Location Verified</div>
+      <div class="popup-branch-name" id="popup-branch-name">Store Name</div>
+      <div class="popup-action-desc" id="popup-action-desc">Ready to log attendance</div>
+      <button class="btn-popup-close" id="btn-popup-close">Awesome!</button>
+    </div>
+  </div>
 
   <!-- Login Screen -->
   <div id="login-screen">
@@ -306,12 +359,10 @@
       }
     });
 
-    // Chart Global Defaults to match Dark/Light mode
     Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-soft').trim() || '#94a3b8';
     Chart.defaults.font.family = "'Inter', sans-serif";
     window.staffCharts = {};
 
-    // --- State Variables ---
     let cameraActive = false;
     let localStream = null;
     let allowedAction = 'none'; 
@@ -327,7 +378,6 @@
     const btnTravelEnd = document.getElementById('btn-travel-end');
     const btnOut = document.getElementById('btn-clock-out');
 
-    // --- Tab Navigation ---
     document.getElementById('tab-scanner').addEventListener('click', () => {
         document.getElementById('tab-scanner').classList.add('active');
         document.getElementById('tab-stats').classList.remove('active');
@@ -365,6 +415,74 @@
       toast.timeout = setTimeout(() => { toast.className = ""; }, 4000);
     }
 
+    // --- ✨ POPUP LOGIC ---
+    function showBranchPopup(branchName, customDesc) {
+      document.getElementById('popup-branch-name').innerText = branchName;
+      document.getElementById('popup-action-desc').innerText = customDesc;
+      document.getElementById('branch-popup').classList.add('show');
+      
+      setTimeout(() => closeBranchPopup(), 5000);
+    }
+
+    function closeBranchPopup() {
+      document.getElementById('branch-popup').classList.remove('show');
+    }
+    document.getElementById('btn-popup-close').addEventListener('click', closeBranchPopup);
+
+
+    // --- Geofencing & GPS Functions ---
+    function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; 
+        const rad1 = lat1 * Math.PI / 180;
+        const rad2 = lat2 * Math.PI / 180;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(rad1) * Math.cos(rad2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; 
+    }
+
+    function getCurrentLocation() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) reject(new Error("No GPS support"));
+            else navigator.geolocation.getCurrentPosition(
+                pos => resolve(pos.coords), err => reject(err),
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        });
+    }
+
+    // --- ✨ NEW: AUTO-DETECT BRANCH ON SITE LOAD ---
+    async function autoDetectBranch() {
+        try {
+            const coords = await getCurrentLocation();
+            const { data: branches } = await supabase.from('branches_directory').select('*');
+            if (!branches || branches.length === 0) return;
+
+            let matchedBranch = null;
+            let closestDistance = Infinity;
+
+            for (const branch of branches) {
+                if (!branch.latitude || !branch.longitude) continue;
+                const dist = calculateDistanceMeters(coords.latitude, coords.longitude, branch.latitude, branch.longitude);
+                if (dist < closestDistance) closestDistance = dist;
+                if (dist <= (branch.radius_meters || 100)) { matchedBranch = branch; break; }
+            }
+
+            if (!matchedBranch) {
+                const activityBranch = branches.find(b => b.branch_name === 'Activity');
+                if (activityBranch) matchedBranch = activityBranch;
+            }
+
+            if (matchedBranch) {
+                // Bina koi button dabaye hi screen aate hi popup khul jayega
+                showBranchPopup(matchedBranch.branch_name, "Ready for attendance");
+            }
+        } catch (err) {
+            console.log("Auto-detect GPS waiting or denied.", err);
+        }
+    }
+
     // --- Camera Logic ---
     async function initScanner() {
         if(document.getElementById('tab-scanner').classList.contains('active') && !cameraActive) {
@@ -374,12 +492,8 @@
 
     async function startCamera() {
         try {
-            if (videoEl.srcObject) {
-                videoEl.pause(); videoEl.srcObject = null; videoEl.src = ''; 
-            }
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop()); localStream = null;
-            }
+            if (videoEl.srcObject) { videoEl.pause(); videoEl.srcObject = null; videoEl.src = ''; }
+            if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
             localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             videoEl.srcObject = localStream;
             try { await videoEl.play(); } catch (e) { if(e.name !== 'AbortError') console.error(e); }
@@ -418,8 +532,11 @@
                 currentStaffId = staffData.id;
                 currentStaffName = staffData.name;
                 document.getElementById('detected-staff-display').innerHTML = `Logged in as: ${currentStaffName}`;
-                displayToast(`Welcome back, ${currentStaffName.split(' ')[0]}!`, "success");
+                
                 checkStaffStatus();
+                
+                // ✨ JAISE HI LOGIN HOGA / SITE REFRESH HOGI, AUTO DETECT CHAL JAYEGA
+                autoDetectBranch(); 
             } else {
                 displayToast("Staff profile not found in system.", "error");
             }
@@ -451,28 +568,6 @@
         if (passInput.type === 'password') { passInput.type = 'text'; document.getElementById('toggle-password-btn').style.color = 'var(--primary)'; } 
         else { passInput.type = 'password'; document.getElementById('toggle-password-btn').style.color = 'var(--text-soft)'; }
     });
-
-    // --- Geofencing & Logging Logic ---
-    function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
-        const R = 6371e3; 
-        const rad1 = lat1 * Math.PI / 180;
-        const rad2 = lat2 * Math.PI / 180;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(rad1) * Math.cos(rad2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c; 
-    }
-
-    function getCurrentLocation() {
-        return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) reject(new Error("No GPS support"));
-            else navigator.geolocation.getCurrentPosition(
-                pos => resolve(pos.coords), err => reject(err),
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        });
-    }
 
     function updateButtonStates() {
         btnIn.style.display = 'none'; btnTravelStart.style.display = 'none'; 
@@ -520,7 +615,7 @@
         if (isProcessing) return;
         
         isProcessing = true;
-        displayToast("Verifying GPS Location...", "primary");
+        displayToast("Recording Action...", "primary");
 
         // 1. Get GPS Coordinates
         let coords;
@@ -550,15 +645,10 @@
         }
 
         if (!matchedBranch) {
-            // Database se 'Activity' branch ko automatically dhundhein
             const activityBranch = branches.find(b => b.branch_name === 'Activity');
-
             if (activityBranch) {
-                // Agar Activity branch mil jaye, toh usko assign kar dein
                 matchedBranch = activityBranch;
-                displayToast(`Out of store bounds. Logged as ${matchedBranch.branch_name}`, "warning");
             } else {
-                // Failsafe: Agar Activity branch delete ho jaye
                 displayToast(`You are ${Math.round(closestDistance)}m away from the nearest store. Move closer!`, "error");
                 isProcessing = false; return;
             }
@@ -570,7 +660,7 @@
         hiddenCanvas.width = 480; hiddenCanvas.height = 640;
         const ctx = hiddenCanvas.getContext('2d');
         ctx.translate(hiddenCanvas.width, 0); ctx.scale(-1, 1);
-        ctx.drawImage(dynamicVideo, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+        ctx.drawImage(videoEl, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
         const base64Data = hiddenCanvas.toDataURL('image/jpeg', 0.6);
 
         try {
@@ -582,7 +672,9 @@
             }]);
 
             if (dbError) throw dbError;
-            displayToast(`${targetAction} recorded at ${matchedBranch.branch_name}!`, "success");
+            
+            // Success hone par bhi chhota message change karke popup dikhayega
+            showBranchPopup(matchedBranch.branch_name, `${targetAction} successfully recorded`);
             
             setTimeout(() => checkStaffStatus(), 1000);
             
@@ -598,17 +690,15 @@
     btnTravelEnd.addEventListener('click', () => logAttendance('Transit End'));
     btnOut.addEventListener('click', () => logAttendance('Clock Out'));
 
-    // Fix Theme Toggling and Chart refresh
     document.getElementById('theme-toggle').addEventListener('click', () => { 
         const isLight = document.documentElement.classList.toggle('light-theme'); 
         localStorage.setItem('rj_theme', isLight ? 'light' : 'dark'); 
         Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-soft').trim();
         if(document.getElementById('tab-stats').classList.contains('active')){
-            loadPersonalStats(); // Re-render charts with new theme colors
+            loadPersonalStats(); 
         }
     });
 
-    // --- Graph Rendering Helpers ---
     function renderGraphs(dailyStats, totalWorkMs, totalTravelMs) {
         const rootStyle = getComputedStyle(document.documentElement);
         const primaryColor = rootStyle.getPropertyValue('--primary').trim();
@@ -616,11 +706,8 @@
         const warningColor = rootStyle.getPropertyValue('--warning').trim();
         const gridColor = rootStyle.getPropertyValue('--card-border').trim();
 
-        // 1. Weekly Bar Chart
         const barCanvas = document.getElementById('weeklyBarChart');
         if (window.staffCharts['weekly']) window.staffCharts['weekly'].destroy();
-        
-        // Take last 7 days of activity
         const recentDays = dailyStats.slice(-7);
         
         window.staffCharts['weekly'] = new Chart(barCanvas, {
@@ -638,23 +725,15 @@
                 maintainAspectRatio: false, 
                 plugins: { legend: { display: false } }, 
                 scales: { 
-                    y: { 
-                        beginAtZero: true, 
-                        grid: { color: gridColor },
-                        ticks: { stepSize: 2 }
-                    },
-                    x: {
-                        grid: { display: false }
-                    }
+                    y: { beginAtZero: true, grid: { color: gridColor }, ticks: { stepSize: 2 } },
+                    x: { grid: { display: false } }
                 } 
             }
         });
 
-        // 2. Time Breakdown Pie Chart
         const pieCanvas = document.getElementById('timePieChart');
         if (window.staffCharts['pie']) window.staffCharts['pie'].destroy();
 
-        // Convert ms to hours for chart
         const workH = (totalWorkMs / 3600000).toFixed(1);
         const travelH = (totalTravelMs / 3600000).toFixed(1);
 
@@ -676,10 +755,8 @@
         });
     }
 
-    // --- Enhanced Personal Stats Logic ---
     async function loadPersonalStats() {
         if (!currentStaffId) return;
-
         const date = new Date();
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         document.getElementById('stats-month-title').innerText = `${monthNames[date.getMonth()]} ${date.getFullYear()} Activity`;
@@ -693,29 +770,21 @@
             if (error) throw error;
 
             let uniqueDays = new Set();
-            let sumInMins = 0;
-            let inCount = 0;
-            let totalWorkMs = 0;
-            let totalTravelMs = 0;
-            
-            // For charting
+            let sumInMins = 0; let inCount = 0;
+            let totalWorkMs = 0; let totalTravelMs = 0;
             let dailyStatsArray = [];
-
-            // Group logs by Date string to process daily hours accurately
             const logsByDay = {};
+
             (logs || []).forEach(log => {
                 const dStr = new Date(log.timestamp).toDateString();
                 if (!logsByDay[dStr]) logsByDay[dStr] = [];
                 logsByDay[dStr].push(log);
             });
 
-            // Calculate precise Hours, Days, and Average In-Time
             for (const [dayStr, dayLogs] of Object.entries(logsByDay)) {
                 uniqueDays.add(dayStr);
-                
                 let currentState = 'out', lastTime = null;
-                let dayWorkMs = 0;
-                let dayTravelMs = 0;
+                let dayWorkMs = 0; let dayTravelMs = 0;
                 
                 let firstInLog = dayLogs.find(l => l.action === 'Clock In');
                 if (firstInLog) {
@@ -739,7 +808,6 @@
                     }
                 });
 
-                // Add active time if currently on shift today
                 if (dayStr === new Date().toDateString() && currentState !== 'out' && lastTime) {
                     const now = Date.now();
                     if (currentState === 'working') dayWorkMs += (now - lastTime);
@@ -749,47 +817,35 @@
                 totalWorkMs += dayWorkMs;
                 totalTravelMs += dayTravelMs;
 
-                // Push daily stats for chart
                 let formattedDate = new Date(dayStr).toLocaleDateString('en-GB', {day: 'numeric', month:'short'});
                 let totalDayHours = (dayWorkMs + dayTravelMs) / 3600000;
                 
-                dailyStatsArray.push({
-                    rawDate: new Date(dayStr),
-                    dateStr: formattedDate,
-                    hours: totalDayHours.toFixed(1)
-                });
+                dailyStatsArray.push({ rawDate: new Date(dayStr), dateStr: formattedDate, hours: totalDayHours.toFixed(1) });
             }
 
-            // Formatting Time helper
             const formatMins = (ms) => {
                 let totalMins = Math.floor(ms / 60000);
                 return `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`;
             };
 
-            // Setup Average In
             let avgInStr = "--:--";
             if (inCount > 0) {
                 let avg = sumInMins / inCount;
-                let h = Math.floor(avg / 60);
-                let m = Math.floor(avg % 60);
+                let h = Math.floor(avg / 60); let m = Math.floor(avg % 60);
                 avgInStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
             }
 
-            // Push values to Grid
             document.getElementById('stat-days').innerText = uniqueDays.size;
             document.getElementById('stat-avg-in').innerText = avgInStr;
             document.getElementById('stat-work-time').innerText = formatMins(totalWorkMs);
             document.getElementById('stat-travel-time').innerText = formatMins(totalTravelMs);
 
-            // Render Charts
-            dailyStatsArray.sort((a, b) => a.rawDate - b.rawDate); // Sort chronologically
+            dailyStatsArray.sort((a, b) => a.rawDate - b.rawDate);
             renderGraphs(dailyStatsArray, totalWorkMs, totalTravelMs);
 
-            // Render Recent Logs Timeline (Top 10 max, descending order)
             let logsHtml = '';
             if (logs && logs.length > 0) {
                 const recentLogs = logs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
-                
                 logsHtml = recentLogs.map(log => {
                     const d = new Date(log.timestamp);
                     const timeStr = d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit', hour12: false});
@@ -810,11 +866,8 @@
             } else {
                 logsHtml = '<div style="color: var(--text-soft); text-align: center; padding: 20px;">No activity this month yet.</div>';
             }
-
             document.getElementById('recent-logs-list').innerHTML = logsHtml;
-
         } catch(err) {
-            console.error(err);
             document.getElementById('recent-logs-list').innerHTML = '<div style="color: var(--danger); text-align: center;">Failed to load stats. Check connection.</div>';
         }
     }
