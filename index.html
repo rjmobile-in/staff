@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RJ Mobile | Attendance Terminal</title>
+  <title>RJ Mobile | Staff Portal</title>
   <link rel="icon" type="image/png" href="logo.png" />
   
   <script>
@@ -16,6 +16,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   
+  <!-- Add Chart.js for Staff Graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     /* =========================================================
        1. ROOT VARIABLES & THEME
@@ -57,13 +60,10 @@
       --card-bg: #ffffff; 
       --card-bg-alpha: rgba(255, 255, 255, 0.9);
       --card-border: #e2e8f0;
-      
       --primary: #4f46e5; 
       --primary-hover: #4338ca; 
-      
       --text-main: #0f172a; 
       --text-soft: #64748b; 
-      
       --input-bg: #f8fafc; 
     }
 
@@ -120,9 +120,7 @@
     #login-screen { display: none; background: var(--card-bg); padding: 48px 40px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); text-align: center; width: 100%; max-width: 420px; margin-top: 10vh; border: 1px solid var(--card-border); }
     #login-screen h2 { font-weight: 800; font-size: 26px; margin-bottom: 12px; color: var(--text-main); }
     #login-screen p { color: var(--text-soft); margin-bottom: 32px; font-size: 14px; }
-    
     #login-btn { width: 100%; padding: 14px; border-radius: var(--radius-md); border: none; background: var(--primary); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px; box-shadow: var(--shadow-sm); }
-    
     #error-msg { color: var(--danger); font-size: 13px; font-weight: 600; margin-top: 16px; display: none; background: var(--danger-alpha); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--danger-alpha); }
     
     .password-wrapper { position: relative; width: 100%; margin-bottom: 16px; }
@@ -141,29 +139,31 @@
     #theme-toggle { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-soft); cursor: pointer; padding: 10px; border-radius: var(--radius-md); transition: 0.2s; }
     #theme-toggle:hover { background: var(--input-bg); color: var(--text-main); }
 
+    .nav-tabs { display: flex; gap: 8px; width: 100%; margin-bottom: 24px; }
+    .nav-tab { flex: 1; padding: 12px; text-align: center; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); font-weight: 700; color: var(--text-soft); cursor: pointer; transition: 0.2s; font-size: 13px;}
+    .nav-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
     .main-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 24px; width: 100%; position: relative; overflow: visible; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
-    .card-border-top::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--primary), #3b82f6); border-top-left-radius: 20px; border-top-right-radius: 20px; }
     
     /* =========================================================
-       6. CUSTOM SEARCHABLE DROPDOWN
+       6. STATS VIEW (Enhanced)
        ========================================================= */
-    .custom-dropdown { position: relative; width: 100%; margin-top: 8px; }
-    .custom-dropdown-trigger { width: 100%; padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--card-border); background: var(--input-bg); color: var(--text-soft); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
-    .custom-dropdown-trigger.selected { color: var(--text-main); font-weight: 600; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 16px; text-align: center; transition: 0.2s; }
+    .stat-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .stat-value { font-size: 24px; font-weight: 800; color: var(--text-main); margin-top: 8px; font-family: 'Plus Jakarta Sans', sans-serif;}
     
-    .custom-dropdown-menu { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); z-index: 100; display: none; flex-direction: column; overflow: hidden; }
-    .custom-dropdown-menu.show { display: flex; }
+    .chart-box { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px; position: relative;}
+    .chart-box h3 { font-size: 12px; color: var(--text-soft); text-transform: uppercase; margin-bottom: 16px; letter-spacing: 0.5px; text-align: center;}
     
-    .custom-dropdown-search-wrapper { padding: 12px; border-bottom: 1px solid var(--card-border); background: var(--card-bg); }
-    .custom-dropdown-search { width: 100%; padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--card-border); background: var(--bg-base); color: var(--text-main); outline: none; }
-    .custom-dropdown-options { max-height: 220px; overflow-y: auto; padding: 8px 0; }
-    .custom-option { padding: 10px 16px; cursor: pointer; color: var(--text-main); font-weight: 500; font-size: 13px; }
-    .custom-option:hover { background: var(--input-bg); color: var(--primary); }
+    .recent-logs { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 4px; }
+    .log-item { display: flex; justify-content: space-between; align-items: center; padding: 14px; background: var(--input-bg); border-radius: var(--radius-sm); border: 1px solid var(--card-border); font-size: 13px; }
+    .badge-status { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
 
     /* =========================================================
        7. Camera Container & Action Row
        ========================================================= */
-    #video-wrapper { position: relative; background: #000; border-radius: var(--radius-md); overflow: hidden; width: 100%; height: 380px; margin-bottom: 24px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
+    #video-wrapper { position: relative; background: #000; border-radius: var(--radius-md); overflow: hidden; width: 100%; height: 420px; margin-bottom: 24px; border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; }
     #native-video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
     .mirrored { transform: scaleX(-1); }
     
@@ -180,11 +180,12 @@
 
   <!-- Login Screen -->
   <div id="login-screen">
-    <h2>Attendance Terminal</h2>
-    <p>Sign in to unlock your branch scanner.</p>
-    <input type="email" id="email-input" class="input-field" placeholder="branch@rjmobile.com" />
+    <img src="logo.png" alt="Logo" style="height: 48px; object-fit: contain; margin-bottom: 24px;" onerror="this.style.display='none'">
+    <h2>Staff Portal</h2>
+    <p>Sign in with your employee account.</p>
+    <input type="email" id="email-input" class="input-field" placeholder="staff@rjmobile.com" />
     <div class="password-wrapper">
-      <input type="password" id="password-input" class="input-field" placeholder="Enter terminal password" />
+      <input type="password" id="password-input" class="input-field" placeholder="Enter your password" />
       <button id="toggle-password-btn" class="toggle-password" type="button">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
       </button>
@@ -193,13 +194,13 @@
     <div id="error-msg">Authentication failed.</div>
   </div>
 
-  <!-- Main Terminal Application -->
+  <!-- Main Application -->
   <div id="dashboard">
     <div class="header glass-effect">
       <div class="brand-area">
         <div>
-          <div class="brand-title">Terminal POS</div>
-          <div class="brand-tag" id="detected-branch-display">Identifying Location...</div>
+          <div class="brand-title">RJ Mobile</div>
+          <div class="brand-tag" id="detected-staff-display">Identifying Staff...</div>
         </div>
       </div>
       <div class="header-controls">
@@ -208,60 +209,84 @@
       </div>
     </div>
 
-    <!-- Active Staff Select -->
-    <div class="main-card card-border-top" style="padding: 20px 24px; margin-bottom: 24px;">
-      <label style="font-size: 11px; font-weight: 700; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.5px;">Active Employee</label>
-      
-      <div class="custom-dropdown" id="staff-dropdown">
-        <div class="custom-dropdown-trigger disabled" id="staff-dropdown-trigger">
-          <span id="staff-trigger-text">Connecting...</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        
-        <div class="custom-dropdown-menu" id="staff-dropdown-menu">
-          <div class="custom-dropdown-search-wrapper">
-            <input type="text" id="staff-search" class="custom-dropdown-search" placeholder="Search name..." autocomplete="off" />
-          </div>
-          <div class="custom-dropdown-options" id="staff-options">
-            <div class="custom-option disabled-option">Loading...</div>
-          </div>
-        </div>
-      </div>
+    <div class="nav-tabs">
+        <div class="nav-tab active" id="tab-scanner">📸 Scanner</div>
+        <div class="nav-tab" id="tab-stats">📊 My Stats</div>
     </div>
 
     <!-- Scanner Feed Card -->
-    <div class="main-card">
+    <div class="main-card" id="scanner-view">
       <div id="video-wrapper">
         <video id="native-video" autoplay muted playsinline></video>
         <div id="flash-overlay"></div>
       </div>
 
-      <!-- DYNAMIC SMART BUTTONS -->
       <div class="btn-row" id="dynamic-btn-row">
-        <!-- 1. Default Clock In -->
         <button id="btn-clock-in" class="btn-action btn-in" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> 
-          Clock In + Photo
+          Clock In
         </button>
         
-        <!-- 2. Start Travel -->
         <button id="btn-travel-start" class="btn-action btn-travel" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg> 
           Start Travel
         </button>
         
-        <!-- 3. Reached Destination -->
         <button id="btn-travel-end" class="btn-action btn-reach" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> 
-          Reached
+          Reached Location
         </button>
 
-        <!-- 4. Clock Out -->
         <button id="btn-clock-out" class="btn-action btn-out" style="display: none;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> 
-          Clock Out + Photo
+          Clock Out
         </button>
       </div>
+    </div>
+
+    <!-- Enhanced Stats Card with Charts -->
+    <div class="main-card" id="stats-view" style="display: none; padding-top: 16px;">
+        <h2 style="margin-bottom: 20px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px;" id="stats-month-title">This Month's Activity</h2>
+        
+        <!-- Top Metrics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div style="font-size: 11px; color: var(--text-soft); text-transform: uppercase; font-weight: 700;">Days Present</div>
+                <div class="stat-value" id="stat-days" style="color: var(--text-main);">0</div>
+            </div>
+            <div class="stat-card">
+                <div style="font-size: 11px; color: var(--text-soft); text-transform: uppercase; font-weight: 700;">Avg In-Time</div>
+                <div class="stat-value" id="stat-avg-in" style="color: var(--primary);">--:--</div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="chart-box">
+            <h3>Hours Worked (Last 7 Days)</h3>
+            <div style="height: 200px; width: 100%;"><canvas id="weeklyBarChart"></canvas></div>
+        </div>
+
+        <div class="chart-box">
+            <h3>Time Split (This Month)</h3>
+            <div style="height: 200px; width: 100%;"><canvas id="timePieChart"></canvas></div>
+        </div>
+
+        <!-- Detailed Breakdown -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div style="font-size: 11px; color: var(--text-soft); text-transform: uppercase; font-weight: 700;">Total Work</div>
+                <div class="stat-value" id="stat-work-time" style="color: var(--success); font-size: 20px;">0h 0m</div>
+            </div>
+            <div class="stat-card">
+                <div style="font-size: 11px; color: var(--text-soft); text-transform: uppercase; font-weight: 700;">Total Travel</div>
+                <div class="stat-value" id="stat-travel-time" style="color: var(--warning); font-size: 20px;">0h 0m</div>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 12px; margin-bottom: 12px; font-size: 13px; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.5px;">Recent Log Timeline</h3>
+        <div class="recent-logs" id="recent-logs-list">
+            <div style="color: var(--text-soft); text-align: center; padding: 20px;">Loading logs...</div>
+        </div>
     </div>
   </div>
 
@@ -271,40 +296,54 @@
     const SUPABASE_URL = 'https://rezumapzlsjnkitxvsul.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlenVtYXB6bHNqbmtpdHh2c3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzNTY2NjUsImV4cCI6MjA5OTkzMjY2NX0.IVUZVjZUuiM9qTcKAIIxJth_zSIGJUWTaubUV4Fy0_Y';
 
-    // UPDATED: Using localStorage directly inside the client config
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { 
         storage: window.localStorage,
-        storageKey: 'rj_attendance_branch_auth',
+        storageKey: 'rj_attendance_staff_auth',
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true
       }
     });
 
-    // --- Relational & State Variables ---
+    // Chart Global Defaults to match Dark/Light mode
+    Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-soft').trim() || '#94a3b8';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    window.staffCharts = {};
+
+    // --- State Variables ---
     let cameraActive = false;
     let localStream = null;
-    
-    let allowedAction = 'none'; // 'none', 'working', 'traveling', 'completed'
-
-    let currentBranchId = null;
-    let currentBranchName = ""; 
-    
-    let allStaffList = []; 
+    let allowedAction = 'none'; 
     let currentStaffId = null; 
     let currentStaffName = "";
-    
     let isProcessing = false;
     
     const flashOverlay = document.getElementById('flash-overlay');
     const videoEl = document.getElementById('native-video');
     
-    // UI Buttons
     const btnIn = document.getElementById('btn-clock-in');
     const btnTravelStart = document.getElementById('btn-travel-start');
     const btnTravelEnd = document.getElementById('btn-travel-end');
     const btnOut = document.getElementById('btn-clock-out');
+
+    // --- Tab Navigation ---
+    document.getElementById('tab-scanner').addEventListener('click', () => {
+        document.getElementById('tab-scanner').classList.add('active');
+        document.getElementById('tab-stats').classList.remove('active');
+        document.getElementById('scanner-view').style.display = 'block';
+        document.getElementById('stats-view').style.display = 'none';
+        if(!cameraActive) startCamera();
+    });
+
+    document.getElementById('tab-stats').addEventListener('click', () => {
+        document.getElementById('tab-stats').classList.add('active');
+        document.getElementById('tab-scanner').classList.remove('active');
+        document.getElementById('scanner-view').style.display = 'none';
+        document.getElementById('stats-view').style.display = 'block';
+        stopScanner();
+        loadPersonalStats();
+    });
 
     function displayToast(msg, statusType = "success") {
       const toast = document.getElementById('toast');
@@ -326,95 +365,39 @@
       toast.timeout = setTimeout(() => { toast.className = ""; }, 4000);
     }
 
+    // --- Camera Logic ---
     async function initScanner() {
-        if(cameraActive) return;
-        startCamera();
+        if(document.getElementById('tab-scanner').classList.contains('active') && !cameraActive) {
+            startCamera();
+        }
     }
 
     async function startCamera() {
         try {
             if (videoEl.srcObject) {
-                videoEl.pause();
-                videoEl.srcObject = null;
-                videoEl.src = ''; 
+                videoEl.pause(); videoEl.srcObject = null; videoEl.src = ''; 
             }
             if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
+                localStream.getTracks().forEach(track => track.stop()); localStream = null;
             }
-            
-            localStream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "user" } 
-            });
-            
+            localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             videoEl.srcObject = localStream;
-            
-            try {
-                await videoEl.play();
-            } catch (playErr) {
-                if (playErr.name !== 'AbortError') console.error(playErr);
-            }
-
+            try { await videoEl.play(); } catch (e) { if(e.name !== 'AbortError') console.error(e); }
             videoEl.classList.add("mirrored"); 
             cameraActive = true;
-            
         } catch (err) {
             console.error("Camera Error:", err);
-            displayToast("Camera access denied. Please check permissions.", "error");
+            displayToast("Camera access denied.", "error");
         }
-    }
-
-    function resetTerminalState() {
-        currentStaffId = null;
-        currentStaffName = "";
-        allowedAction = 'none';
-        
-        const trigger = document.getElementById('staff-dropdown-trigger');
-        document.getElementById('staff-trigger-text').innerText = "Select Employee Name...";
-        trigger.classList.remove('selected');
-        
-        updateButtonStates();
     }
 
     function stopScanner() {
-        if (videoEl.srcObject) { 
-            videoEl.pause(); 
-            videoEl.srcObject = null; 
-            videoEl.src = '';
-        }
-        if (localStream) { 
-            localStream.getTracks().forEach(track => track.stop()); 
-            localStream = null; 
-        }
+        if (videoEl.srcObject) { videoEl.pause(); videoEl.srcObject = null; videoEl.src = ''; }
+        if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
         cameraActive = false;
     }
 
-    function updateButtonStates() {
-        btnIn.style.display = 'none';
-        btnTravelStart.style.display = 'none';
-        btnTravelEnd.style.display = 'none';
-        btnOut.style.display = 'none';
-        
-        btnIn.disabled = false; btnTravelStart.disabled = false; btnTravelEnd.disabled = false; btnOut.disabled = false;
-
-        if (currentStaffId) {
-            if (allowedAction === 'none') {
-                btnIn.style.display = 'flex';
-            } else if (allowedAction === 'working') {
-                btnTravelStart.style.display = 'flex';
-                btnOut.style.display = 'flex';
-            } else if (allowedAction === 'traveling') {
-                btnTravelEnd.style.display = 'flex';
-                btnOut.style.display = 'flex';
-            } else if (allowedAction === 'completed') {
-                btnIn.style.display = 'flex';
-                btnOut.style.display = 'flex';
-                btnIn.disabled = true;
-                btnOut.disabled = true;
-            }
-        }
-    }
-
+    // --- Auth Logic ---
     async function checkUser() {
         const { data: { session } } = await supabase.auth.getSession();
         handleAuthChange(session?.user);
@@ -429,87 +412,38 @@
             document.getElementById('dashboard').style.display = 'flex';
             
             const email = user.email.toLowerCase();
-            const { data: branchData } = await supabase.from('branches_directory').select('id, branch_name').eq('email', email).single();
+            const { data: staffData } = await supabase.from('staff_directory').select('id, name').eq('email', email).single();
             
-            if (branchData) { currentBranchId = branchData.id; currentBranchName = branchData.branch_name; }
-            else if (email.includes('murlipura1')) currentBranchName = "Murlipura, 1 Number";
-            else if (email.includes('vki17')) currentBranchName = "VKI, 17 Number";
-            else currentBranchName = "Central / Unassigned Branch";
-
-            document.getElementById('detected-branch-display').innerHTML = currentBranchName;
-            displayToast("Branch Session Active.", "success");
-            
-            const { data: sData } = await supabase.from('staff_directory').select('id, name').order('name');
-            if (sData) {
-                allStaffList = sData.map(s => ({ id: s.id, name: s.name }));
-                document.getElementById('staff-dropdown-trigger').classList.remove('disabled');
-                document.getElementById('staff-trigger-text').innerText = "Select Employee Name...";
-                renderStaffDropdown(allStaffList);
+            if (staffData) {
+                currentStaffId = staffData.id;
+                currentStaffName = staffData.name;
+                document.getElementById('detected-staff-display').innerHTML = `Logged in as: ${currentStaffName}`;
+                displayToast(`Welcome back, ${currentStaffName.split(' ')[0]}!`, "success");
+                checkStaffStatus();
+            } else {
+                displayToast("Staff profile not found in system.", "error");
             }
-            if (!cameraActive) initScanner();
-            
+            initScanner();
         } else {
             document.getElementById('login-screen').style.display = 'block';
             document.getElementById('dashboard').style.display = 'none';
-            currentBranchId = null; currentBranchName = "";
+            currentStaffId = null; currentStaffName = "";
             stopScanner();
             updateButtonStates();
         }
     }
     checkUser();
 
-    const dropdownTrigger = document.getElementById('staff-dropdown-trigger');
-    const dropdownMenu = document.getElementById('staff-dropdown-menu');
-    const searchInput = document.getElementById('staff-search');
-    const triggerText = document.getElementById('staff-trigger-text');
-
-    function renderStaffDropdown(list) {
-        const optionsContainer = document.getElementById('staff-options');
-        if (list.length === 0) {
-            optionsContainer.innerHTML = `<div class="custom-option disabled-option">No staff found</div>`; return;
-        }
-        
-        optionsContainer.innerHTML = list.map(s => `<div class="custom-option" data-id="${s.id}">${s.name}</div>`).join('');
-        document.querySelectorAll('.custom-option:not(.disabled-option)').forEach(opt => {
-            opt.addEventListener('click', () => {
-                currentStaffId = opt.getAttribute('data-id');
-                currentStaffName = opt.innerText;
-                triggerText.innerText = `${currentStaffName}`;
-                dropdownTrigger.classList.add('selected');
-                dropdownMenu.classList.remove('show');
-                
-                checkStaffStatus(currentStaffId, currentStaffName);
-            });
-        });
-    }
-
-    dropdownTrigger.addEventListener('click', () => {
-        dropdownMenu.classList.toggle('show');
-        if (dropdownMenu.classList.contains('show')) {
-            searchInput.value = ""; renderStaffDropdown(allStaffList); searchInput.focus(); 
-        }
-    });
-
-    searchInput.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        const filteredList = allStaffList.filter(s => s.name.toLowerCase().includes(searchTerm));
-        renderStaffDropdown(filteredList);
-    });
-
-    document.addEventListener('click', (e) => {
-        const dropdown = document.getElementById('staff-dropdown');
-        if (dropdown && !dropdown.contains(e.target)) dropdownMenu.classList.remove('show');
-    });
-
     document.getElementById('login-btn').addEventListener('click', async () => {
-        const e = document.getElementById('email-input').value; const p = document.getElementById('password-input').value;
+        const e = document.getElementById('email-input').value.trim(); const p = document.getElementById('password-input').value;
         const msg = document.getElementById('error-msg'); msg.style.display = 'none'; 
+        document.getElementById('login-btn').innerText = "Authenticating...";
         const { error } = await supabase.auth.signInWithPassword({ email: e, password: p });
         if(error) { msg.style.display = 'block'; msg.innerText = error.message; }
+        document.getElementById('login-btn').innerText = "Secure Login";
     });
     
     document.getElementById('logout-btn').addEventListener('click', async () => { await supabase.auth.signOut(); });
-    
     document.getElementById('password-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') document.getElementById('login-btn').click(); });
     
     document.getElementById('toggle-password-btn').addEventListener('click', () => {
@@ -518,27 +452,47 @@
         else { passInput.type = 'password'; document.getElementById('toggle-password-btn').style.color = 'var(--text-soft)'; }
     });
 
-    function triggerFlash() {
-        flashOverlay.classList.add('flash'); setTimeout(() => { flashOverlay.classList.remove('flash'); }, 150);
+    // --- Geofencing & Logging Logic ---
+    function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; 
+        const rad1 = lat1 * Math.PI / 180;
+        const rad2 = lat2 * Math.PI / 180;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(rad1) * Math.cos(rad2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; 
     }
 
-    async function checkStaffStatus(sId, sName) {
-        if (!sId) return;
+    function getCurrentLocation() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) reject(new Error("No GPS support"));
+            else navigator.geolocation.getCurrentPosition(
+                pos => resolve(pos.coords), err => reject(err),
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        });
+    }
 
+    function updateButtonStates() {
         btnIn.style.display = 'none'; btnTravelStart.style.display = 'none'; 
         btnTravelEnd.style.display = 'none'; btnOut.style.display = 'none';
-        
-        displayToast(`Checking live route for ${sName.split(' ')[0]}...`, "primary");
+        btnIn.disabled = false; btnTravelStart.disabled = false; btnTravelEnd.disabled = false; btnOut.disabled = false;
 
+        if (currentStaffId) {
+            if (allowedAction === 'none') { btnIn.style.display = 'flex'; } 
+            else if (allowedAction === 'working') { btnTravelStart.style.display = 'flex'; btnOut.style.display = 'flex'; } 
+            else if (allowedAction === 'traveling') { btnTravelEnd.style.display = 'flex'; btnOut.style.display = 'flex'; } 
+            else if (allowedAction === 'completed') { btnIn.style.display = 'flex'; btnOut.style.display = 'flex'; btnIn.disabled = true; btnOut.disabled = true; }
+        }
+    }
+
+    async function checkStaffStatus() {
+        if (!currentStaffId) return;
         try {
             const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-
-            const { data, error } = await supabase
-                .from('attendance_logs')
-                .select('action')
-                .eq('staff_id', sId)
-                .gte('timestamp', todayStart.toISOString())
-                .order('timestamp', { ascending: false });
+            const { data, error } = await supabase.from('attendance_logs').select('action')
+                .eq('staff_id', currentStaffId).gte('timestamp', todayStart.toISOString()).order('timestamp', { ascending: false });
 
             if (error) throw error;
 
@@ -549,80 +503,84 @@
                 else if (lastAction === 'Transit Start') currentState = 'traveling';
                 else currentState = 'working';
             }
-
             allowedAction = currentState;
-
-            if (currentState === 'completed') {
-                displayToast(`Shift Complete! Already clocked out today.`, "success");
-            } else if (currentState === 'traveling') {
-                displayToast(`In Transit. Have you reached or want to clock out?`, "warning");
-            } else if (currentState === 'working') {
-                displayToast(`Welcome back ${sName.split(' ')[0]}! Ready to move or end shift?`, "success");
-            } else {
-                displayToast(`Verified: ${sName.split(' ')[0]}. Ready to start day.`, "primary");
-            }
             updateButtonStates();
-
         } catch (err) {
             console.error("Error fetching status:", err);
-            displayToast("Failed to verify status. Check internet.", "error");
+            displayToast("Failed to verify status.", "error");
         }
+    }
+
+    function triggerFlash() {
+        flashOverlay.classList.add('flash'); setTimeout(() => { flashOverlay.classList.remove('flash'); }, 150);
     }
 
     async function logAttendance(targetAction) {
-        if (!currentStaffId) { displayToast("Please select your name first!", "error"); return; }
+        if (!currentStaffId) return;
         if (isProcessing) return;
         
         isProcessing = true;
-        btnIn.disabled = true; btnTravelStart.disabled = true; btnTravelEnd.disabled = true; btnOut.disabled = true;
-        
-        const dynamicVideo = document.getElementById('native-video');
-        if(!dynamicVideo) { displayToast("Camera feed not active.", "error"); isProcessing = false; return; }
+        displayToast("Verifying GPS Location...", "primary");
 
+        // 1. Get GPS Coordinates
+        let coords;
+        try {
+            coords = await getCurrentLocation();
+        } catch (gpsErr) {
+            displayToast("GPS required! Please turn on location services.", "error");
+            isProcessing = false; return;
+        }
+
+        // 2. Fetch all Branch Geofences
+        const { data: branches } = await supabase.from('branches_directory').select('*');
+        if (!branches || branches.length === 0) {
+            displayToast("System Error: No stores configured on map.", "error");
+            isProcessing = false; return;
+        }
+
+        // 3. Find if standing inside ANY branch
+        let matchedBranch = null;
+        let closestDistance = Infinity;
+
+        for (const branch of branches) {
+            if (!branch.latitude || !branch.longitude) continue;
+            const dist = calculateDistanceMeters(coords.latitude, coords.longitude, branch.latitude, branch.longitude);
+            if (dist < closestDistance) closestDistance = dist;
+            if (dist <= (branch.radius_meters || 100)) { matchedBranch = branch; break; }
+        }
+
+        if (!matchedBranch) {
+            displayToast(`You are ${Math.round(closestDistance)}m away from the nearest store. Move closer!`, "error");
+            isProcessing = false; return;
+        }
+
+        // 4. Capture Photo & Save
         triggerFlash();
-        
-        let actionMsg = targetAction === 'Transit Start' ? "Starting travel..." : targetAction === 'Transit End' ? "Arrival confirmed..." : `Logging ${targetAction}...`;
-        displayToast(actionMsg, "primary"); 
-        
         const hiddenCanvas = document.createElement('canvas');
-        hiddenCanvas.width = 480; hiddenCanvas.height = 640; 
+        hiddenCanvas.width = 480; hiddenCanvas.height = 640;
         const ctx = hiddenCanvas.getContext('2d');
-        
-        ctx.translate(hiddenCanvas.width, 0); 
-        ctx.scale(-1, 1); 
+        ctx.translate(hiddenCanvas.width, 0); ctx.scale(-1, 1);
         ctx.drawImage(dynamicVideo, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
-        
         const base64Data = hiddenCanvas.toDataURL('image/jpeg', 0.6);
-        
+
         try {
             const { error: dbError } = await supabase.from('attendance_logs').insert([{
-                staff_id: currentStaffId,
-                employee_name: currentStaffName, 
-                branch_id: currentBranchId,
-                branch: currentBranchName, 
-                action: targetAction,
-                timestamp: new Date().toISOString(),
-                photo_capture: base64Data
+                staff_id: currentStaffId, employee_name: currentStaffName,
+                branch_id: matchedBranch.id, branch: matchedBranch.branch_name,
+                action: targetAction, timestamp: new Date().toISOString(),
+                photo_capture: base64Data, latitude: coords.latitude, longitude: coords.longitude, gps_verified: true
             }]);
+
             if (dbError) throw dbError;
+            displayToast(`${targetAction} recorded at ${matchedBranch.branch_name}!`, "success");
             
-            let successMsg = targetAction === 'Transit Start' ? "Travel started safely!" : targetAction === 'Transit End' ? "Location Reached!" : `Success: ${targetAction} verified!`;
-            displayToast(successMsg, "success");
-            initiateCooldown();
+            setTimeout(() => checkStaffStatus(), 1000);
             
         } catch (err) {
-            displayToast("Transmission failed. Try again.", "error");
+            displayToast("Network Error: Failed to save.", "error");
+        } finally {
             isProcessing = false;
         }
-    }
-
-    function initiateCooldown() {
-        resetTerminalState();
-        let cooldownLeft = 3;
-        const cooldownInterval = setInterval(() => {
-            cooldownLeft--;
-            if (cooldownLeft <= 0) { clearInterval(cooldownInterval); isProcessing = false; }
-        }, 1000);
     }
 
     btnIn.addEventListener('click', () => logAttendance('Clock In'));
@@ -630,10 +588,226 @@
     btnTravelEnd.addEventListener('click', () => logAttendance('Transit End'));
     btnOut.addEventListener('click', () => logAttendance('Clock Out'));
 
+    // Fix Theme Toggling and Chart refresh
     document.getElementById('theme-toggle').addEventListener('click', () => { 
         const isLight = document.documentElement.classList.toggle('light-theme'); 
         localStorage.setItem('rj_theme', isLight ? 'light' : 'dark'); 
+        Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-soft').trim();
+        if(document.getElementById('tab-stats').classList.contains('active')){
+            loadPersonalStats(); // Re-render charts with new theme colors
+        }
     });
+
+    // --- Graph Rendering Helpers ---
+    function renderGraphs(dailyStats, totalWorkMs, totalTravelMs) {
+        const rootStyle = getComputedStyle(document.documentElement);
+        const primaryColor = rootStyle.getPropertyValue('--primary').trim();
+        const successColor = rootStyle.getPropertyValue('--success').trim();
+        const warningColor = rootStyle.getPropertyValue('--warning').trim();
+        const gridColor = rootStyle.getPropertyValue('--card-border').trim();
+
+        // 1. Weekly Bar Chart
+        const barCanvas = document.getElementById('weeklyBarChart');
+        if (window.staffCharts['weekly']) window.staffCharts['weekly'].destroy();
+        
+        // Take last 7 days of activity
+        const recentDays = dailyStats.slice(-7);
+        
+        window.staffCharts['weekly'] = new Chart(barCanvas, {
+            type: 'bar',
+            data: { 
+                labels: recentDays.map(d => d.dateStr), 
+                datasets: [{ 
+                    label: 'Total Hours Worked', 
+                    data: recentDays.map(d => d.hours), 
+                    backgroundColor: primaryColor, 
+                    borderRadius: 4 
+                }]
+            },
+            options: { 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } }, 
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: gridColor },
+                        ticks: { stepSize: 2 }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                } 
+            }
+        });
+
+        // 2. Time Breakdown Pie Chart
+        const pieCanvas = document.getElementById('timePieChart');
+        if (window.staffCharts['pie']) window.staffCharts['pie'].destroy();
+
+        // Convert ms to hours for chart
+        const workH = (totalWorkMs / 3600000).toFixed(1);
+        const travelH = (totalTravelMs / 3600000).toFixed(1);
+
+        window.staffCharts['pie'] = new Chart(pieCanvas, {
+            type: 'doughnut',
+            data: { 
+                labels: ['Work Hours', 'Travel Hours'], 
+                datasets: [{ 
+                    data: [workH, travelH], 
+                    backgroundColor: [successColor, warningColor], 
+                    borderWidth: 0 
+                }]
+            },
+            options: { 
+                maintainAspectRatio: false, 
+                cutout: '75%',
+                plugins: { legend: { position: 'bottom' } } 
+            }
+        });
+    }
+
+    // --- Enhanced Personal Stats Logic ---
+    async function loadPersonalStats() {
+        if (!currentStaffId) return;
+
+        const date = new Date();
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('stats-month-title').innerText = `${monthNames[date.getMonth()]} ${date.getFullYear()} Activity`;
+
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
+        
+        try {
+            const { data: logs, error } = await supabase.from('attendance_logs').select('action, branch, timestamp')
+                .eq('staff_id', currentStaffId).gte('timestamp', firstDay).order('timestamp', { ascending: true });
+
+            if (error) throw error;
+
+            let uniqueDays = new Set();
+            let sumInMins = 0;
+            let inCount = 0;
+            let totalWorkMs = 0;
+            let totalTravelMs = 0;
+            
+            // For charting
+            let dailyStatsArray = [];
+
+            // Group logs by Date string to process daily hours accurately
+            const logsByDay = {};
+            (logs || []).forEach(log => {
+                const dStr = new Date(log.timestamp).toDateString();
+                if (!logsByDay[dStr]) logsByDay[dStr] = [];
+                logsByDay[dStr].push(log);
+            });
+
+            // Calculate precise Hours, Days, and Average In-Time
+            for (const [dayStr, dayLogs] of Object.entries(logsByDay)) {
+                uniqueDays.add(dayStr);
+                
+                let currentState = 'out', lastTime = null;
+                let dayWorkMs = 0;
+                let dayTravelMs = 0;
+                
+                let firstInLog = dayLogs.find(l => l.action === 'Clock In');
+                if (firstInLog) {
+                    let d = new Date(firstInLog.timestamp);
+                    sumInMins += (d.getHours() * 60 + d.getMinutes());
+                    inCount++;
+                }
+
+                dayLogs.forEach(l => {
+                    const t = new Date(l.timestamp).getTime();
+                    if (l.action === 'Clock In' || l.action === 'Transit End') {
+                        if (currentState === 'traveling' && lastTime) dayTravelMs += (t - lastTime);
+                        currentState = 'working'; lastTime = t;
+                    } else if (l.action === 'Transit Start') {
+                        if (currentState === 'working' && lastTime) dayWorkMs += (t - lastTime);
+                        currentState = 'traveling'; lastTime = t;
+                    } else if (l.action === 'Clock Out') {
+                        if (currentState === 'working' && lastTime) dayWorkMs += (t - lastTime);
+                        if (currentState === 'traveling' && lastTime) dayTravelMs += (t - lastTime);
+                        currentState = 'out'; lastTime = null;
+                    }
+                });
+
+                // Add active time if currently on shift today
+                if (dayStr === new Date().toDateString() && currentState !== 'out' && lastTime) {
+                    const now = Date.now();
+                    if (currentState === 'working') dayWorkMs += (now - lastTime);
+                    if (currentState === 'traveling') dayTravelMs += (now - lastTime);
+                }
+
+                totalWorkMs += dayWorkMs;
+                totalTravelMs += dayTravelMs;
+
+                // Push daily stats for chart
+                let formattedDate = new Date(dayStr).toLocaleDateString('en-GB', {day: 'numeric', month:'short'});
+                let totalDayHours = (dayWorkMs + dayTravelMs) / 3600000;
+                
+                dailyStatsArray.push({
+                    rawDate: new Date(dayStr),
+                    dateStr: formattedDate,
+                    hours: totalDayHours.toFixed(1)
+                });
+            }
+
+            // Formatting Time helper
+            const formatMins = (ms) => {
+                let totalMins = Math.floor(ms / 60000);
+                return `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`;
+            };
+
+            // Setup Average In
+            let avgInStr = "--:--";
+            if (inCount > 0) {
+                let avg = sumInMins / inCount;
+                let h = Math.floor(avg / 60);
+                let m = Math.floor(avg % 60);
+                avgInStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+            }
+
+            // Push values to Grid
+            document.getElementById('stat-days').innerText = uniqueDays.size;
+            document.getElementById('stat-avg-in').innerText = avgInStr;
+            document.getElementById('stat-work-time').innerText = formatMins(totalWorkMs);
+            document.getElementById('stat-travel-time').innerText = formatMins(totalTravelMs);
+
+            // Render Charts
+            dailyStatsArray.sort((a, b) => a.rawDate - b.rawDate); // Sort chronologically
+            renderGraphs(dailyStatsArray, totalWorkMs, totalTravelMs);
+
+            // Render Recent Logs Timeline (Top 10 max, descending order)
+            let logsHtml = '';
+            if (logs && logs.length > 0) {
+                const recentLogs = logs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
+                
+                logsHtml = recentLogs.map(log => {
+                    const d = new Date(log.timestamp);
+                    const timeStr = d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit', hour12: false});
+                    const dateStr = d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+                    
+                    let badgeColor = log.action.includes('Transit') ? 'var(--warning-alpha)' : (log.action === 'Clock In' ? 'var(--success-alpha)' : 'var(--danger-alpha)');
+                    let textColor = log.action.includes('Transit') ? 'var(--warning)' : (log.action === 'Clock In' ? 'var(--success)' : 'var(--danger)');
+                    
+                    return `
+                    <div class="log-item">
+                        <div>
+                            <strong style="color: var(--text-main);">${log.branch}</strong><br>
+                            <span style="font-size: 11px; color: var(--text-soft);">${dateStr} at ${timeStr}</span>
+                        </div>
+                        <div class="badge-status" style="background: ${badgeColor}; color: ${textColor};">${log.action}</div>
+                    </div>`;
+                }).join('');
+            } else {
+                logsHtml = '<div style="color: var(--text-soft); text-align: center; padding: 20px;">No activity this month yet.</div>';
+            }
+
+            document.getElementById('recent-logs-list').innerHTML = logsHtml;
+
+        } catch(err) {
+            console.error(err);
+            document.getElementById('recent-logs-list').innerHTML = '<div style="color: var(--danger); text-align: center;">Failed to load stats. Check connection.</div>';
+        }
+    }
   </script>
 </body>
 </html>
