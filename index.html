@@ -550,8 +550,18 @@
         }
 
         if (!matchedBranch) {
-            displayToast(`You are ${Math.round(closestDistance)}m away from the nearest store. Move closer!`, "error");
-            isProcessing = false; return;
+            // Database se 'Activity' branch ko automatically dhundhein
+            const activityBranch = branches.find(b => b.branch_name === 'Activity');
+
+            if (activityBranch) {
+                // Agar Activity branch mil jaye, toh usko assign kar dein
+                matchedBranch = activityBranch;
+                displayToast(`Out of store bounds. Logged as ${matchedBranch.branch_name}`, "warning");
+            } else {
+                // Failsafe: Agar Activity branch delete ho jaye
+                displayToast(`You are ${Math.round(closestDistance)}m away from the nearest store. Move closer!`, "error");
+                isProcessing = false; return;
+            }
         }
 
         // 4. Capture Photo & Save
