@@ -536,11 +536,14 @@
         
         try {
             // 1. Check if there is an Override in Roster
-            const { data: rosterData } = await supabase.from('staff_roster')
+            const { data: rosterData, error: rosterError } = await supabase
+                .from('staff_roster')
                 .select('assigned_branch_id')
                 .eq('staff_id', staffId)
                 .eq('date', todayIso)
-                .single();
+                .maybeSingle();
+
+            if (rosterError) throw rosterError;
 
             if (rosterData && rosterData.assigned_branch_id) {
                 targetBranchId = rosterData.assigned_branch_id;
@@ -548,10 +551,13 @@
 
             // 2. Fetch the Branch Name
             if (targetBranchId) {
-                const { data: branchData } = await supabase.from('branches_directory')
+                const { data: branchData, error: branchError } = await supabase
+                    .from('branches_directory')
                     .select('branch_name')
                     .eq('id', targetBranchId)
-                    .single();
+                    .maybeSingle();
+                    
+                if (branchError) throw branchError;
                 
                 if (branchData) {
                     nameEl.innerText = branchData.branch_name;
@@ -561,13 +567,7 @@
             nameEl.innerText = "No Location Assigned";
         } catch(e) {
             console.log("No override found or error:", e);
-            // If API fails or no override, it might still have a targetBranchId from defaults. Let's try fetching it again just in case, but keep it simple.
-            nameEl.innerText = "No Override Assigned";
-            
-            if (targetBranchId) {
-                const { data: bData } = await supabase.from('branches_directory').select('branch_name').eq('id', targetBranchId).single();
-                if(bData) nameEl.innerText = bData.branch_name;
-            }
+            nameEl.innerText = "Error Loading Schedule";
         }
     }
 
@@ -586,7 +586,8 @@
             
             const email = user.email.toLowerCase();
             // Fetch default_branch_id from DB as well
-            const { data: staffData } = await supabase.from('staff_directory').select('id, name, default_branch_id').eq('email', email).single();
+            // Replace this line inside handleAuthChange (around line 342):
+            const { data: staffData } = await supabase.from('staff_directory').select('id, name, default_branch_id').eq('email', email).maybeSingle();
             
             if (staffData) {
                 currentStaffId = staffData.id;
