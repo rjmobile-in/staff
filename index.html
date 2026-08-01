@@ -18,6 +18,7 @@
   
   <!-- Add Chart.js for Staff Graphs -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <style>
     /* =========================================================
@@ -274,6 +275,7 @@
     <div class="nav-tabs">
         <div class="nav-tab active" id="tab-scanner">📸 Scanner</div>
         <div class="nav-tab" id="tab-stats">📊 My Stats</div>
+        <div class="nav-tab" id="tab-birthdays">🎂 Birthdays</div>
     </div>
 
     <!-- Scanner Feed Card -->
@@ -350,6 +352,22 @@
             <div style="color: var(--text-soft); text-align: center; padding: 20px;">Loading logs...</div>
         </div>
     </div>
+
+    <!-- Birthdays View -->
+    <div class="main-card" id="birthdays-view" style="display: none; padding-top: 16px;">
+        <h2 style="margin-bottom: 20px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;">Staff Birthdays</h2>
+        
+        <div style="background: linear-gradient(135deg, var(--primary-alpha) 0%, var(--card-bg) 100%); border-radius: var(--radius-lg); border: 1px solid var(--primary); padding: 24px; text-align: center; position: relative; overflow: hidden; margin-bottom: 24px;">
+            <div style="background: var(--primary); color: #fff; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: var(--radius-sm); display: inline-block; margin-bottom: 12px;">Next Celebration</div>
+            <div style="font-size: 40px; margin-bottom: -5px;">🎉</div>
+            <div id="staff-next-bday-name" style="font-size: 24px; font-weight: 800; color: var(--text-main); font-family: 'Plus Jakarta Sans', sans-serif;">Loading...</div>
+            <div id="staff-next-bday-date" style="font-size: 14px; color: var(--text-soft); font-weight: 600;">--</div>
+            <div id="staff-next-bday-countdown" style="margin-top: 16px; font-size: 18px; font-weight: 800; color: var(--success); background: var(--success-alpha); padding: 8px 16px; border-radius: var(--radius-lg); display: inline-block;">--</div>
+        </div>
+
+        <h3 style="font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">📅 All Upcoming Birthdays</h3>
+        <div style="display: flex; flex-direction: column; gap: 12px;" id="staff-bday-list"></div>
+    </div>
   </div>
 
   <script type="module">
@@ -390,18 +408,33 @@
     document.getElementById('tab-scanner').addEventListener('click', () => {
         document.getElementById('tab-scanner').classList.add('active');
         document.getElementById('tab-stats').classList.remove('active');
+        document.getElementById('tab-birthdays').classList.remove('active');
         document.getElementById('scanner-view').style.display = 'block';
         document.getElementById('stats-view').style.display = 'none';
+        document.getElementById('birthdays-view').style.display = 'none';
         if(!cameraActive) startCamera();
     });
 
     document.getElementById('tab-stats').addEventListener('click', () => {
         document.getElementById('tab-stats').classList.add('active');
         document.getElementById('tab-scanner').classList.remove('active');
+        document.getElementById('tab-birthdays').classList.remove('active');
         document.getElementById('scanner-view').style.display = 'none';
         document.getElementById('stats-view').style.display = 'block';
+        document.getElementById('birthdays-view').style.display = 'none';
         stopScanner();
         loadPersonalStats();
+    });
+    
+    document.getElementById('tab-birthdays').addEventListener('click', () => {
+        document.getElementById('tab-birthdays').classList.add('active');
+        document.getElementById('tab-scanner').classList.remove('active');
+        document.getElementById('tab-stats').classList.remove('active');
+        document.getElementById('birthdays-view').style.display = 'block';
+        document.getElementById('scanner-view').style.display = 'none';
+        document.getElementById('stats-view').style.display = 'none';
+        stopScanner();
+        fetchAndRenderStaffBirthdays();
     });
 
     function displayToast(msg, statusType = "success") {
@@ -931,6 +964,99 @@
             document.getElementById('recent-logs-list').innerHTML = logsHtml;
         } catch(err) {
             document.getElementById('recent-logs-list').innerHTML = '<div style="color: var(--danger); text-align: center;">Failed to load stats. Check connection.</div>';
+        }
+    }
+
+    let cachedStaffEmail = ''; 
+    supabase.auth.onAuthStateChange((event, session) => {
+        if(session?.user) cachedStaffEmail = session.user.email;
+    });
+
+    async function fetchAndRenderStaffBirthdays() {
+        const listContainer = document.getElementById('staff-bday-list');
+        listContainer.innerHTML = '<div style="color:var(--text-soft); text-align:center;">Fetching records...</div>';
+
+        try {
+            const { data: bdayStaff, error } = await supabase
+                .from('staff_directory')
+                .select('name, dob, email')
+                .not('dob', 'is', null);
+
+            if (error) throw error;
+            if (!bdayStaff || bdayStaff.length === 0) {
+                listContainer.innerHTML = '<div style="text-align:center; color: var(--text-soft);">No staff birthdays recorded yet.</div>';
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const enriched = bdayStaff.map(staff => {
+                const [year, month, day] = staff.dob.split('-');
+                const bdayThisYear = new Date(today.getFullYear(), parseInt(month) - 1, parseInt(day));
+                
+                let nextBday = new Date(bdayThisYear);
+                let turningAge = today.getFullYear() - parseInt(year);
+                
+                if (bdayThisYear.getTime() < today.getTime()) {
+                    nextBday.setFullYear(today.getFullYear() + 1);
+                    turningAge++;
+                }
+                
+                const diffDays = Math.ceil((nextBday - today) / (1000 * 60 * 60 * 24));
+                const formattedDate = new Date(nextBday.getFullYear(), parseInt(month) - 1, parseInt(day)).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+                
+                return { ...staff, daysLeft: diffDays, turningAge, formattedDate };
+            });
+
+            enriched.sort((a, b) => a.daysLeft - b.daysLeft);
+
+            let currentUserIndex = enriched.findIndex(s => s.email === cachedStaffEmail);
+            if (currentUserIndex !== -1) {
+                let pinnedBday = enriched.splice(currentUserIndex, 1)[0];
+                enriched.unshift(pinnedBday);
+            }
+
+            const nextBday = enriched[0];
+            document.getElementById('staff-next-bday-name').innerText = (nextBday.email === cachedStaffEmail) ? "Your Birthday" : nextBday.name;
+            document.getElementById('staff-next-bday-date').innerText = `Turning ${nextBday.turningAge} • ${nextBday.formattedDate}`;
+            
+            const countdownEl = document.getElementById('staff-next-bday-countdown');
+            if (nextBday.daysLeft === 0) {
+                countdownEl.innerText = "It's Today! 🎂🎉";
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#3b82f6', '#10b981', '#f59e0b'] });
+            } else if (nextBday.daysLeft === 1) {
+                countdownEl.innerText = "Tomorrow!";
+            } else {
+                countdownEl.innerText = `In ${nextBday.daysLeft} Days`;
+            }
+
+            listContainer.innerHTML = enriched.map(staff => {
+                const isCurrentUser = (staff.email === cachedStaffEmail);
+                const displayName = isCurrentUser ? "Your Birthday 📌" : staff.name;
+                
+                let tagClass = 'background: var(--card-bg); color: var(--text-soft); border: 1px solid var(--card-border);';
+                let tagText = `In ${staff.daysLeft} d`;
+
+                if (staff.daysLeft === 0) { tagClass = 'background: var(--success-alpha); color: var(--success);'; tagText = 'Today! 🎂'; } 
+                else if (staff.daysLeft <= 7) { tagClass = 'background: var(--warning-alpha); color: var(--warning);'; if (staff.daysLeft === 1) tagText = 'Tmrw'; }
+
+                return `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md);">
+                    <div>
+                        <div style="font-size: 14px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                            ${displayName} <span style="font-size: 10px; color: ${isCurrentUser ? 'var(--success)' : 'var(--primary)'}; background: ${isCurrentUser ? 'var(--success-alpha)' : 'var(--primary-alpha)'}; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Age ${staff.turningAge}</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-soft); font-weight: 500; margin-top: 4px;">${staff.formattedDate}</div>
+                    </div>
+                    <div style="${tagClass} font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: var(--radius-sm); text-align: center; min-width: 70px;">
+                        ${tagText}
+                    </div>
+                </div>`;
+            }).join('');
+
+        } catch(err) {
+            listContainer.innerHTML = '<div style="color:var(--danger); text-align:center;">Failed to load birthdays.</div>';
         }
     }
   </script>
