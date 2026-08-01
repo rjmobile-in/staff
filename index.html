@@ -1009,29 +1009,38 @@
                 return { ...staff, daysLeft: diffDays, turningAge, formattedDate };
             });
 
+            // ... (Pehle ka code same rahega)
+            
             enriched.sort((a, b) => a.daysLeft - b.daysLeft);
 
+            // 1. Array me pin karne se pehle real me jo next hai usko save kar lein
+            const realNextBday = enriched[0];
+
+            // 2. Ab user ka birthday list me top par pin karein
             let currentUserIndex = enriched.findIndex(s => s.email === cachedStaffEmail);
             if (currentUserIndex !== -1) {
                 let pinnedBday = enriched.splice(currentUserIndex, 1)[0];
                 enriched.unshift(pinnedBday);
             }
 
-            const nextBday = enriched[0];
-            document.getElementById('staff-next-bday-name').innerText = (nextBday.email === cachedStaffEmail) ? "Your Birthday" : nextBday.name;
-            document.getElementById('staff-next-bday-date').innerText = `Turning ${nextBday.turningAge} • ${nextBday.formattedDate}`;
+            // 3. Banner me hamesha 'realNextBday' dikhaye (jo chronologically next hai)
+            document.getElementById('staff-next-bday-name').innerText = (realNextBday.email === cachedStaffEmail) ? "Your Birthday" : realNextBday.name;
+            document.getElementById('staff-next-bday-date').innerText = `Turning ${realNextBday.turningAge} • ${realNextBday.formattedDate}`;
             
             const countdownEl = document.getElementById('staff-next-bday-countdown');
-            if (nextBday.daysLeft === 0) {
+            if (realNextBday.daysLeft === 0) {
                 countdownEl.innerText = "It's Today! 🎂🎉";
                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#3b82f6', '#10b981', '#f59e0b'] });
-            } else if (nextBday.daysLeft === 1) {
+            } else if (realNextBday.daysLeft === 1) {
                 countdownEl.innerText = "Tomorrow!";
             } else {
-                countdownEl.innerText = `In ${nextBday.daysLeft} Days`;
+                countdownEl.innerText = `In ${realNextBday.daysLeft} Days`;
             }
 
+            // 4. List me hamesha 'enriched' use ho jisme user pinned hai
             listContainer.innerHTML = enriched.map(staff => {
+            // ... (Baaki neeche ka list render karne wala code same rahega)
+
                 const isCurrentUser = (staff.email === cachedStaffEmail);
                 const displayName = isCurrentUser ? "Your Birthday 📌" : staff.name;
                 
