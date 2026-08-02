@@ -503,6 +503,7 @@
     let localStream = null;
     let allowedAction = 'none'; 
     let currentStaffId = null; 
+    let lastBranchId = null; // Naya variable last branch track karne ke liye 
     let currentStaffName = "";
     let isProcessing = false;
     let hasAutoDetected = false; // Prevents the popup from showing again on tab switches
@@ -809,7 +810,7 @@
         if (!currentStaffId) return;
         try {
             const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-            const { data, error } = await supabase.from('attendance_logs').select('action')
+            const { data, error } = await supabase.from('attendance_logs').select('action, branch_id')
                 .eq('staff_id', currentStaffId).gte('timestamp', todayStart.toISOString()).order('timestamp', { ascending: false });
 
             if (error) throw error;
@@ -817,6 +818,7 @@
             let currentState = 'none';
             if (data && data.length > 0) {
                 const lastAction = data[0].action;
+                lastBranchId = data[0].branch_id; // Last logged branch save kar li
                 if (lastAction === 'Clock Out') currentState = 'completed';
                 else if (lastAction === 'Transit Start') currentState = 'traveling';
                 else currentState = 'working';
@@ -892,6 +894,22 @@
             }
         }
 
+        // --- NEW RESTRICTION LOGIC ---
+        // Agar staff already kisi branch par working hai, toh vo next action sirf usi branch se le sakta hai
+        if (allowedAction === 'working' && lastBranchId) {
+            if (matchedBranch.id !== lastBranchId) {
+                displayToast("You can only Start Travel or Clock Out from your currently checked-in branch.", "error");
+                isProcessing = false;
+                if (activeBtn) {
+                    activeBtn.innerHTML = originalBtnHtml;
+                    activeBtn.style.opacity = '1';
+                    activeBtn.style.pointerEvents = 'auto';
+                }
+                return;
+            }
+        }
+        // -----------------------------
+
         // 4. Capture Photo & Save
         triggerFlash();
         const hiddenCanvas = document.createElement('canvas');
@@ -920,6 +938,7 @@
             }
 
             // Optimistically update the UI state instantly to prevent button flickering
+            lastBranchId = matchedBranch.id; // Record local state
             if (targetAction === 'Clock In' || targetAction === 'Transit End') allowedAction = 'working';
             else if (targetAction === 'Transit Start') allowedAction = 'traveling';
             else if (targetAction === 'Clock Out') allowedAction = 'completed';
