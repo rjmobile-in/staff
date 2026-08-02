@@ -378,6 +378,12 @@
       <div id="video-wrapper">
         <video id="native-video" autoplay muted playsinline></video>
         <div id="flash-overlay"></div>
+        <div id="camera-error-overlay" style="display: none; position: absolute; inset: 0; background: var(--card-bg); flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; z-index: 10;">
+            <div style="font-size: 32px; margin-bottom: 12px;">📷</div>
+            <h3 style="color: var(--text-main); margin-bottom: 8px; font-size: 16px;">Camera Blocked</h3>
+            <p style="color: var(--text-soft); font-size: 13px; line-height: 1.5; margin-bottom: 16px;">Please allow camera access in your browser settings to log attendance.</p>
+            <button class="btn-secondary" onclick="startCamera()">Try Again</button>
+        </div>
       </div>
 
       <div class="btn-row" id="dynamic-btn-row">
@@ -635,6 +641,7 @@
     }
 
     async function startCamera() {
+        document.getElementById('camera-error-overlay').style.display = 'none';
         try {
             if (videoEl.srcObject) { videoEl.pause(); videoEl.srcObject = null; videoEl.src = ''; }
             if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
@@ -646,6 +653,7 @@
         } catch (err) {
             console.error("Camera Error:", err);
             displayToast("Camera access denied.", "error");
+            document.getElementById('camera-error-overlay').style.display = 'flex';
         }
     }
 
@@ -727,7 +735,9 @@
             if (staffData) {
                 currentStaffId = staffData.id;
                 currentStaffName = staffData.name;
-                document.getElementById('detected-staff-display').innerHTML = `Logged in as: ${currentStaffName}`;
+                const hour = new Date().getHours();
+                let greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
+                document.getElementById('detected-staff-display').innerHTML = `${greeting}, ${currentStaffName.split(' ')[0]} 👋`;
                 
                 checkStaffStatus();
                 loadTodaySchedule(staffData.id, staffData.default_branch_id);
@@ -889,6 +899,11 @@
             // Success hone par bhi chhota message change karke popup dikhayega
             showBranchPopup(matchedBranch.branch_name, `${targetAction} successfully recorded`);
             
+            // End of shift celebration
+            if (targetAction === 'Clock Out') {
+                confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'] });
+            }
+
             setTimeout(() => checkStaffStatus(), 1000);
             
         } catch (err) {
