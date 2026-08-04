@@ -10,6 +10,7 @@
   <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="#f1f5f9" media="(prefers-color-scheme: light)" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="RJ Staff" />
   
@@ -648,17 +649,7 @@
         });
     }
 
-    // --- SILENT GPS PRE-WARMER ---
-    function preWarmGPS() {
-        if (navigator.geolocation) {
-            // Bina koi UI block kiye ya toast dikhaye chupchaap GPS hardware ko jagana
-            navigator.geolocation.getCurrentPosition(
-                (pos) => console.log("GPS cache silently refreshed."),
-                (err) => console.log("Silent GPS ping ignored."),
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-            );
-        }
-    }
+    
 
     // --- ✨ NEW: AUTO-DETECT BRANCH ON SITE LOAD ---
     async function autoDetectBranch() {
