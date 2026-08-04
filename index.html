@@ -596,14 +596,68 @@
         return R * c; 
     }
 
+    // --- UPDATED: Geofencing & GPS Functions with Cache Bypass ---
     function getCurrentLocation() {
         return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) reject(new Error("No GPS support"));
-            else navigator.geolocation.getCurrentPosition(
-                pos => resolve(pos.coords), err => reject(err),
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            if (!navigator.geolocation) {
+                reject(new Error("No GPS support"));
+                return;
+            }
+
+            const options = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    // GPS timestamp check (milliseconds mein)
+                    const gpsAge = Date.now() - pos.timestamp;
+                    
+                    // Agar GPS data 30 seconds se zyada purana hai (Tab background caching issue)
+                    if (gpsAge > 30000) {
+                        console.warn(`Stale GPS detected (Age: ${Math.floor(gpsAge/1000)}s). Forcing live hardware fetch...`);
+                        
+                        // watchPosition lagane se phone ka real GPS sensor force-start ho jata hai
+                        const watchId = navigator.geolocation.watchPosition(
+                            (newPos) => {
+                                // Jaise hi fresh location (under 30s) mile, watch hata do aur resolve karo
+                                if (Date.now() - newPos.timestamp <= 30000) {
+                                    navigator.geolocation.clearWatch(watchId);
+                                    resolve(newPos.coords);
+                                }
+                            },
+                            (err) => {
+                                navigator.geolocation.clearWatch(watchId);
+                                reject(err);
+                            },
+                            options
+                        );
+
+                        // Safety Timeout: Agar 15 second tak nayi location na mile toh watch hata do
+                        setTimeout(() => {
+                            navigator.geolocation.clearWatch(watchId);
+                            reject(new Error("Timeout waiting for live GPS. Try again."));
+                        }, 15000);
+
+                    } else {
+                        // Location fresh hai, direct use karo
+                        resolve(pos.coords);
+                    }
+                }, 
+                (err) => reject(err),
+                options
             );
         });
+    }
+
+    // --- SILENT GPS PRE-WARMER ---
+    function preWarmGPS() {
+        if (navigator.geolocation) {
+            // Bina koi UI block kiye ya toast dikhaye chupchaap GPS hardware ko jagana
+            navigator.geolocation.getCurrentPosition(
+                (pos) => console.log("GPS cache silently refreshed."),
+                (err) => console.log("Silent GPS ping ignored."),
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+            );
+        }
     }
 
     // --- ✨ NEW: AUTO-DETECT BRANCH ON SITE LOAD ---
@@ -855,7 +909,7 @@
             activeBtn.style.pointerEvents = 'none'; // Prevent double taps completely
         }
 
-        displayToast("Acquiring GPS & Camera...", "primary");
+        // displayToast("Acquiring GPS & Camera...", "primary"); // Removed for smoother flow
 
         // 1. Get GPS Coordinates
         let coords;
@@ -1428,11 +1482,24 @@
         if (currentStaffId) checkStaffStatus(); // Refresh status just in case
     });
 
+    // --- SILENT GPS PRE-WARMER ---
+    function preWarmGPS() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => console.log("GPS cache silently refreshed."),
+                (err) => console.log("Silent GPS ping ignored."),
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+            );
+        }
+    }
+
     // =========================================================================
     //  MOBILE APP-SWITCHING HARDWARE WAKE-UP
     // =========================================================================
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
+            preWarmGPS(); // Chupchaap background mein GPS cache fresh karega
+            
             // Re-check status in case the day changed while app was in background overnight
             if (currentStaffId) checkStaffStatus();
             
