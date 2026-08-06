@@ -296,6 +296,26 @@
     </div>
   </div>
 
+  <!-- CUSTOM LOGOUT POPUP -->
+  <div id="logout-popup" class="popup-overlay" style="z-index: 10005;">
+    <div class="popup-content glass-effect">
+      <div class="popup-icon-wrapper" style="background: var(--danger-alpha); color: var(--danger);">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </div>
+      <div class="popup-branch-name" style="color: var(--text-main); font-size: 20px;">Sign Out?</div>
+      <div class="popup-action-desc" style="color: var(--text-soft); font-size: 13px; margin-bottom: 24px;">Are you sure you want to log out of your secure session?</div>
+      
+      <div style="display: flex; gap: 12px; width: 100%;">
+        <button class="btn-secondary" id="btn-cancel-logout" style="flex: 1; justify-content: center; padding: 14px;">Cancel</button>
+        <button class="btn-action btn-out" id="btn-confirm-logout" style="flex: 1; padding: 14px; margin: 0; box-shadow: none;">Log Out</button>
+      </div>
+    </div>
+  </div>
+
   <!-- STAFF PROFILE EDIT MODAL -->
   <div id="profile-modal" class="modal-overlay" onclick="this.style.display='none'">
     <div class="modal-card" onclick="event.stopPropagation()">
@@ -600,8 +620,9 @@
     let localStream = null;
     let allowedAction = 'none'; 
     let currentStaffId = null; 
-    let lastBranchId = null; // Naya variable last branch track karne ke liye 
+    let lastBranchId = null; 
     let currentStaffName = "";
+    let currentStaffRole = ""; // Naya variable role track karne ke liye
     let isProcessing = false;
     let hasAutoDetected = false; // Prevents the popup from showing again on tab switches
     let cooldownActive = false;  // 5-second anti-spam protection
@@ -796,11 +817,24 @@
     }
 
     // --- ✨ POPUP LOGIC ---
-    function showBranchPopup(branchName, customDesc) {
+    function showBranchPopup(branchName, customDesc, type = 'success') {
       document.getElementById('popup-branch-name').innerText = branchName;
       document.getElementById('popup-action-desc').innerText = customDesc;
-      document.getElementById('branch-popup').classList.add('show');
       
+      const iconWrapper = document.querySelector('.popup-icon-wrapper');
+      if (type === 'error') {
+        iconWrapper.style.background = 'var(--danger-alpha)';
+        iconWrapper.style.color = 'var(--danger)';
+        iconWrapper.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+        document.getElementById('popup-branch-name').style.color = 'var(--danger)';
+      } else {
+        iconWrapper.style.background = 'var(--success-alpha)';
+        iconWrapper.style.color = 'var(--success)';
+        iconWrapper.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+        document.getElementById('popup-branch-name').style.color = 'var(--primary)';
+      }
+      
+      document.getElementById('branch-popup').classList.add('show');
       setTimeout(() => closeBranchPopup(), 5000);
     }
 
@@ -894,13 +928,18 @@
             }
 
             if (!matchedBranch) {
+                const isActivityStaff = currentStaffRole === 'Activity Person' || currentStaffRole === 'Activity Manager';
                 const activityBranch = branches.find(b => b.branch_name === 'Activity');
-                if (activityBranch) matchedBranch = activityBranch;
+                if (activityBranch && isActivityStaff) {
+                    matchedBranch = activityBranch;
+                }
             }
 
             if (matchedBranch) {
-                // Bina koi button dabaye hi screen aate hi popup khul jayega
-                showBranchPopup(matchedBranch.branch_name, "Ready for attendance");
+                showBranchPopup(matchedBranch.branch_name, "Ready for attendance", "success");
+            } else {
+                let distanceText = closestDistance === Infinity ? "Location not found" : `You are ${Math.round(closestDistance)}m away from store.`;
+                showBranchPopup("No Branch Detected", distanceText, "error");
             }
         } catch (err) {
             console.log("Auto-detect GPS waiting or denied.", err);
@@ -1006,12 +1045,13 @@
             document.getElementById('dashboard').style.display = 'flex';
             
             const email = user.email.toLowerCase();
-            // Naya query jisme dob aur profile_pic bhi aayega
-            const { data: staffData } = await supabase.from('staff_directory').select('id, name, default_branch_id, dob, profile_pic').eq('email', email).maybeSingle();
+            // Naya query jisme role, dob aur profile_pic aayega
+            const { data: staffData } = await supabase.from('staff_directory').select('id, name, role, default_branch_id, dob, profile_pic').eq('email', email).maybeSingle();
             
             if (staffData) {
                 currentStaffId = staffData.id;
                 currentStaffName = staffData.name;
+                currentStaffRole = staffData.role || '';
                 
                 // 1. Set Greetings & Name
                 const hour = new Date().getHours();
@@ -1086,11 +1126,19 @@
         document.getElementById('login-btn').innerText = "Secure Login";
     });
     
-    document.getElementById('logout-btn').addEventListener('click', async () => { 
-        if (confirm("Are you sure you want to log out of your session?")) {
-            document.getElementById('global-loader').style.display = 'flex';
-            await supabase.auth.signOut(); 
-        }
+    // --- CUSTOM LOGOUT LOGIC ---
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        document.getElementById('logout-popup').classList.add('show');
+    });
+
+    document.getElementById('btn-cancel-logout').addEventListener('click', () => {
+        document.getElementById('logout-popup').classList.remove('show');
+    });
+
+    document.getElementById('btn-confirm-logout').addEventListener('click', async () => {
+        document.getElementById('logout-popup').classList.remove('show');
+        document.getElementById('global-loader').style.display = 'flex';
+        await supabase.auth.signOut(); 
     });
     document.getElementById('password-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') document.getElementById('login-btn').click(); });
     
@@ -1195,12 +1243,8 @@
         }
 
         if (!matchedBranch) {
-            // NEW SECURITY FIX: Fetch the user's role to see if they are allowed to use the Activity fallback
-            const { data: roleData } = await supabase.from('staff_directory').select('role').eq('id', currentStaffId).single();
-            const userRole = roleData ? roleData.role : '';
-            
-            // Define exactly who is allowed to bypass the standard store geofences
-            const isActivityStaff = userRole === 'Activity Person' || userRole === 'Activity Manager';
+            // Using pre-fetched role to speed up the clock-in button response!
+            const isActivityStaff = currentStaffRole === 'Activity Person' || currentStaffRole === 'Activity Manager';
 
             const activityBranch = branches.find(b => b.branch_name === 'Activity');
             
