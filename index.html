@@ -900,8 +900,6 @@
             activeBtn.style.pointerEvents = 'none'; // Prevent double taps completely
         }
 
-        // displayToast("Acquiring GPS & Camera...", "primary"); // Removed for smoother flow
-
         // 1. Get GPS Coordinates
         let coords;
         try {
@@ -965,10 +963,11 @@
         const base64Data = hiddenCanvas.toDataURL('image/jpeg', 0.6);
 
         try {
+            // *** SECURITY FIX: REMOVED LOCAL DEVICE TIMESTAMP ***
             const { error: dbError } = await supabase.from('attendance_logs').insert([{
                 staff_id: currentStaffId, employee_name: currentStaffName,
                 branch_id: matchedBranch.id, branch: matchedBranch.branch_name,
-                action: targetAction, timestamp: new Date().toISOString(),
+                action: targetAction, 
                 photo_capture: base64Data, latitude: coords.latitude, longitude: coords.longitude, gps_verified: true
             }]);
 
