@@ -928,12 +928,27 @@
         }
 
         if (!matchedBranch) {
+            // NEW SECURITY FIX: Fetch the user's role to see if they are allowed to use the Activity fallback
+            const { data: roleData } = await supabase.from('staff_directory').select('role').eq('id', currentStaffId).single();
+            const userRole = roleData ? roleData.role : '';
+            
+            // Define exactly who is allowed to bypass the standard store geofences
+            const isActivityStaff = userRole === 'Activity Person' || userRole === 'Activity Manager';
+
             const activityBranch = branches.find(b => b.branch_name === 'Activity');
-            if (activityBranch) {
+            
+            if (activityBranch && isActivityStaff) {
                 matchedBranch = activityBranch;
             } else {
                 displayToast(`You are ${Math.round(closestDistance)}m away from the nearest store. Move closer!`, "error");
-                isProcessing = false; return;
+                isProcessing = false; 
+                // Restore button state
+                if (activeBtn) {
+                    activeBtn.innerHTML = originalBtnHtml;
+                    activeBtn.style.opacity = '1';
+                    activeBtn.style.pointerEvents = 'auto';
+                }
+                return;
             }
         }
 
