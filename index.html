@@ -53,18 +53,18 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     
     :root {
-      --bg-base: #09090b; 
-      --bg-surface: #18181b;
-      --card-bg: #18181b; 
-      --card-bg-alpha: rgba(24, 24, 27, 0.85);
-      --card-border: #27272a;
+      --bg-base: #0a1023; 
+      --bg-surface: #121b33;
+      --card-bg: #121b33; 
+      --card-bg-alpha: rgba(18, 27, 51, 0.85);
+      --card-border: #1e2d4a;
       
-      --primary: #6366f1; 
-      --primary-hover: #4f46e5; 
-      --primary-alpha: rgba(99, 102, 241, 0.15);
+      --primary: #f37021; 
+      --primary-hover: #d9621a; 
+      --primary-alpha: rgba(243, 112, 33, 0.15);
       
-      --text-main: #f4f4f5; 
-      --text-soft: #a1a1aa;
+      --text-main: #f8fafc; 
+      --text-soft: #94a3b8;
       
       --success: #10b981; 
       --success-alpha: rgba(16, 185, 129, 0.15);
@@ -73,7 +73,7 @@
       --warning: #f59e0b; 
       --warning-alpha: rgba(245, 158, 11, 0.15);
       
-      --input-bg: #0f172a; 
+      --input-bg: #0a1023; 
       --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
       --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
       --radius-sm: 8px;
@@ -259,6 +259,21 @@
     #flash-overlay.flash { opacity: 0.8; }
 
     .btn-row { display: flex; gap: 16px; width: 100%; flex-wrap: wrap; }
+
+    /* Profile & Birthday UX */
+    .staff-avatar-header { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); cursor: pointer; background: var(--input-bg); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary); font-size: 20px; flex-shrink: 0; box-shadow: var(--shadow-sm); transition: 0.2s; }
+    .staff-avatar-header:hover { transform: scale(1.05); }
+    .bday-banner { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: #fff; padding: 16px; border-radius: var(--radius-md); margin-bottom: 24px; text-align: center; display: none; box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3); position: relative; overflow: hidden; animation: popInFade 0.5s ease; border: 1px solid #fca5a5;}
+    .bday-banner h3 { font-size: 18px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.2);}
+    .bday-banner p { font-size: 13px; font-weight: 600; opacity: 0.95; }
+    .edit-avatar-preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; background: var(--input-bg); color: var(--primary); font-size: 40px; font-weight: bold; }
+    .file-upload-btn { background: var(--primary-alpha); color: var(--primary); padding: 10px 16px; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; display: inline-block; font-size: 13px; border: 1px solid var(--primary); transition: 0.2s; text-align: center;}
+    .file-upload-btn:hover { background: var(--primary); color: #fff; }
+
+    /* Directory Card Styles */
+    .directory-card { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 16px; display: flex; align-items: center; gap: 12px; transition: 0.2s; }
+    .directory-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .directory-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); background: var(--card-bg); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary); font-size: 18px; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -281,6 +296,37 @@
     </div>
   </div>
 
+  <!-- STAFF PROFILE EDIT MODAL -->
+  <div id="profile-modal" class="modal-overlay" onclick="this.style.display='none'">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h2 style="margin:0; font-size: 20px;">My Profile</h2>
+          <span style="color: var(--text-soft); cursor: pointer; font-size: 24px; font-weight: bold; line-height: 1;" onclick="document.getElementById('profile-modal').style.display='none'">&times;</span>
+      </div>
+      
+      <div style="text-align: center;">
+          <img id="edit-avatar-img" class="edit-avatar-preview" src="" alt="👤" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div id="edit-avatar-fallback" class="edit-avatar-preview" style="display: none;">👤</div>
+          
+          <label class="file-upload-btn">
+              📸 Upload Photo
+              <input type="file" id="profile-pic-upload" accept="image/png, image/jpeg" style="display: none;">
+          </label>
+          <div style="margin-top: 8px;"><button class="icon-btn" id="btn-remove-pic" style="color: var(--danger);">🗑️ Remove Photo</button></div>
+      </div>
+
+      <div style="margin-top: 16px;">
+          <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; display: block;">Full Name</label>
+          <input type="text" id="edit-my-name" class="input-field" placeholder="Your Name">
+
+          <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; display: block;">Date of Birth</label>
+          <input type="date" id="edit-my-dob" class="input-field" style="color-scheme: dark;">
+      </div>
+
+      <button id="btn-save-profile" class="btn-primary" style="justify-content: center; padding: 14px; margin-top: 8px;">Save Profile</button>
+    </div>
+  </div>
+
   <!-- THEME CUSTOMIZER MODAL -->
   <div id="theme-modal" class="modal-overlay" onclick="this.style.display='none'">
     <div class="modal-card" onclick="event.stopPropagation()">
@@ -293,6 +339,7 @@
         <div style="margin-bottom: 24px;">
             <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Quick Presets</label>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="theme-presets-container">
+                <button class="btn-secondary preset-btn" data-preset="rjmobile" style="font-size: 12px; padding: 6px 12px; border-color: #f37021; color: #f37021;">📱 RJ Mobile</button>
                 <button class="btn-secondary preset-btn" data-preset="dark" style="font-size: 12px; padding: 6px 10px;">🌙 Dark</button>
                 <button class="btn-secondary preset-btn" data-preset="light" style="font-size: 12px; padding: 6px 10px;">☀️ Light</button>
                 <button class="btn-secondary preset-btn" data-preset="ocean" style="font-size: 12px; padding: 6px 10px;">🌊 Ocean</button>
@@ -301,6 +348,10 @@
                 <button class="btn-secondary preset-btn" data-preset="midnight" style="font-size: 12px; padding: 6px 10px;">🌌 Midnight</button>
                 <button class="btn-secondary preset-btn" data-preset="coffee" style="font-size: 12px; padding: 6px 10px;">☕ Coffee</button>
                 <button class="btn-secondary preset-btn" data-preset="cyberpunk" style="font-size: 12px; padding: 6px 10px;">🤖 Cyberpunk</button>
+                <button class="btn-secondary preset-btn" data-preset="dracula" style="font-size: 12px; padding: 6px 10px;">🧛‍♂️ Dracula</button>
+                <button class="btn-secondary preset-btn" data-preset="nord" style="font-size: 12px; padding: 6px 10px;">❄️ Nord</button>
+                <button class="btn-secondary preset-btn" data-preset="neon" style="font-size: 12px; padding: 6px 10px;">🟢 Matrix</button>
+                <button class="btn-secondary preset-btn" data-preset="rosegold" style="font-size: 12px; padding: 6px 10px;">🌸 Rose Gold</button>
             </div>
         </div>
 
@@ -308,19 +359,19 @@
         
         <div class="color-picker-row">
             <span class="color-picker-label">Primary Accent</span>
-            <input type="color" id="theme-primary" class="color-picker-input theme-color-input" data-var="--primary" value="#6366f1">
+            <input type="color" id="theme-primary" class="color-picker-input theme-color-input" data-var="--primary" value="#f37021">
         </div>
         <div class="color-picker-row">
             <span class="color-picker-label">App Background</span>
-            <input type="color" id="theme-bg" class="color-picker-input theme-color-input" data-var="--bg-base" value="#09090b">
+            <input type="color" id="theme-bg" class="color-picker-input theme-color-input" data-var="--bg-base" value="#0a1023">
         </div>
         <div class="color-picker-row">
             <span class="color-picker-label">Cards & Modals</span>
-            <input type="color" id="theme-card" class="color-picker-input theme-color-input" data-var="--card-bg" value="#18181b">
+            <input type="color" id="theme-card" class="color-picker-input theme-color-input" data-var="--card-bg" value="#121b33">
         </div>
         <div class="color-picker-row">
             <span class="color-picker-label">Main Text</span>
-            <input type="color" id="theme-text" class="color-picker-input theme-color-input" data-var="--text-main" value="#f4f4f5">
+            <input type="color" id="theme-text" class="color-picker-input theme-color-input" data-var="--text-main" value="#f8fafc">
         </div>
       </div>
 
@@ -350,17 +401,25 @@
   <!-- Main Application -->
   <div id="dashboard">
     <div class="header glass-effect">
-      <div class="brand-area">
+      <div class="brand-area" style="display: flex; gap: 12px; align-items: center;">
+        <img id="header-avatar" class="staff-avatar-header" onclick="document.getElementById('profile-modal').style.display='flex'" title="Edit Profile" src="" alt="👤" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div id="header-avatar-fallback" class="staff-avatar-header" onclick="document.getElementById('profile-modal').style.display='flex'" title="Edit Profile" style="display: none;">👤</div>
         <div>
-          <div class="brand-title">RJ Mobile</div>
-          <div class="brand-tag" id="detected-staff-display">Identifying Staff...</div>
-          <div id="live-clock" style="font-family: 'Plus Jakarta Sans', monospace; font-size: 13px; font-weight: 800; color: var(--primary); margin-top: 4px; letter-spacing: 0.5px;">--:--:--</div>
+          <div class="brand-title" id="detected-staff-display" style="font-size: 16px; margin-bottom: 2px;">Identifying...</div>
+          <div class="brand-tag" id="staff-branch-display" style="color: var(--primary);">Connecting...</div>
+          <div id="live-clock" style="font-family: 'Plus Jakarta Sans', monospace; font-size: 11px; font-weight: 800; color: var(--text-soft); margin-top: 4px; letter-spacing: 0.5px;">--:--:--</div>
         </div>
       </div>
       <div class="header-controls">
         <button id="btn-open-theme" class="btn-secondary" title="Theme Customizer" style="padding: 10px; font-size: 16px;">🎨</button>
         <button id="logout-btn" class="btn-secondary">Log Out</button>
       </div>
+    </div>
+
+    <!-- Birthday Celebration Banner -->
+    <div id="my-bday-banner" class="bday-banner">
+        <h3>🎂 Happy Birthday, <span id="bday-name">Star</span>! 🎉</h3>
+        <p>Wishing you a fantastic day ahead! 🍫🎁</p>
     </div>
 
     <div class="schedule-banner" id="schedule-banner">
@@ -370,8 +429,9 @@
 
     <div class="nav-tabs">
         <div class="nav-tab active" id="tab-scanner">📸 Scanner</div>
-        <div class="nav-tab" id="tab-stats">📊 My Stats</div>
-        <div class="nav-tab" id="tab-birthdays">🎂 Birthdays</div>
+        <div class="nav-tab" id="tab-stats">📊 Stats</div>
+        <div class="nav-tab" id="tab-birthdays">🎂 B'days</div>
+        <div class="nav-tab" id="tab-directory">👥 Team</div>
     </div>
 
     <!-- Scanner Feed Card -->
@@ -478,6 +538,15 @@
         <h3 style="font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">📅 All Upcoming Birthdays</h3>
         <div style="display: flex; flex-direction: column; gap: 12px;" id="staff-bday-list"></div>
     </div>
+
+    <!-- Staff Directory View -->
+    <div class="main-card" id="directory-view" style="display: none; padding-top: 16px;">
+        <h2 style="margin-bottom: 16px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;">Staff Directory</h2>
+        <input type="text" id="directory-search" class="input-field" placeholder="🔍 Search colleague by name or role..." style="margin-bottom: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; max-height: 500px; overflow-y: auto;" id="staff-directory-grid">
+            <div style="color: var(--text-soft); text-align: center; grid-column: 1/-1; padding: 20px;">Loading directory...</div>
+        </div>
+    </div>
   </div>
 
   <script type="module">
@@ -522,9 +591,11 @@
         document.getElementById('tab-scanner').classList.add('active');
         document.getElementById('tab-stats').classList.remove('active');
         document.getElementById('tab-birthdays').classList.remove('active');
+        document.getElementById('tab-directory').classList.remove('active');
         document.getElementById('scanner-view').style.display = 'block';
         document.getElementById('stats-view').style.display = 'none';
         document.getElementById('birthdays-view').style.display = 'none';
+        document.getElementById('directory-view').style.display = 'none';
         if(!cameraActive) startCamera();
     });
 
@@ -532,9 +603,11 @@
         document.getElementById('tab-stats').classList.add('active');
         document.getElementById('tab-scanner').classList.remove('active');
         document.getElementById('tab-birthdays').classList.remove('active');
+        document.getElementById('tab-directory').classList.remove('active');
         document.getElementById('scanner-view').style.display = 'none';
         document.getElementById('stats-view').style.display = 'block';
         document.getElementById('birthdays-view').style.display = 'none';
+        document.getElementById('directory-view').style.display = 'none';
         stopScanner();
         loadPersonalStats();
     });
@@ -543,11 +616,92 @@
         document.getElementById('tab-birthdays').classList.add('active');
         document.getElementById('tab-scanner').classList.remove('active');
         document.getElementById('tab-stats').classList.remove('active');
+        document.getElementById('tab-directory').classList.remove('active');
         document.getElementById('birthdays-view').style.display = 'block';
         document.getElementById('scanner-view').style.display = 'none';
         document.getElementById('stats-view').style.display = 'none';
+        document.getElementById('directory-view').style.display = 'none';
         stopScanner();
         fetchAndRenderStaffBirthdays();
+    });
+
+    document.getElementById('tab-directory').addEventListener('click', () => {
+        document.getElementById('tab-directory').classList.add('active');
+        document.getElementById('tab-scanner').classList.remove('active');
+        document.getElementById('tab-stats').classList.remove('active');
+        document.getElementById('tab-birthdays').classList.remove('active');
+        document.getElementById('directory-view').style.display = 'block';
+        document.getElementById('scanner-view').style.display = 'none';
+        document.getElementById('stats-view').style.display = 'none';
+        document.getElementById('birthdays-view').style.display = 'none';
+        stopScanner();
+        loadStaffDirectory();
+    });
+
+    let globalStaffDirectoryCache = [];
+
+    async function loadStaffDirectory() {
+        const grid = document.getElementById('staff-directory-grid');
+        grid.innerHTML = '<div style="color:var(--text-soft); text-align:center; grid-column:1/-1; padding:20px;">Loading colleagues...</div>';
+
+        try {
+            const { data: staffList, error } = await supabase.from('public_staff_info').select('*').order('name');
+            if (error) throw error;
+            
+            const { data: branchList } = await supabase.from('branches_directory').select('id, branch_name');
+            const bMap = {}; (branchList || []).forEach(b => bMap[b.id] = b.branch_name);
+
+            globalStaffDirectoryCache = staffList || [];
+            renderDirectoryCards(globalStaffDirectoryCache, bMap);
+        } catch (e) {
+            grid.innerHTML = '<div style="color:var(--danger); text-align:center; grid-column:1/-1; padding:20px;">Failed to load directory.</div>';
+        }
+    }
+
+    function renderDirectoryCards(staffArray, bMap) {
+        const grid = document.getElementById('staff-directory-grid');
+        if (staffArray.length === 0) {
+            grid.innerHTML = '<div style="color:var(--text-soft); text-align:center; grid-column:1/-1; padding:20px;">No colleagues found.</div>';
+            return;
+        }
+
+        const colors = ['#f43f5e', '#a855f7', '#0ea5e9', '#10b981', '#f59e0b'];
+
+        grid.innerHTML = staffArray.map(s => {
+            const branchName = bMap[s.default_branch_id] || 'General';
+            const initials = s.name ? s.name.substring(0,2).toUpperCase() : 'RJ';
+            const color = colors[s.name.length % colors.length];
+
+            let avatarHtml = s.profile_pic 
+                ? `<img src="${s.profile_pic}" class="directory-avatar" alt="👤">`
+                : `<div class="directory-avatar" style="border-color: ${color}; color: ${color};">${initials}</div>`;
+
+            let birthdayHtml = '';
+            if (s.dob) {
+                const bDate = new Date(s.dob);
+                birthdayHtml = `<div style="font-size: 11px; color: var(--text-soft); margin-top: 2px; font-weight: 500;">🎂 ${bDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>`;
+            }
+
+            return `
+            <div class="directory-card">
+                ${avatarHtml}
+                <div style="overflow: hidden; flex: 1;">
+                    <div style="font-weight: 700; color: var(--text-main); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.name}</div>
+                    <div style="font-size: 11px; color: var(--primary); font-weight: 700; text-transform: uppercase; margin-top: 2px;">${s.role || 'Staff'}</div>
+                    <div style="font-size: 11px; color: var(--text-soft); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🏢 ${branchName}</div>
+                    ${birthdayHtml}
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    document.getElementById('directory-search')?.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        supabase.from('branches_directory').select('id, branch_name').then(({data: branchList}) => {
+            const bMap = {}; (branchList || []).forEach(b => bMap[b.id] = b.branch_name);
+            const filtered = globalStaffDirectoryCache.filter(s => s.name.toLowerCase().includes(term) || (s.role && s.role.toLowerCase().includes(term)));
+            renderDirectoryCards(filtered, bMap);
+        });
     });
 
     function displayToast(msg, statusType = "success") {
@@ -716,6 +870,7 @@
     async function loadTodaySchedule(staffId, defaultBranchId) {
         const banner = document.getElementById('schedule-banner');
         const nameEl = document.getElementById('assigned-branch-name');
+        const branchHeaderDisplay = document.getElementById('staff-branch-display'); // Added this reference
         banner.style.display = 'block';
 
         const today = new Date();
@@ -753,13 +908,16 @@
                 
                 if (branchData) {
                     nameEl.innerText = branchData.branch_name;
+                    if(branchHeaderDisplay) branchHeaderDisplay.innerText = `📍 ${branchData.branch_name}`; // Updates the header
                     return;
                 }
             }
             nameEl.innerText = "No Location Assigned";
+            if(branchHeaderDisplay) branchHeaderDisplay.innerText = "📍 Unassigned";
         } catch(e) {
             console.log("No override found or error:", e);
             nameEl.innerText = "Error Loading Schedule";
+            if(branchHeaderDisplay) branchHeaderDisplay.innerText = "📍 Location Error";
         }
     }
 
@@ -777,17 +935,55 @@
             document.getElementById('dashboard').style.display = 'flex';
             
             const email = user.email.toLowerCase();
-            // Fetch default_branch_id from DB as well
-            // Replace this line inside handleAuthChange (around line 342):
-            const { data: staffData } = await supabase.from('staff_directory').select('id, name, default_branch_id').eq('email', email).maybeSingle();
+            // Naya query jisme dob aur profile_pic bhi aayega
+            const { data: staffData } = await supabase.from('staff_directory').select('id, name, default_branch_id, dob, profile_pic').eq('email', email).maybeSingle();
             
             if (staffData) {
                 currentStaffId = staffData.id;
                 currentStaffName = staffData.name;
+                
+                // 1. Set Greetings & Name
                 const hour = new Date().getHours();
                 let greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
-                document.getElementById('detected-staff-display').innerHTML = `${greeting}, ${currentStaffName.split(' ')[0]} 👋`;
+                document.getElementById('detected-staff-display').innerHTML = `${greeting}, <b>${currentStaffName.split(' ')[0]}</b>`;
                 
+                // 2. Setup Profile Picture (Header & Modal)
+                const avatarImg = document.getElementById('header-avatar');
+                const avatarFallback = document.getElementById('header-avatar-fallback');
+                const editImg = document.getElementById('edit-avatar-img');
+                const editFallback = document.getElementById('edit-avatar-fallback');
+                
+                if (staffData.profile_pic) {
+                    avatarImg.src = staffData.profile_pic; editImg.src = staffData.profile_pic;
+                    avatarImg.style.display = 'flex'; editImg.style.display = 'flex';
+                    avatarFallback.style.display = 'none'; editFallback.style.display = 'none';
+                } else {
+                    avatarImg.style.display = 'none'; editImg.style.display = 'none';
+                    avatarFallback.style.display = 'flex'; editFallback.style.display = 'flex';
+                    const initials = currentStaffName.substring(0,2).toUpperCase();
+                    avatarFallback.innerText = initials; editFallback.innerText = initials;
+                    
+                    // Random color generation based on name length for visual distinction
+                    const colors = ['#f43f5e', '#a855f7', '#0ea5e9', '#10b981', '#f59e0b'];
+                    const color = colors[currentStaffName.length % colors.length];
+                    avatarFallback.style.borderColor = color; avatarFallback.style.color = color;
+                }
+
+                // 3. Populate Edit Form
+                document.getElementById('edit-my-name').value = staffData.name || '';
+                document.getElementById('edit-my-dob').value = staffData.dob || '';
+                
+                // 4. Check Birthday Celebration! 🎂
+                if (staffData.dob) {
+                    const today = new Date();
+                    const [bYear, bMonth, bDay] = staffData.dob.split('-');
+                    if (parseInt(bMonth) === (today.getMonth() + 1) && parseInt(bDay) === today.getDate()) {
+                        document.getElementById('my-bday-banner').style.display = 'block';
+                        document.getElementById('bday-name').innerText = currentStaffName.split(' ')[0];
+                        setTimeout(() => confetti({ particleCount: 150, spread: 80, origin: { y: 0.3 } }), 1000);
+                    }
+                }
+
                 checkStaffStatus();
                 loadTodaySchedule(staffData.id, staffData.default_branch_id);
                 
@@ -1051,6 +1247,7 @@
         };
 
         const themePresets = {
+            rjmobile: { class: 'dark', vars: { '--primary': '#f37021', '--bg-base': '#0a1023', '--card-bg': '#121b33', '--card-border': '#1e2d4a', '--input-bg': '#0a1023', '--text-main': '#f8fafc' } },
             dark: { class: 'dark', vars: { '--primary': '#6366f1', '--bg-base': '#09090b', '--card-bg': '#18181b', '--card-border': '#27272a', '--input-bg': '#09090b', '--text-main': '#f4f4f5' } },
             light: { class: 'light-theme', vars: { '--primary': '#4f46e5', '--bg-base': '#f1f5f9', '--card-bg': '#ffffff', '--card-border': '#e2e8f0', '--input-bg': '#f8fafc', '--text-main': '#0f172a' } },
             ocean: { class: 'dark', vars: { '--primary': '#0ea5e9', '--bg-base': '#082f49', '--card-bg': '#0c4a6e', '--card-border': '#0369a1', '--input-bg': '#082f49', '--text-main': '#f0f9ff' } },
@@ -1058,7 +1255,11 @@
             sunset: { class: 'dark', vars: { '--primary': '#f43f5e', '--bg-base': '#2a0a18', '--card-bg': '#4c0519', '--card-border': '#881337', '--input-bg': '#2a0a18', '--text-main': '#fff1f2' } },
             midnight: { class: 'dark', vars: { '--primary': '#a855f7', '--bg-base': '#171026', '--card-bg': '#2e1065', '--card-border': '#4c1d95', '--input-bg': '#171026', '--text-main': '#f5f3ff' } },
             coffee: { class: 'dark', vars: { '--primary': '#d97706', '--bg-base': '#292524', '--card-bg': '#44403c', '--card-border': '#57534e', '--input-bg': '#292524', '--text-main': '#fafaf9' } },
-            cyberpunk: { class: 'dark', vars: { '--primary': '#f0abfc', '--bg-base': '#0f172a', '--card-bg': '#1e1b4b', '--card-border': '#3b0764', '--input-bg': '#0f172a', '--text-main': '#f8fafc' } }
+            cyberpunk: { class: 'dark', vars: { '--primary': '#f0abfc', '--bg-base': '#0f172a', '--card-bg': '#1e1b4b', '--card-border': '#3b0764', '--input-bg': '#0f172a', '--text-main': '#f8fafc' } },
+            dracula: { class: 'dark', vars: { '--primary': '#ff79c6', '--bg-base': '#282a36', '--card-bg': '#44475a', '--card-border': '#6272a4', '--input-bg': '#282a36', '--text-main': '#f8f8f2' } },
+            nord: { class: 'dark', vars: { '--primary': '#88c0d0', '--bg-base': '#2e3440', '--card-bg': '#3b4252', '--card-border': '#434c5e', '--input-bg': '#2e3440', '--text-main': '#eceff4' } },
+            neon: { class: 'dark', vars: { '--primary': '#39ff14', '--bg-base': '#000000', '--card-bg': '#0a0a0a', '--card-border': '#111111', '--input-bg': '#000000', '--text-main': '#ffffff' } },
+            rosegold: { class: 'dark', vars: { '--primary': '#e0bfb8', '--bg-base': '#2a2426', '--card-bg': '#3a3234', '--card-border': '#4a4043', '--input-bg': '#2a2426', '--text-main': '#f9f6f6' } }
         };
 
         function updateBaseThemeClass(className) {
@@ -1357,19 +1558,15 @@
         }
     }
 
-    let cachedStaffEmail = ''; 
-    supabase.auth.onAuthStateChange((event, session) => {
-        if(session?.user) cachedStaffEmail = session.user.email;
-    });
-
     async function fetchAndRenderStaffBirthdays() {
         const listContainer = document.getElementById('staff-bday-list');
         listContainer.innerHTML = '<div style="color:var(--text-soft); text-align:center;">Fetching records...</div>';
 
         try {
+            // Update: Fetching from the secure View so RLS won't block it!
             const { data: bdayStaff, error } = await supabase
-                .from('staff_directory')
-                .select('name, dob, email')
+                .from('public_staff_info')
+                .select('name, dob, profile_pic')
                 .not('dob', 'is', null);
 
             if (error) throw error;
@@ -1399,22 +1596,18 @@
                 return { ...staff, daysLeft: diffDays, turningAge, formattedDate };
             });
 
-            // ... (Pehle ka code same rahega)
-            
             enriched.sort((a, b) => a.daysLeft - b.daysLeft);
 
-            // 1. Array me pin karne se pehle real me jo next hai usko save kar lein
             const realNextBday = enriched[0];
 
-            // 2. Ab user ka birthday list me top par pin karein
-            let currentUserIndex = enriched.findIndex(s => s.email === cachedStaffEmail);
+            // Update: Matching by Name instead of Email, since Email is hidden for security
+            let currentUserIndex = enriched.findIndex(s => s.name === currentStaffName);
             if (currentUserIndex !== -1) {
                 let pinnedBday = enriched.splice(currentUserIndex, 1)[0];
                 enriched.unshift(pinnedBday);
             }
 
-            // 3. Banner me hamesha 'realNextBday' dikhaye (jo chronologically next hai)
-            document.getElementById('staff-next-bday-name').innerText = (realNextBday.email === cachedStaffEmail) ? "Your Birthday" : realNextBday.name;
+            document.getElementById('staff-next-bday-name').innerText = (realNextBday.name === currentStaffName) ? "Your Birthday" : realNextBday.name;
             document.getElementById('staff-next-bday-date').innerText = `Turning ${realNextBday.turningAge} • ${realNextBday.formattedDate}`;
             
             const countdownEl = document.getElementById('staff-next-bday-countdown');
@@ -1427,11 +1620,8 @@
                 countdownEl.innerText = `In ${realNextBday.daysLeft} Days`;
             }
 
-            // 4. List me hamesha 'enriched' use ho jisme user pinned hai
             listContainer.innerHTML = enriched.map(staff => {
-            // ... (Baaki neeche ka list render karne wala code same rahega)
-
-                const isCurrentUser = (staff.email === cachedStaffEmail);
+                const isCurrentUser = (staff.name === currentStaffName);
                 const displayName = isCurrentUser ? "Your Birthday 📌" : staff.name;
                 
                 let tagClass = 'background: var(--card-bg); color: var(--text-soft); border: 1px solid var(--card-border);';
@@ -1439,14 +1629,25 @@
 
                 if (staff.daysLeft === 0) { tagClass = 'background: var(--success-alpha); color: var(--success);'; tagText = 'Today! 🎂'; } 
                 else if (staff.daysLeft <= 7) { tagClass = 'background: var(--warning-alpha); color: var(--warning);'; if (staff.daysLeft === 1) tagText = 'Tmrw'; }
+                
+                const initials = staff.name ? staff.name.substring(0,2).toUpperCase() : 'RJ';
+                const colors = ['#f43f5e', '#a855f7', '#0ea5e9', '#10b981', '#f59e0b'];
+                const color = colors[staff.name.length % colors.length];
+                
+                let avatarHtml = staff.profile_pic 
+                    ? `<img src="${staff.profile_pic}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid ${color}; flex-shrink: 0;" alt="👤">`
+                    : `<div style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid ${color}; color: ${color}; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;">${initials}</div>`;
 
                 return `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md);">
-                    <div>
-                        <div style="font-size: 14px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-                            ${displayName} <span style="font-size: 10px; color: ${isCurrentUser ? 'var(--success)' : 'var(--primary)'}; background: ${isCurrentUser ? 'var(--success-alpha)' : 'var(--primary-alpha)'}; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Age ${staff.turningAge}</span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        ${avatarHtml}
+                        <div>
+                            <div style="font-size: 14px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                                ${displayName} <span style="font-size: 10px; color: ${isCurrentUser ? 'var(--success)' : 'var(--primary)'}; background: ${isCurrentUser ? 'var(--success-alpha)' : 'var(--primary-alpha)'}; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Age ${staff.turningAge}</span>
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-soft); font-weight: 500; margin-top: 4px;">${staff.formattedDate}</div>
                         </div>
-                        <div style="font-size: 12px; color: var(--text-soft); font-weight: 500; margin-top: 4px;">${staff.formattedDate}</div>
                     </div>
                     <div style="${tagClass} font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: var(--radius-sm); text-align: center; min-width: 70px;">
                         ${tagText}
@@ -1455,7 +1656,8 @@
             }).join('');
 
         } catch(err) {
-            listContainer.innerHTML = '<div style="color:var(--danger); text-align:center;">Failed to load birthdays.</div>';
+            console.error("Birthday Load Error:", err);
+            listContainer.innerHTML = '<div style="color:var(--danger); text-align:center;">Failed to load birthdays. Check Database connection.</div>';
         }
     }
 
@@ -1496,6 +1698,84 @@
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
             );
         }
+    }
+
+    // =========================================================================
+    //  PROFILE EDIT LOGIC & BASE64 COMPRESSION
+    // =========================================================================
+    let tempBase64Photo = null;
+
+    // Resize image to max 400px width/height and compress to 0.7 quality
+    function compressImage(file, callback) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const maxSize = 400;
+                let width = img.width; let height = img.height;
+                if (width > height && width > maxSize) { height *= maxSize / width; width = maxSize; }
+                else if (height > maxSize) { width *= maxSize / height; height = maxSize; }
+                
+                canvas.width = width; canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                callback(canvas.toDataURL('image/jpeg', 0.7)); 
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    document.getElementById('profile-pic-upload')?.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) return displayToast("Image is too large. Max 5MB.", "error");
+
+        compressImage(file, (base64) => {
+            tempBase64Photo = base64;
+            const editImg = document.getElementById('edit-avatar-img');
+            const editFallback = document.getElementById('edit-avatar-fallback');
+            editImg.src = base64;
+            editImg.style.display = 'flex';
+            editFallback.style.display = 'none';
+        });
+    });
+
+    document.getElementById('btn-remove-pic')?.addEventListener('click', () => {
+        tempBase64Photo = 'REMOVE';
+        document.getElementById('edit-avatar-img').style.display = 'none';
+        document.getElementById('edit-avatar-fallback').style.display = 'flex';
+    });
+
+    document.getElementById('btn-save-profile')?.addEventListener('click', async () => {
+        if (!currentStaffId) return;
+        const btn = document.getElementById('btn-save-profile');
+        btn.innerText = "Saving..."; btn.disabled = true;
+
+        const newName = document.getElementById('edit-my-name').value.trim();
+        const newDob = document.getElementById('edit-my-dob').value;
+        
+        let updatePayload = { name: newName, dob: newDob || null };
+        if (tempBase64Photo === 'REMOVE') updatePayload.profile_pic = null;
+        else if (tempBase64Photo) updatePayload.profile_pic = tempBase64Photo;
+
+        try {
+            const { error } = await supabase.from('staff_directory').update(updatePayload).eq('id', currentStaffId);
+            if (error) throw error;
+            
+            displayToast("Profile Updated Successfully!", "success");
+            setTimeout(() => location.reload(), 1000); // Reload to reflect changes globally
+        } catch (e) {
+            displayToast("Failed to update profile. RLS policy might be blocking.", "error");
+        } finally {
+            btn.innerText = "Save Profile"; btn.disabled = false;
+        }
+    });
+
+    window.openStaffProfileModal = () => {
+        tempBase64Photo = null; // Reset temp variable
+        document.getElementById('profile-modal').style.display='flex';
     }
 
     // =========================================================================
