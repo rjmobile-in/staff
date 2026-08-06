@@ -327,6 +327,28 @@
     </div>
   </div>
 
+  <!-- TEAM MEMBER PROFILE MODAL -->
+  <div id="team-profile-modal" class="modal-overlay" onclick="this.style.display='none'">
+    <div class="modal-card" onclick="event.stopPropagation()" style="padding: 0; overflow: hidden; border: none; max-width: 360px;">
+        <div style="position: relative; width: 100%; height: 320px; background: var(--input-bg); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            <div id="team-modal-bg" style="position: absolute; inset: 0; background-size: cover; background-position: center; filter: blur(20px); opacity: 0.5;"></div>
+            <img id="team-modal-img" src="" style="position: relative; z-index: 1; width: 100%; height: 100%; object-fit: cover; display: none;" alt="Profile">
+            <div id="team-modal-fallback" style="position: relative; z-index: 1; font-size: 80px; font-weight: 800; display: flex; align-items: center; justify-content: center; width: 150px; height: 150px; border-radius: 50%; border: 4px solid currentColor;"></div>
+            
+            <button onclick="document.getElementById('team-profile-modal').style.display='none'" style="position: absolute; top: 16px; right: 16px; z-index: 10; background: rgba(0,0,0,0.5); color: #fff; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center;">&times;</button>
+        </div>
+        <div style="padding: 24px; text-align: center; position: relative;">
+            <h2 id="team-modal-name" style="font-size: 24px; margin-bottom: 4px; font-family: 'Plus Jakarta Sans', sans-serif;">Name</h2>
+            <div id="team-modal-role" style="color: var(--primary); font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; margin-bottom: 12px;">Role</div>
+            <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 16px;">
+                <span id="team-modal-branch" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main);">🏢 Branch</span>
+                <span id="team-modal-bday" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none;">🎂 Bday</span>
+            </div>
+            <button class="btn-action btn-reach" style="width: 100%; padding: 12px; margin-top: 8px;" onclick="document.getElementById('team-profile-modal').style.display='none'">Close Profile</button>
+        </div>
+    </div>
+  </div>
+
   <!-- THEME CUSTOMIZER MODAL -->
   <div id="theme-modal" class="modal-overlay" onclick="this.style.display='none'">
     <div class="modal-card" onclick="event.stopPropagation()">
@@ -430,7 +452,7 @@
     <div class="nav-tabs">
         <div class="nav-tab active" id="tab-scanner">📸 Scanner</div>
         <div class="nav-tab" id="tab-stats">📊 Stats</div>
-        <div class="nav-tab" id="tab-birthdays">🎂 B'days</div>
+        <div class="nav-tab" id="tab-birthdays">🎂 Birthdays</div>
         <div class="nav-tab" id="tab-directory">👥 Team</div>
     </div>
 
@@ -527,12 +549,17 @@
     <div class="main-card" id="birthdays-view" style="display: none; padding-top: 16px;">
         <h2 style="margin-bottom: 20px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;">Staff Birthdays</h2>
         
-        <div style="background: linear-gradient(135deg, var(--primary-alpha) 0%, var(--card-bg) 100%); border-radius: var(--radius-lg); border: 1px solid var(--primary); padding: 24px; text-align: center; position: relative; overflow: hidden; margin-bottom: 24px;">
-            <div style="background: var(--primary); color: #fff; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: var(--radius-sm); display: inline-block; margin-bottom: 12px;">Next Celebration</div>
-            <div style="font-size: 40px; margin-bottom: -5px;">🎉</div>
-            <div id="staff-next-bday-name" style="font-size: 24px; font-weight: 800; color: var(--text-main); font-family: 'Plus Jakarta Sans', sans-serif;">Loading...</div>
-            <div id="staff-next-bday-date" style="font-size: 14px; color: var(--text-soft); font-weight: 600;">--</div>
-            <div id="staff-next-bday-countdown" style="margin-top: 16px; font-size: 18px; font-weight: 800; color: var(--success); background: var(--success-alpha); padding: 8px 16px; border-radius: var(--radius-lg); display: inline-block;">--</div>
+        <div id="bday-top-card" style="background: var(--card-bg); border-radius: var(--radius-lg); border: 1px solid var(--primary); padding: 40px 24px; padding-top: 350px; text-align: center; position: relative; overflow: hidden; margin-bottom: 24px; min-height: 640px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
+            <!-- Background Image Layer -->
+            <div id="bday-top-bg" style="position: absolute; inset: 0; background: linear-gradient(135deg, var(--primary-alpha) 0%, var(--card-bg) 100%); background-size: cover !important; background-position: center top !important; opacity: 0.95; z-index: 0; transition: opacity 0.5s;"></div>
+            <!-- Dark Bottom Gradient for Text Readability -->
+            <div style="position: absolute; inset: 0; background: linear-gradient(to top, var(--card-bg) 5%, rgba(18,27,51,0.8) 25%, transparent 65%); z-index: 1;"></div>
+            
+            <div style="background: var(--primary); color: #fff; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: var(--radius-sm); display: inline-block; margin-bottom: 12px; position: relative; z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">Next Celebration</div>
+            <div id="bday-top-emoji" style="font-size: 40px; margin-bottom: -5px; position: relative; z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.5);">🎉</div>
+            <div id="staff-next-bday-name" style="font-size: 24px; font-weight: 800; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; position: relative; z-index: 2; text-shadow: 0 2px 8px rgba(0,0,0,0.8);">Loading...</div>
+            <div id="staff-next-bday-date" style="font-size: 14px; color: #f1f5f9; font-weight: 600; position: relative; z-index: 2; text-shadow: 0 2px 6px rgba(0,0,0,0.8);">--</div>
+            <div id="staff-next-bday-countdown" style="margin-top: 16px; font-size: 18px; font-weight: 800; color: #fff; background: var(--primary); box-shadow: 0 4px 15px rgba(243, 112, 33, 0.4); padding: 8px 16px; border-radius: var(--radius-lg); display: inline-block; position: relative; z-index: 2;">--</div>
         </div>
 
         <h3 style="font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">📅 All Upcoming Birthdays</h3>
@@ -682,8 +709,16 @@
                 birthdayHtml = `<div style="font-size: 11px; color: var(--text-soft); margin-top: 2px; font-weight: 500;">🎂 ${bDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>`;
             }
 
+            // Prepare data for the onclick function safely
+            const safeName = s.name.replace(/'/g, "\\'");
+            const safeRole = (s.role || 'Staff').replace(/'/g, "\\'");
+            const safeBranch = branchName.replace(/'/g, "\\'");
+            const bdayText = s.dob ? new Date(s.dob).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+            const safeBday = bdayText ? `🎂 ${bdayText}` : '';
+            const safePic = s.profile_pic ? s.profile_pic : '';
+
             return `
-            <div class="directory-card">
+            <div class="directory-card" style="cursor: pointer;" onclick="openTeamProfile('${safeName}', '${safeRole}', '${safeBranch}', '${safeBday}', '${safePic}', '${color}', '${initials}')">
                 ${avatarHtml}
                 <div style="overflow: hidden; flex: 1;">
                     <div style="font-weight: 700; color: var(--text-main); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.name}</div>
@@ -694,6 +729,42 @@
             </div>`;
         }).join('');
     }
+
+    // Global function to open team profile popup dynamically
+    window.openTeamProfile = function(name, role, branch, bday, picUrl, color, initials) {
+        document.getElementById('team-modal-name').innerText = name;
+        document.getElementById('team-modal-role').innerText = role;
+        document.getElementById('team-modal-branch').innerText = `🏢 ${branch}`;
+        
+        const bdayEl = document.getElementById('team-modal-bday');
+        if(bday) {
+            bdayEl.innerText = bday;
+            bdayEl.style.display = 'inline-block';
+        } else {
+            bdayEl.style.display = 'none';
+        }
+
+        const imgEl = document.getElementById('team-modal-img');
+        const fallbackEl = document.getElementById('team-modal-fallback');
+        const bgEl = document.getElementById('team-modal-bg');
+
+        if(picUrl) {
+            imgEl.src = picUrl;
+            imgEl.style.display = 'block';
+            fallbackEl.style.display = 'none';
+            bgEl.style.backgroundImage = `url('${picUrl}')`;
+            bgEl.style.display = 'block';
+        } else {
+            imgEl.style.display = 'none';
+            fallbackEl.style.display = 'flex';
+            fallbackEl.style.color = color;
+            fallbackEl.style.borderColor = color;
+            fallbackEl.innerText = initials;
+            bgEl.style.display = 'none';
+        }
+
+        document.getElementById('team-profile-modal').style.display = 'flex';
+    };
 
     document.getElementById('directory-search')?.addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase();
@@ -1610,10 +1681,23 @@
             document.getElementById('staff-next-bday-name').innerText = (realNextBday.name === currentStaffName) ? "Your Birthday" : realNextBday.name;
             document.getElementById('staff-next-bday-date').innerText = `Turning ${realNextBday.turningAge} • ${realNextBday.formattedDate}`;
             
+            // Set Background Image for Next Birthday
+            const bgContainer = document.getElementById('bday-top-bg');
+            const emojiEl = document.getElementById('bday-top-emoji');
+            if (realNextBday.profile_pic) {
+                bgContainer.style.background = `url('${realNextBday.profile_pic}')`;
+                bgContainer.style.opacity = '0.85'; // Made opacity brighter for better image visibility
+                emojiEl.style.display = 'none'; // Hide emoji if photo exists
+            } else {
+                bgContainer.style.background = `linear-gradient(135deg, var(--primary-alpha) 0%, var(--card-bg) 100%)`;
+                bgContainer.style.opacity = '1';
+                emojiEl.style.display = 'block';
+            }
+            
             const countdownEl = document.getElementById('staff-next-bday-countdown');
             if (realNextBday.daysLeft === 0) {
                 countdownEl.innerText = "It's Today! 🎂🎉";
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#3b82f6', '#10b981', '#f59e0b'] });
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#f37021', '#10b981', '#f59e0b'] });
             } else if (realNextBday.daysLeft === 1) {
                 countdownEl.innerText = "Tomorrow!";
             } else {
