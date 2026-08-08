@@ -472,8 +472,9 @@
     <div class="nav-tabs">
         <div class="nav-tab active" id="tab-scanner">📸 Scanner</div>
         <div class="nav-tab" id="tab-stats">📊 Stats</div>
-        <div class="nav-tab" id="tab-birthdays">🎂 Birthdays</div>
+        <div class="nav-tab" id="tab-birthdays">🎂 B'days</div>
         <div class="nav-tab" id="tab-directory">👥 Team</div>
+        <div class="nav-tab" id="tab-leave">🌴 Leave</div>
     </div>
 
     <!-- Scanner Feed Card -->
@@ -594,6 +595,40 @@
             <div style="color: var(--text-soft); text-align: center; grid-column: 1/-1; padding: 20px;">Loading directory...</div>
         </div>
     </div>
+
+    <!-- Leave Request View -->
+    <div class="main-card" id="leave-view" style="display: none; padding-top: 16px;">
+        <h2 style="margin-bottom: 16px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;">Leave Requests</h2>
+        
+        <!-- Leave Form -->
+        <div style="background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px;">
+            <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--primary);">➕ Request New Leave</h3>
+            
+            <div style="display: flex; gap: 12px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 4px; display: block;">Start Date</label>
+                    <input type="date" id="leave-start" class="input-field" style="margin-bottom: 12px; color-scheme: dark;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 4px; display: block;">End Date</label>
+                    <input type="date" id="leave-end" class="input-field" style="margin-bottom: 12px; color-scheme: dark;">
+                </div>
+            </div>
+            
+            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 4px; display: block;">Heading / Title</label>
+            <input type="text" id="leave-title" class="input-field" placeholder="e.g. Sick Leave, Family Event" style="margin-bottom: 12px;">
+            
+            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 4px; display: block;">Reason Description</label>
+            <textarea id="leave-desc" class="input-field" rows="3" placeholder="Specify your detailed reason..." style="margin-bottom: 12px; resize: none;"></textarea>
+            
+            <button id="btn-submit-leave" class="btn-action btn-reach" style="width: 100%; padding: 12px;">Submit Request</button>
+        </div>
+
+        <h3 style="font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">📋 My Leave History</h3>
+        <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 4px;" id="my-leave-logs">
+            <div style="color:var(--text-soft); text-align:center; padding:20px;">Loading requests...</div>
+        </div>
+    </div>
   </div>
 
   <script type="module">
@@ -640,10 +675,12 @@
         document.getElementById('tab-stats').classList.remove('active');
         document.getElementById('tab-birthdays').classList.remove('active');
         document.getElementById('tab-directory').classList.remove('active');
+        document.getElementById('tab-leave').classList.remove('active');
         document.getElementById('scanner-view').style.display = 'block';
         document.getElementById('stats-view').style.display = 'none';
         document.getElementById('birthdays-view').style.display = 'none';
         document.getElementById('directory-view').style.display = 'none';
+        document.getElementById('leave-view').style.display = 'none';
         if(!cameraActive) startCamera();
     });
 
@@ -652,10 +689,12 @@
         document.getElementById('tab-scanner').classList.remove('active');
         document.getElementById('tab-birthdays').classList.remove('active');
         document.getElementById('tab-directory').classList.remove('active');
+        document.getElementById('tab-leave').classList.remove('active');
         document.getElementById('scanner-view').style.display = 'none';
         document.getElementById('stats-view').style.display = 'block';
         document.getElementById('birthdays-view').style.display = 'none';
         document.getElementById('directory-view').style.display = 'none';
+        document.getElementById('leave-view').style.display = 'none';
         stopScanner();
         loadPersonalStats();
     });
@@ -665,10 +704,12 @@
         document.getElementById('tab-scanner').classList.remove('active');
         document.getElementById('tab-stats').classList.remove('active');
         document.getElementById('tab-directory').classList.remove('active');
+        document.getElementById('tab-leave').classList.remove('active');
         document.getElementById('birthdays-view').style.display = 'block';
         document.getElementById('scanner-view').style.display = 'none';
         document.getElementById('stats-view').style.display = 'none';
         document.getElementById('directory-view').style.display = 'none';
+        document.getElementById('leave-view').style.display = 'none';
         stopScanner();
         fetchAndRenderStaffBirthdays();
     });
@@ -678,12 +719,29 @@
         document.getElementById('tab-scanner').classList.remove('active');
         document.getElementById('tab-stats').classList.remove('active');
         document.getElementById('tab-birthdays').classList.remove('active');
+        document.getElementById('tab-leave').classList.remove('active');
         document.getElementById('directory-view').style.display = 'block';
         document.getElementById('scanner-view').style.display = 'none';
         document.getElementById('stats-view').style.display = 'none';
         document.getElementById('birthdays-view').style.display = 'none';
+        document.getElementById('leave-view').style.display = 'none';
         stopScanner();
         loadStaffDirectory();
+    });
+
+    document.getElementById('tab-leave').addEventListener('click', () => {
+        document.getElementById('tab-leave').classList.add('active');
+        document.getElementById('tab-scanner').classList.remove('active');
+        document.getElementById('tab-stats').classList.remove('active');
+        document.getElementById('tab-birthdays').classList.remove('active');
+        document.getElementById('tab-directory').classList.remove('active');
+        document.getElementById('leave-view').style.display = 'block';
+        document.getElementById('scanner-view').style.display = 'none';
+        document.getElementById('stats-view').style.display = 'none';
+        document.getElementById('birthdays-view').style.display = 'none';
+        document.getElementById('directory-view').style.display = 'none';
+        stopScanner();
+        loadMyLeaves();
     });
 
     let globalStaffDirectoryCache = [];
@@ -1788,6 +1846,108 @@
             listContainer.innerHTML = '<div style="color:var(--danger); text-align:center;">Failed to load birthdays. Check Database connection.</div>';
         }
     }
+
+    // =========================================================================
+    // LEAVE REQUEST LOGIC (STAFF)
+    // =========================================================================
+    
+    async function loadMyLeaves() {
+        if (!currentStaffId) return;
+        const logsContainer = document.getElementById('my-leave-logs');
+        logsContainer.innerHTML = '<div style="color:var(--text-soft); text-align:center; padding:20px;">Fetching history...</div>';
+        
+        try {
+            const { data, error } = await supabase
+                .from('leave_requests')
+                .select('*')
+                .eq('staff_id', currentStaffId)
+                .order('created_at', { ascending: false });
+                
+            if (error) throw error;
+            
+            if (!data || data.length === 0) {
+                logsContainer.innerHTML = '<div style="color:var(--text-soft); text-align:center; padding:20px;">No leave requests found.</div>';
+                return;
+            }
+            
+            logsContainer.innerHTML = data.map(leave => {
+                const sDate = new Date(leave.start_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+                const eDate = new Date(leave.end_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+                
+                let statusBadge = '';
+                if (leave.status === 'Approved') statusBadge = `<span class="badge-status" style="background: var(--success-alpha); color: var(--success);">✅ Approved</span>`;
+                else if (leave.status === 'Rejected') statusBadge = `<span class="badge-status" style="background: var(--danger-alpha); color: var(--danger);">❌ Rejected</span>`;
+                else statusBadge = `<span class="badge-status" style="background: var(--warning-alpha); color: var(--warning);">⏳ Pending</span>`;
+
+                return `
+                <div style="background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <div>
+                            <strong style="color: var(--text-main); font-size: 14px;">${leave.reason_title}</strong>
+                            <div style="font-size: 12px; color: var(--text-soft); margin-top: 4px; font-weight: 600;">📅 ${sDate}  to  ${eDate}</div>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-main); background: var(--card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--card-border); margin-top: 8px;">${leave.reason_desc || 'No description provided.'}</div>
+                </div>`;
+            }).join('');
+        } catch (err) {
+            console.error(err);
+            logsContainer.innerHTML = '<div style="color:var(--danger); text-align:center; padding:20px;">Failed to load leave history.</div>';
+        }
+    }
+
+    document.getElementById('btn-submit-leave')?.addEventListener('click', async () => {
+        if (!currentStaffId) return;
+        
+        const btn = document.getElementById('btn-submit-leave');
+        const start = document.getElementById('leave-start').value;
+        const end = document.getElementById('leave-end').value;
+        const title = document.getElementById('leave-title').value.trim();
+        const desc = document.getElementById('leave-desc').value.trim();
+        
+        if (!start || !end || !title) {
+            displayToast("Start Date, End Date, and Title are required!", "error");
+            return;
+        }
+
+        if (new Date(start) > new Date(end)) {
+            displayToast("End date cannot be before start date.", "error");
+            return;
+        }
+
+        btn.innerText = "Submitting..."; btn.disabled = true;
+
+        try {
+            const { error } = await supabase.from('leave_requests').insert([{
+                staff_id: currentStaffId,
+                employee_name: currentStaffName,
+                start_date: start,
+                end_date: end,
+                reason_title: title,
+                reason_desc: desc,
+                status: 'Pending'
+            }]);
+
+            if (error) {
+                console.log(error);
+                throw new Error("RLS blocked update or Network error");
+            }
+
+            displayToast("Leave requested successfully!", "success");
+            
+            document.getElementById('leave-start').value = '';
+            document.getElementById('leave-end').value = '';
+            document.getElementById('leave-title').value = '';
+            document.getElementById('leave-desc').value = '';
+            
+            loadMyLeaves();
+        } catch (err) {
+            displayToast("Error submitting request. Check policies.", "error");
+        } finally {
+            btn.innerText = "Submit Request"; btn.disabled = false;
+        }
+    });
 
     // Start Live Clock
     setInterval(() => {
