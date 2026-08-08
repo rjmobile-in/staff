@@ -42,7 +42,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   
-  <!-- Add Chart.js for Staff Graphs -->
+  <!-- Libraries (Flatpickr, Chart.js, Confetti) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link id="flatpickr-theme" rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
@@ -146,6 +149,15 @@
       visibility: hidden; min-width: 300px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 24px; position: fixed; z-index: 10000; bottom: 40px; left: 50%; transform: translate(-50%, 20px); font-size: 14px; font-weight: 600; color: var(--text-main); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; 
     }
     #toast.show { visibility: visible; opacity: 1; transform: translate(-50%, 0); }
+
+    /* Premium Glassmorphism Date Picker (Flatpickr Override) */
+    .input-field[readonly], .flatpickr-input[readonly] { background-color: var(--input-bg) !important; color: var(--text-main) !important; cursor: pointer; opacity: 1 !important; }
+    .flatpickr-calendar { background: rgba(24, 24, 27, 0.95) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; border: 1px solid rgba(255,255,255,0.1) !important; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5) !important; border-radius: 16px !important; padding: 8px !important; }
+    html.light-theme .flatpickr-calendar { background: rgba(255, 255, 255, 0.98) !important; border-color: rgba(0,0,0,0.1) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.1) !important; }
+    .flatpickr-day.selected { background: var(--primary) !important; border-color: var(--primary) !important; font-weight: 800 !important; }
+    .flatpickr-day:hover { background: var(--primary-alpha) !important; }
+    .flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months, .flatpickr-current-month input.cur-year { color: var(--text-main) !important; font-family: 'Plus Jakarta Sans', sans-serif !important; font-weight: 700 !important; }
+    .flatpickr-weekday { color: var(--text-soft) !important; font-weight: 800 !important; letter-spacing: 0.5px !important; }
 
     /* =========================================================
        ✨ MODALS, SKELETONS & POPUP STYLES
@@ -340,7 +352,7 @@
           <input type="text" id="edit-my-name" class="input-field" placeholder="Your Name">
 
           <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; display: block;">Date of Birth</label>
-          <input type="date" id="edit-my-dob" class="input-field" style="color-scheme: dark;">
+          <input type="text" id="edit-my-dob" class="input-field" placeholder="Select DOB" style="color-scheme: dark;">
       </div>
 
       <button id="btn-save-profile" class="btn-primary" style="justify-content: center; padding: 14px; margin-top: 8px;">Save Profile</button>
@@ -607,11 +619,11 @@
             <div style="display: flex; gap: 12px;">
                 <div style="flex: 1;">
                     <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 4px; display: block;">Start Date</label>
-                    <input type="date" id="leave-start" class="input-field" style="margin-bottom: 12px; color-scheme: dark;">
+                    <input type="text" id="leave-start" class="input-field" placeholder="Select Date" style="margin-bottom: 12px; color-scheme: dark;">
                 </div>
                 <div style="flex: 1;">
                     <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 4px; display: block;">End Date</label>
-                    <input type="date" id="leave-end" class="input-field" style="margin-bottom: 12px; color-scheme: dark;">
+                    <input type="text" id="leave-end" class="input-field" placeholder="Select Date" style="margin-bottom: 12px; color-scheme: dark;">
                 </div>
             </div>
             
@@ -650,6 +662,28 @@
     Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-soft').trim() || '#94a3b8';
     Chart.defaults.font.family = "'Inter', sans-serif";
     window.staffCharts = {};
+
+    // Initialize Flatpickr for Leave Dates (Min Date: Today, No Max Date)
+    const fpConfigLeaves = {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "d/m/Y",
+        minDate: "today",
+        allowInput: true,
+        disableMobile: true // Forces the UI even on mobile
+    };
+    flatpickr("#leave-start", fpConfigLeaves);
+    flatpickr("#leave-end", fpConfigLeaves);
+
+    // Initialize Flatpickr for Profile DOB (Past dates only)
+    flatpickr("#edit-my-dob", {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "d/m/Y",
+        maxDate: "today",
+        allowInput: true,
+        disableMobile: true
+    });
 
     let cameraActive = false;
     let localStream = null;
@@ -1140,7 +1174,12 @@
 
                 // 3. Populate Edit Form
                 document.getElementById('edit-my-name').value = staffData.name || '';
-                document.getElementById('edit-my-dob').value = staffData.dob || '';
+                const dobEl = document.getElementById('edit-my-dob');
+                if (dobEl && dobEl._flatpickr) {
+                    dobEl._flatpickr.setDate(staffData.dob || '');
+                } else if (dobEl) {
+                    dobEl.value = staffData.dob || '';
+                }
                 
                 // 4. Check Birthday Celebration! 🎂
                 if (staffData.dob) {
@@ -1443,6 +1482,8 @@
                 document.documentElement.classList.remove('light-theme');
                 localStorage.setItem('rj_theme', 'dark');
             }
+            const fpEl = document.getElementById('flatpickr-theme');
+            if (fpEl) fpEl.href = `https://npmcdn.com/flatpickr/dist/themes/${className === 'light-theme' ? 'light' : 'dark'}.css`;
             Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-soft').trim();
             if(document.getElementById('tab-stats').classList.contains('active')){
                 loadPersonalStats(); 
@@ -1936,8 +1977,8 @@
 
             displayToast("Leave requested successfully!", "success");
             
-            document.getElementById('leave-start').value = '';
-            document.getElementById('leave-end').value = '';
+            if (document.getElementById('leave-start')._flatpickr) document.getElementById('leave-start')._flatpickr.clear();
+            if (document.getElementById('leave-end')._flatpickr) document.getElementById('leave-end')._flatpickr.clear();
             document.getElementById('leave-title').value = '';
             document.getElementById('leave-desc').value = '';
             
