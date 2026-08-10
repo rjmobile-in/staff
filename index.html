@@ -1309,74 +1309,25 @@
             originalBtnHtml = activeBtn.innerHTML;
             activeBtn.innerHTML = `<div class="spinner" style="width: 18px; height: 18px; border-width: 2.5px; border-top-color: #fff; margin: 0; animation: spin 0.6s linear infinite;"></div> <span>Securing GPS...</span>`;
             activeBtn.style.opacity = '0.8';
-            activeBtn.style.pointerEvents = 'none'; // Prevent double taps completely
+            activeBtn.style.pointerEvents = 'none'; 
         }
 
-        // 1. Get GPS Coordinates
+        // 1. Get GPS Coordinates & Accuracy
         let coords;
         try {
             coords = await getCurrentLocation();
         } catch (gpsErr) {
-            displayToast("GPS required! Please turn on location services.", "error");
-            isProcessing = false; return;
-        }
-
-        // 2. Fetch all Branch Geofences
-        const { data: branches } = await supabase.from('branches_directory').select('*');
-        if (!branches || branches.length === 0) {
-            displayToast("System Error: No stores configured on map.", "error");
-            isProcessing = false; return;
-        }
-
-        // 3. Find if standing inside ANY branch
-        let matchedBranch = null;
-        let closestDistance = Infinity;
-
-        for (const branch of branches) {
-            if (!branch.latitude || !branch.longitude) continue;
-            const dist = calculateDistanceMeters(coords.latitude, coords.longitude, branch.latitude, branch.longitude);
-            if (dist < closestDistance) closestDistance = dist;
-            if (dist <= (branch.radius_meters || 100)) { matchedBranch = branch; break; }
-        }
-
-        if (!matchedBranch) {
-            // Using pre-fetched role to speed up the clock-in button response!
-            const isActivityStaff = currentStaffRole === 'Activity Person' || currentStaffRole === 'Activity Manager';
-
-            const activityBranch = branches.find(b => b.branch_name === 'Activity');
-            
-            if (activityBranch && isActivityStaff) {
-                matchedBranch = activityBranch;
-            } else {
-                displayToast(`You are ${Math.round(closestDistance)}m away from the nearest store. Move closer!`, "error");
-                isProcessing = false; 
-                // Restore button state
-                if (activeBtn) {
-                    activeBtn.innerHTML = originalBtnHtml;
-                    activeBtn.style.opacity = '1';
-                    activeBtn.style.pointerEvents = 'auto';
-                }
-                return;
+            displayToast(gpsErr.message || "GPS required! Please turn on location services.", "error");
+            isProcessing = false; 
+            if (activeBtn) {
+                activeBtn.innerHTML = originalBtnHtml;
+                activeBtn.style.opacity = '1';
+                activeBtn.style.pointerEvents = 'auto';
             }
+            return;
         }
 
-        // --- NEW RESTRICTION LOGIC ---
-        // Agar staff already kisi branch par working hai, toh vo next action sirf usi branch se le sakta hai
-        if (allowedAction === 'working' && lastBranchId) {
-            if (matchedBranch.id !== lastBranchId) {
-                displayToast("You can only Start Travel or Clock Out from your currently checked-in branch.", "error");
-                isProcessing = false;
-                if (activeBtn) {
-                    activeBtn.innerHTML = originalBtnHtml;
-                    activeBtn.style.opacity = '1';
-                    activeBtn.style.pointerEvents = 'auto';
-                }
-                return;
-            }
-        }
-        // -----------------------------
-
-        // 4. Capture Photo & Save
+        // 2. Capture Photo
         triggerFlash();
         const hiddenCanvas = document.createElement('canvas');
         hiddenCanvas.width = 480; hiddenCanvas.height = 640;
@@ -1385,33 +1336,38 @@
         ctx.drawImage(videoEl, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
         const base64Data = hiddenCanvas.toDataURL('image/jpeg', 0.6);
 
+        // 3. SEND TO SUPABASE JUDGE FUNCTION (No frontend math needed!)
         try {
-            // *** SECURITY FIX: REMOVED LOCAL DEVICE TIMESTAMP ***
-            const { error: dbError } = await supabase.from('attendance_logs').insert([{
-                staff_id: currentStaffId, employee_name: currentStaffName,
-                branch_id: matchedBranch.id, branch: matchedBranch.branch_name,
-                action: targetAction, 
-                photo_capture: base64Data, latitude: coords.latitude, longitude: coords.longitude, gps_verified: true
-            }]);
+            const { data, error } = await supabase.rpc('secure_log_attendance', {
+                p_staff_id: currentStaffId,
+                p_employee_name: currentStaffName,
+                p_action: targetAction,
+                p_photo_capture: base64Data,
+                p_latitude: coords.latitude,
+                p_longitude: coords.longitude,
+                p_accuracy: coords.accuracy || 0
+            });
 
-            if (dbError) throw dbError;
+            if (error) {
+                // Supabase ka custom error (e.g. out of radius, wrong branch, weak accuracy) direct throw hoga
+                throw new Error(error.message);
+            }
             
-            // Use clean toast instead of popup for button clicks
-            displayToast(`${targetAction} recorded at ${matchedBranch.branch_name}!`, "success");
+            // Database se aayi hui exact store location toast mein dikhegi
+            displayToast(data.message, "success");
             
-            // End of shift celebration
             if (targetAction === 'Clock Out') {
                 confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'] });
             }
 
-            // Optimistically update the UI state instantly to prevent button flickering
-            lastBranchId = matchedBranch.id; // Record local state
+            // Update local state smoothly
             if (targetAction === 'Clock In' || targetAction === 'Transit End') allowedAction = 'working';
             else if (targetAction === 'Transit Start') allowedAction = 'traveling';
             else if (targetAction === 'Clock Out') allowedAction = 'completed';
+            
             updateButtonStates();
 
-            // 🛑 TRIGGER 5-SECOND COOLDOWN USING NATIVE DISABLED STATE
+            // 🛑 TRIGGER 5-SECOND COOLDOWN
             cooldownActive = true;
             const visibleActionBtns = document.querySelectorAll('.btn-action');
             visibleActionBtns.forEach(b => {
@@ -1420,13 +1376,14 @@
 
             setTimeout(() => {
                 cooldownActive = false;
-                updateButtonStates(); // Safely clears .disabled and updates correct buttons
+                updateButtonStates(); 
             }, 5000);
 
             setTimeout(() => checkStaffStatus(), 1000);
             
         } catch (err) {
-            displayToast("Network Error: Failed to save.", "error");
+            // Sirf 1 toast, jo exactly batayega ki problem kya hai
+            displayToast(err.message || "Network Error: Failed to save.", "error");
         } finally {
             isProcessing = false;
             // Restore the button back to its original state
