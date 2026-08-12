@@ -351,8 +351,16 @@
           <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; display: block;">Full Name</label>
           <input type="text" id="edit-my-name" class="input-field" placeholder="Your Name">
 
-          <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; display: block;">Date of Birth</label>
-          <input type="text" id="edit-my-dob" class="input-field" placeholder="Select DOB" style="color-scheme: dark;">
+          <div style="display: flex; gap: 12px;">
+              <div style="flex: 1;">
+                  <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; display: block;">Date of Birth</label>
+                  <input type="text" id="edit-my-dob" class="input-field" placeholder="Select DOB" style="color-scheme: dark;">
+              </div>
+              <div style="flex: 1;">
+                  <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; display: block;">Joining Date</label>
+                  <input type="text" id="edit-my-joining" class="input-field" placeholder="Joining Date" style="color-scheme: dark; opacity: 0.7; pointer-events: none;" readonly title="Contact Admin to change">
+              </div>
+          </div>
       </div>
 
       <button id="btn-save-profile" class="btn-primary" style="justify-content: center; padding: 14px; margin-top: 8px;">Save Profile</button>
@@ -372,9 +380,10 @@
         <div style="padding: 24px; text-align: center; position: relative;">
             <h2 id="team-modal-name" style="font-size: 24px; margin-bottom: 4px; font-family: 'Plus Jakarta Sans', sans-serif;">Name</h2>
             <div id="team-modal-role" style="color: var(--primary); font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; margin-bottom: 12px;">Role</div>
-            <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 16px;">
+            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
                 <span id="team-modal-branch" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main);">🏢 Branch</span>
                 <span id="team-modal-bday" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none;">🎂 Bday</span>
+                <span id="team-modal-join" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none;">💼 Joined</span>
             </div>
             <button class="btn-action btn-reach" style="width: 100%; padding: 12px; margin-top: 8px;" onclick="document.getElementById('team-profile-modal').style.display='none'">Close Profile</button>
         </div>
@@ -486,7 +495,7 @@
         <div class="nav-tab" id="tab-stats">📊 Stats</div>
         <div class="nav-tab" id="tab-birthdays">🎂 B'days</div>
         <div class="nav-tab" id="tab-directory">👥 Team</div>
-        <div class="nav-tab" id="tab-leave">🌴 Leave</div>
+        <div class="nav-tab" id="tab-leave">🌴 Requests</div>
     </div>
 
     <!-- Scanner Feed Card -->
@@ -610,11 +619,23 @@
 
     <!-- Leave Request View -->
     <div class="main-card" id="leave-view" style="display: none; padding-top: 16px;">
-        <h2 style="margin-bottom: 16px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;">Leave Requests</h2>
+        <h2 style="margin-bottom: 16px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;">Schedule Exception</h2>
         
         <!-- Leave Form -->
         <div style="background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px;">
-            <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--primary);">➕ Request New Leave</h3>
+            <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--primary);">➕ New Request</h3>
+            
+            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 4px; display: block;">Request Type</label>
+            <select id="leave-type" class="input-field" style="margin-bottom: 12px;">
+                <option value="Absent">Full Day Leave</option>
+                <option value="Late Arrival">Late Arrival</option>
+                <option value="Early Departure">Early Departure</option>
+            </select>
+
+            <div id="leave-time-container" style="display: none;">
+                <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--warning); margin-bottom: 4px; display: block;">Expected Time</label>
+                <input type="time" id="leave-expected-time" class="input-field" style="margin-bottom: 12px;">
+            </div>
             
             <div style="display: flex; gap: 12px;">
                 <div style="flex: 1;">
@@ -828,10 +849,12 @@
             const safeBranch = branchName.replace(/'/g, "\\'");
             const bdayText = s.dob ? new Date(s.dob).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
             const safeBday = bdayText ? `🎂 ${bdayText}` : '';
+            const joinText = s.joining_date ? new Date(s.joining_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+            const safeJoin = joinText ? `💼 Joined ${joinText}` : '';
             const safePic = s.profile_pic ? s.profile_pic : '';
 
             return `
-            <div class="directory-card" style="cursor: pointer;" onclick="openTeamProfile('${safeName}', '${safeRole}', '${safeBranch}', '${safeBday}', '${safePic}', '${color}', '${initials}')">
+            <div class="directory-card" style="cursor: pointer;" onclick="openTeamProfile('${safeName}', '${safeRole}', '${safeBranch}', '${safeBday}', '${safePic}', '${color}', '${initials}', '${safeJoin}')">
                 ${avatarHtml}
                 <div style="overflow: hidden; flex: 1;">
                     <div style="font-weight: 700; color: var(--text-main); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.name}</div>
@@ -844,7 +867,7 @@
     }
 
     // Global function to open team profile popup dynamically
-    window.openTeamProfile = function(name, role, branch, bday, picUrl, color, initials) {
+    window.openTeamProfile = function(name, role, branch, bday, picUrl, color, initials, joinDate) {
         document.getElementById('team-modal-name').innerText = name;
         document.getElementById('team-modal-role').innerText = role;
         document.getElementById('team-modal-branch').innerText = `🏢 ${branch}`;
@@ -855,6 +878,16 @@
             bdayEl.style.display = 'inline-block';
         } else {
             bdayEl.style.display = 'none';
+        }
+        
+        const joinEl = document.getElementById('team-modal-join');
+        if(joinEl) {
+            if(joinDate) {
+                joinEl.innerText = joinDate;
+                joinEl.style.display = 'inline-block';
+            } else {
+                joinEl.style.display = 'none';
+            }
         }
 
         const imgEl = document.getElementById('team-modal-img');
@@ -1137,8 +1170,8 @@
             document.getElementById('dashboard').style.display = 'flex';
             
             const email = user.email.toLowerCase();
-            // Naya query jisme role, dob aur profile_pic aayega
-            const { data: staffData } = await supabase.from('staff_directory').select('id, name, role, default_branch_id, dob, profile_pic').eq('email', email).maybeSingle();
+            // Naya query jisme role, dob, profile_pic, aur joining_date aayega
+            const { data: staffData } = await supabase.from('staff_directory').select('id, name, role, default_branch_id, dob, profile_pic, joining_date').eq('email', email).maybeSingle();
             
             if (staffData) {
                 currentStaffId = staffData.id;
@@ -1179,6 +1212,10 @@
                     dobEl._flatpickr.setDate(staffData.dob || '');
                 } else if (dobEl) {
                     dobEl.value = staffData.dob || '';
+                }
+                const joiningEl = document.getElementById('edit-my-joining');
+                if (joiningEl) {
+                    joiningEl.value = staffData.joining_date ? new Date(staffData.joining_date).toLocaleDateString('en-GB') : 'Not Set';
                 }
                 
                 // 4. Check Birthday Celebration! 🎂
@@ -1895,6 +1932,10 @@
         }
     }
 
+    document.getElementById('leave-type')?.addEventListener('change', (e) => {
+        document.getElementById('leave-time-container').style.display = (e.target.value === 'Absent') ? 'none' : 'block';
+    });
+
     document.getElementById('btn-submit-leave')?.addEventListener('click', async () => {
         if (!currentStaffId) return;
         
@@ -1903,6 +1944,8 @@
         const end = document.getElementById('leave-end').value;
         const title = document.getElementById('leave-title').value.trim();
         const desc = document.getElementById('leave-desc').value.trim();
+        const reqType = document.getElementById('leave-type').value;
+        const expectedTime = document.getElementById('leave-expected-time').value;
         
         if (!start || !end || !title) {
             displayToast("Start Date, End Date, and Title are required!", "error");
@@ -1914,6 +1957,18 @@
             return;
         }
 
+        let finalTitle = title;
+        if (reqType !== 'Absent' && expectedTime) {
+           let timeSplit = expectedTime.split(':');
+           let h = parseInt(timeSplit[0]);
+           let ampm = h >= 12 ? 'PM' : 'AM';
+           h = h % 12 || 12;
+           let formattedTime = `${h}:${timeSplit[1]} ${ampm}`;
+           finalTitle = `[${reqType}] ${title} (Expected: ${formattedTime})`;
+        } else if (reqType !== 'Absent') {
+           finalTitle = `[${reqType}] ${title}`;
+        }
+
         btn.innerText = "Submitting..."; btn.disabled = true;
 
         try {
@@ -1922,7 +1977,7 @@
                 employee_name: currentStaffName,
                 start_date: start,
                 end_date: end,
-                reason_title: title,
+                reason_title: finalTitle,
                 reason_desc: desc,
                 status: 'Pending'
             }]);
@@ -1938,6 +1993,9 @@
             if (document.getElementById('leave-end')._flatpickr) document.getElementById('leave-end')._flatpickr.clear();
             document.getElementById('leave-title').value = '';
             document.getElementById('leave-desc').value = '';
+            document.getElementById('leave-expected-time').value = '';
+            document.getElementById('leave-type').value = 'Absent';
+            document.getElementById('leave-time-container').style.display = 'none';
             
             loadMyLeaves();
         } catch (err) {
