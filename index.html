@@ -1909,19 +1909,39 @@
                 const sDate = new Date(leave.start_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
                 const eDate = new Date(leave.end_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
                 
+                let dateDisplay = sDate === eDate ? sDate : `${sDate} - ${eDate}`;
+
                 let statusBadge = '';
                 if (leave.status === 'Approved') statusBadge = `<span class="badge-status" style="background: var(--success-alpha); color: var(--success);">✅ Approved</span>`;
                 else if (leave.status === 'Rejected') statusBadge = `<span class="badge-status" style="background: var(--danger-alpha); color: var(--danger);">❌ Rejected</span>`;
                 else statusBadge = `<span class="badge-status" style="background: var(--warning-alpha); color: var(--warning);">⏳ Pending</span>`;
 
+                let typeBadge = '';
+                const lType = leave.leave_type || 'Absent';
+                if (lType === 'Late Arrival') typeBadge = `<span class="badge-status" style="background: var(--warning-alpha); color: var(--warning); margin-right: 6px;">Late</span>`;
+                else if (lType === 'Early Departure') typeBadge = `<span class="badge-status" style="background: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.3); margin-right: 6px;">Early</span>`;
+
+                let timeStrHtml = '';
+                if (lType !== 'Absent' && leave.expected_time) {
+                    let t = leave.expected_time.split(':');
+                    let h = parseInt(t[0]);
+                    let ampm = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12 || 12;
+                    timeStrHtml = `<span style="font-size: 11px; color: var(--text-soft); font-weight: normal; margin-left: 6px;">(Expected: ${h}:${t[1]} ${ampm})</span>`;
+                }
+
                 return `
                 <div style="background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 14px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                        <div>
-                            <strong style="color: var(--text-main); font-size: 14px;">${leave.reason_title}</strong>
-                            <div style="font-size: 12px; color: var(--text-soft); margin-top: 4px; font-weight: 600;">📅 ${sDate}  to  ${eDate}</div>
+                        <div style="flex: 1; padding-right: 12px;">
+                            <div style="display: flex; align-items: center; flex-wrap: wrap; margin-bottom: 4px;">
+                                ${typeBadge}
+                                <strong style="color: var(--text-main); font-size: 14px; line-height: 1.3;">${leave.reason_title}</strong>
+                                ${timeStrHtml}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-soft); font-weight: 600;">📅 ${dateDisplay}</div>
                         </div>
-                        ${statusBadge}
+                        <div style="flex-shrink: 0;">${statusBadge}</div>
                     </div>
                     <div style="font-size: 13px; color: var(--text-main); background: var(--card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--card-border); margin-top: 8px;">${leave.reason_desc || 'No description provided.'}</div>
                 </div>`;
@@ -1957,18 +1977,6 @@
             return;
         }
 
-        let finalTitle = title;
-        if (reqType !== 'Absent' && expectedTime) {
-           let timeSplit = expectedTime.split(':');
-           let h = parseInt(timeSplit[0]);
-           let ampm = h >= 12 ? 'PM' : 'AM';
-           h = h % 12 || 12;
-           let formattedTime = `${h}:${timeSplit[1]} ${ampm}`;
-           finalTitle = `[${reqType}] ${title} (Expected: ${formattedTime})`;
-        } else if (reqType !== 'Absent') {
-           finalTitle = `[${reqType}] ${title}`;
-        }
-
         btn.innerText = "Submitting..."; btn.disabled = true;
 
         try {
@@ -1977,9 +1985,11 @@
                 employee_name: currentStaffName,
                 start_date: start,
                 end_date: end,
-                reason_title: finalTitle,
+                reason_title: title,
                 reason_desc: desc,
-                status: 'Pending'
+                status: 'Pending',
+                leave_type: reqType,
+                expected_time: expectedTime || null
             }]);
 
             if (error) {
