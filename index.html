@@ -351,6 +351,9 @@
           <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; display: block;">Full Name</label>
           <input type="text" id="edit-my-name" class="input-field" placeholder="Your Name">
 
+          <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; display: block;">Phone Number</label>
+          <input type="tel" id="edit-my-phone" class="input-field" placeholder="Enter Phone Number">
+
           <div style="display: flex; gap: 12px;">
               <div style="flex: 1;">
                   <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 8px; display: block;">Date of Birth</label>
@@ -382,6 +385,7 @@
             <div id="team-modal-role" style="color: var(--primary); font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; margin-bottom: 12px;">Role</div>
             <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
                 <span id="team-modal-branch" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main);">🏢 Branch</span>
+                <span id="team-modal-phone" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none; transition: 0.2s;">📞 Phone</span>
                 <span id="team-modal-bday" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none;">🎂 Bday</span>
                 <span id="team-modal-join" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none;">💼 Joined</span>
             </div>
@@ -537,8 +541,14 @@
 
     <!-- Enhanced Stats Card with Charts -->
     <div class="main-card" id="stats-view" style="display: none; padding-top: 16px;">
-        <h2 style="margin-bottom: 20px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px;" id="stats-month-title">This Month's Activity</h2>
-        
+        <h2 style="margin-bottom: 16px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px;" id="stats-month-title">All Time Activity</h2>
+
+        <!-- NEW DATE FILTER SECTION -->
+        <div style="position: relative; margin-bottom: 24px;">
+            <input type="text" id="stats-date-range" class="input-field" placeholder="📅 Filter by Date Range..." style="margin-bottom: 0; text-align: center; font-weight: 700; color-scheme: dark; padding-right: 36px; cursor: pointer;" readonly>
+            <button id="clear-stats-filter" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; display: none; padding: 4px;" title="Clear Filter">✖</button>
+        </div>
+
         <!-- Top Metrics -->
         <div class="stats-grid">
             <div class="stat-card">
@@ -553,12 +563,12 @@
 
         <!-- Charts Section -->
         <div class="chart-box">
-            <h3>Hours Worked (Last 7 Days)</h3>
+            <h3 id="chart-title-bar">Hours Worked (All Time)</h3>
             <div style="height: 200px; width: 100%;"><canvas id="weeklyBarChart"></canvas></div>
         </div>
 
         <div class="chart-box">
-            <h3>Time Split (This Month)</h3>
+            <h3 id="chart-title-pie">Time Split (All Time)</h3>
             <div style="height: 200px; width: 100%;"><canvas id="timePieChart"></canvas></div>
         </div>
 
@@ -706,13 +716,48 @@
         disableMobile: true
     });
 
+    // --- NEW: STATS DATE RANGE FILTER ---
+    let statsStartDate = null;
+    let statsEndDate = null;
+
+    flatpickr("#stats-date-range", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "M j, Y",
+        disableMobile: true,
+        maxDate: "today",
+        onChange: function(selectedDates) {
+            // Wait for both start and end date to be selected
+            if (selectedDates.length === 2) {
+                statsStartDate = selectedDates[0];
+                
+                // End date ko us din ke end (23:59:59) tak set karna taaki pura din cover ho jaye
+                statsEndDate = new Date(selectedDates[1]);
+                statsEndDate.setHours(23, 59, 59, 999);
+                
+                document.getElementById('clear-stats-filter').style.display = 'block';
+                loadPersonalStats();
+            }
+        }
+    });
+
+    document.getElementById('clear-stats-filter')?.addEventListener('click', () => {
+        document.getElementById('stats-date-range')._flatpickr.clear();
+        statsStartDate = null;
+        statsEndDate = null;
+        document.getElementById('clear-stats-filter').style.display = 'none';
+        loadPersonalStats();
+    });
+
     let cameraActive = false;
     let localStream = null;
     let allowedAction = 'none'; 
     let currentStaffId = null; 
     let lastBranchId = null; 
     let currentStaffName = "";
-    let currentStaffRole = ""; // Naya variable role track karne ke liye
+    let currentStaffRole = ""; 
+    let currentStaffJoiningDate = null; // Joing date lock for Stats Filter
     let isProcessing = false;
     let hasAutoDetected = false; // Prevents the popup from showing again on tab switches
     let cooldownActive = false;  // 5-second anti-spam protection
@@ -847,6 +892,7 @@
             const safeName = s.name.replace(/'/g, "\\'");
             const safeRole = (s.role || 'Staff').replace(/'/g, "\\'");
             const safeBranch = branchName.replace(/'/g, "\\'");
+            const safePhone = s.phone_number ? s.phone_number.replace(/'/g, "\\'") : '';
             const bdayText = s.dob ? new Date(s.dob).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
             const safeBday = bdayText ? `🎂 ${bdayText}` : '';
             const joinText = s.joining_date ? new Date(s.joining_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
@@ -854,7 +900,7 @@
             const safePic = s.profile_pic ? s.profile_pic : '';
 
             return `
-            <div class="directory-card" style="cursor: pointer;" onclick="openTeamProfile('${safeName}', '${safeRole}', '${safeBranch}', '${safeBday}', '${safePic}', '${color}', '${initials}', '${safeJoin}')">
+            <div class="directory-card" style="cursor: pointer;" onclick="openTeamProfile('${safeName}', '${safeRole}', '${safeBranch}', '${safeBday}', '${safePic}', '${color}', '${initials}', '${safeJoin}', '${safePhone}')">
                 ${avatarHtml}
                 <div style="overflow: hidden; flex: 1;">
                     <div style="font-weight: 700; color: var(--text-main); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.name}</div>
@@ -867,11 +913,24 @@
     }
 
     // Global function to open team profile popup dynamically
-    window.openTeamProfile = function(name, role, branch, bday, picUrl, color, initials, joinDate) {
+    window.openTeamProfile = function(name, role, branch, bday, picUrl, color, initials, joinDate, phone) {
         document.getElementById('team-modal-name').innerText = name;
         document.getElementById('team-modal-role').innerText = role;
         document.getElementById('team-modal-branch').innerText = `🏢 ${branch}`;
-        
+
+        const phoneEl = document.getElementById('team-modal-phone');
+        if (phone) {
+            phoneEl.innerText = `📞 Call ${phone}`;
+            phoneEl.style.display = 'inline-block';
+            phoneEl.onclick = (e) => { e.stopPropagation(); window.location.href = `tel:${phone}`; };
+            phoneEl.style.cursor = 'pointer';
+            phoneEl.style.color = '#fff';
+            phoneEl.style.backgroundColor = 'var(--primary)'; // Make it stand out as an action button
+            phoneEl.style.borderColor = 'var(--primary)';
+        } else {
+            phoneEl.style.display = 'none';
+        }
+
         const bdayEl = document.getElementById('team-modal-bday');
         if(bday) {
             bdayEl.innerText = bday;
@@ -981,52 +1040,67 @@
         return R * c; 
     }
 
-    // --- UPDATED: Geofencing & GPS Functions with Cache Bypass ---
+    // --- LIVE GPS TRACKING FOR INSTANT ATTENDANCE ---
+    let liveCoords = null;
+    let liveCoordsTime = 0;
+    let activeGpsWatch = null;
+
+    function startLiveGPS() {
+        if (!navigator.geolocation || activeGpsWatch) return;
+        activeGpsWatch = navigator.geolocation.watchPosition(
+            (pos) => {
+                liveCoords = pos.coords;
+                liveCoordsTime = pos.timestamp || Date.now();
+            },
+            (err) => console.warn("Live GPS Watcher Error:", err),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+        );
+    }
+
+    function stopLiveGPS() {
+        if (activeGpsWatch !== null) {
+            navigator.geolocation.clearWatch(activeGpsWatch);
+            activeGpsWatch = null;
+        }
+    }
+
     function getCurrentLocation() {
         return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) {
-                reject(new Error("No GPS support"));
-                return;
+            if (!navigator.geolocation) return reject(new Error("No GPS support"));
+
+            // 🚀 FAST PATH: Agar active watcher ki location pichle 15 sec se nayi hai, INSTANT bhej do
+            if (liveCoords && (Date.now() - liveCoordsTime) <= 15000) {
+                return resolve(liveCoords);
             }
 
+            // SLOW PATH: Agar memory me location purani ho chuki hai (jaise tab bahot der khula chhod dena), to hard fetch karo
             const options = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
-
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    // GPS timestamp check (milliseconds mein)
                     const gpsAge = Date.now() - pos.timestamp;
-                    
-                    // Agar GPS data 30 seconds se zyada purana hai (Tab background caching issue)
                     if (gpsAge > 30000) {
-                        console.warn(`Stale GPS detected (Age: ${Math.floor(gpsAge/1000)}s). Forcing live hardware fetch...`);
-                        
-                        // watchPosition lagane se phone ka real GPS sensor force-start ho jata hai
                         const watchId = navigator.geolocation.watchPosition(
                             (newPos) => {
-                                // Jaise hi fresh location (under 30s) mile, watch hata do aur resolve karo
                                 if (Date.now() - newPos.timestamp <= 30000) {
                                     navigator.geolocation.clearWatch(watchId);
+                                    liveCoords = newPos.coords;
+                                    liveCoordsTime = newPos.timestamp;
                                     resolve(newPos.coords);
                                 }
                             },
-                            (err) => {
-                                navigator.geolocation.clearWatch(watchId);
-                                reject(err);
-                            },
+                            (err) => { navigator.geolocation.clearWatch(watchId); reject(err); },
                             options
                         );
-
-                        // Safety Timeout: Agar 15 second tak nayi location na mile toh watch hata do
                         setTimeout(() => {
                             navigator.geolocation.clearWatch(watchId);
                             reject(new Error("Timeout waiting for live GPS. Try again."));
                         }, 15000);
-
                     } else {
-                        // Location fresh hai, direct use karo
+                        liveCoords = pos.coords;
+                        liveCoordsTime = pos.timestamp;
                         resolve(pos.coords);
                     }
-                }, 
+                },
                 (err) => reject(err),
                 options
             );
@@ -1170,12 +1244,13 @@
             document.getElementById('dashboard').style.display = 'flex';
             
             const email = user.email.toLowerCase();
-            // Naya query jisme role, dob, profile_pic, aur joining_date aayega
-            const { data: staffData } = await supabase.from('staff_directory').select('id, name, role, default_branch_id, dob, profile_pic, joining_date').eq('email', email).maybeSingle();
+            // Fetch query ab phone_number bhi include karegi
+            const { data: staffData } = await supabase.from('staff_directory').select('id, name, role, default_branch_id, dob, profile_pic, joining_date, phone_number').eq('email', email).maybeSingle();
             
             if (staffData) {
                 currentStaffId = staffData.id;
                 currentStaffName = staffData.name;
+                startLiveGPS(); // Track live location immediately upon secure login
                 currentStaffRole = staffData.role || '';
                 
                 // 1. Set Greetings & Name
@@ -1207,6 +1282,15 @@
 
                 // 3. Populate Edit Form
                 document.getElementById('edit-my-name').value = staffData.name || '';
+                document.getElementById('edit-my-phone').value = staffData.phone_number || '';
+                currentStaffJoiningDate = staffData.joining_date || null;
+                
+                // 📅 Lock Date Picker's Minimum Date to Joining Date
+                const statsPickerEl = document.getElementById('stats-date-range');
+                if (statsPickerEl && statsPickerEl._flatpickr && currentStaffJoiningDate) {
+                    statsPickerEl._flatpickr.set('minDate', currentStaffJoiningDate);
+                }
+
                 const dobEl = document.getElementById('edit-my-dob');
                 if (dobEl && dobEl._flatpickr) {
                     dobEl._flatpickr.setDate(staffData.dob || '');
@@ -1246,6 +1330,7 @@
             document.getElementById('dashboard').style.display = 'none';
             currentStaffId = null; currentStaffName = "";
             stopScanner();
+            stopLiveGPS(); // Stop tracking when logged out
             updateButtonStates();
         }
     }
@@ -1591,15 +1676,16 @@
 
         const barCanvas = document.getElementById('weeklyBarChart');
         if (window.staffCharts['weekly']) window.staffCharts['weekly'].destroy();
-        const recentDays = dailyStats.slice(-7);
         
+        const chartData = dailyStats; // Removed .slice(-7) to show the exact filtered range
+
         window.staffCharts['weekly'] = new Chart(barCanvas, {
             type: 'bar',
             data: { 
-                labels: recentDays.map(d => d.dateStr), 
+                labels: chartData.map(d => d.dateStr), 
                 datasets: [{ 
                     label: 'Total Hours Worked', 
-                    data: recentDays.map(d => d.hours), 
+                    data: chartData.map(d => d.hours),
                     backgroundColor: primaryColor, 
                     borderRadius: 4 
                 }]
@@ -1640,12 +1726,24 @@
 
     async function loadPersonalStats() {
         if (!currentStaffId) return;
-        const date = new Date();
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        document.getElementById('stats-month-title').innerText = `${monthNames[date.getMonth()]} ${date.getFullYear()} Activity`;
-
-        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
         
+        // Update Title dynamically based on selection
+        let suffixText = "(All Time)";
+        if (statsStartDate && statsEndDate) {
+            const sFormat = statsStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const eFormat = statsEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            document.getElementById('stats-month-title').innerText = `${sFormat} - ${eFormat}`;
+            suffixText = `(${sFormat} - ${eFormat})`;
+        } else {
+            document.getElementById('stats-month-title').innerText = `All Time Activity`;
+        }
+
+        // Dynamically update the Chart headings
+        const barTitle = document.getElementById('chart-title-bar');
+        const pieTitle = document.getElementById('chart-title-pie');
+        if(barTitle) barTitle.innerText = `Hours Worked ${suffixText}`;
+        if(pieTitle) pieTitle.innerText = `Time Split ${suffixText}`;
+
         // Inject Skeletons while waiting for database fetch
         document.getElementById('recent-logs-list').innerHTML = `
             <div class="log-item" style="border-color: transparent; pointer-events: none;">
@@ -1658,8 +1756,19 @@
             </div>`;
             
         try {
-            const { data: logs, error } = await supabase.from('attendance_logs').select('action, branch, timestamp')
-                .eq('staff_id', currentStaffId).gte('timestamp', firstDay).order('timestamp', { ascending: true });
+            // Base Query
+            let query = supabase.from('attendance_logs').select('action, branch, timestamp')
+                .eq('staff_id', currentStaffId).order('timestamp', { ascending: true });
+
+            // Apply Date Range Filter if selected
+            if (statsStartDate && statsEndDate) {
+                query = query.gte('timestamp', statsStartDate.toISOString()).lte('timestamp', statsEndDate.toISOString());
+            } else if (currentStaffJoiningDate) {
+                // Agar date filter blank hai (All Time), to by default data Joining Date se hi calculate hoga.
+                query = query.gte('timestamp', new Date(currentStaffJoiningDate).toISOString());
+            }
+
+            const { data: logs, error } = await query;
 
             if (error) throw error;
 
@@ -1739,7 +1848,8 @@
 
             let logsHtml = '';
             if (logs && logs.length > 0) {
-                const recentLogs = logs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
+                // Show ALL TIME logs (No limit)
+                const recentLogs = logs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
                 logsHtml = recentLogs.map(log => {
                     const d = new Date(log.timestamp);
                     const timeStr = d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit', hour12: false});
@@ -2043,14 +2153,13 @@
         if (currentStaffId) checkStaffStatus(); // Refresh status just in case
     });
 
-    // --- SILENT GPS PRE-WARMER ---
+    // --- SILENT GPS PRE-WARMER & BACKGROUND RECOVERY ---
     function preWarmGPS() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => console.log("GPS cache silently refreshed."),
-                (err) => console.log("Silent GPS ping ignored."),
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-            );
+        // Mobile browsers aggressive background pausing se bachne ke liye
+        // Jaise hi user app par wapas aayega, watcher ko restart karke fresh lock nikal lenge
+        if (currentStaffId) {
+            stopLiveGPS();
+            startLiveGPS();
         }
     }
 
@@ -2109,8 +2218,9 @@
 
         const newName = document.getElementById('edit-my-name').value.trim();
         const newDob = document.getElementById('edit-my-dob').value;
-        
-        let updatePayload = { name: newName, dob: newDob || null };
+        const newPhone = document.getElementById('edit-my-phone').value.trim();
+
+        let updatePayload = { name: newName, dob: newDob || null, phone_number: newPhone || null };
         if (tempBase64Photo === 'REMOVE') updatePayload.profile_pic = null;
         else if (tempBase64Photo) updatePayload.profile_pic = tempBase64Photo;
 
