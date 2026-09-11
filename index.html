@@ -45,9 +45,9 @@
   <!-- Libraries (Flatpickr, Chart.js, Confetti) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link id="flatpickr-theme" rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
 
   <style>
     /* =========================================================
@@ -162,13 +162,13 @@
     /* =========================================================
        ✨ MODALS, SKELETONS & POPUP STYLES
        ========================================================= */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6) !important; backdrop-filter: blur(12px) !important; z-index: 10000; display: none; align-items: center; justify-content: center; padding: 20px;}
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6) !important; backdrop-filter: blur(12px) !important; z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px;}
     .modal-card { background: var(--card-bg); padding: 32px 24px; border-radius: var(--radius-lg); width: 100%; max-width: 400px; border: 1px solid var(--card-border); display: flex; flex-direction: column; gap: 20px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-md); animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);}
     @keyframes slideUp { from { transform: translateY(20px) scale(0.98); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
     
     .color-picker-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); margin-bottom: 12px; }
     .color-picker-label { font-size: 13px; font-weight: 600; color: var(--text-main); }
-    .color-picker-input { -webkit-appearance: none; border: 2px solid var(--card-border); width: 36px; height: 36px; border-radius: 50%; overflow: hidden; cursor: pointer; padding: 0; background: transparent; transition: 0.2s; }
+    .color-picker-input { appearance: none; -webkit-appearance: none; border: 2px solid var(--card-border); width: 36px; height: 36px; border-radius: 50%; overflow: hidden; cursor: pointer; padding: 0; background: transparent; transition: 0.2s; }
     .color-picker-input:hover { transform: scale(1.05); }
     .color-picker-input::-webkit-color-swatch-wrapper { padding: 0; }
     .color-picker-input::-webkit-color-swatch { border: none; border-radius: 50%; }
@@ -389,7 +389,7 @@
                 <span id="team-modal-bday" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none;">🎂 Bday</span>
                 <span id="team-modal-join" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none;">💼 Joined</span>
             </div>
-            <button class="btn-action btn-reach" style="width: 100%; padding: 12px; margin-top: 8px;" onclick="document.getElementById('team-profile-modal').style.display='none'">Close Profile</button>
+            <button class="btn-secondary" style="width: 100%; padding: 12px; margin-top: 8px; justify-content: center;" onclick="document.getElementById('team-profile-modal').style.display='none'">Close Profile</button>
         </div>
     </div>
   </div>
@@ -1155,7 +1155,14 @@
     async function startCamera() {
         document.getElementById('camera-error-overlay').style.display = 'none';
         try {
-            if (videoEl.srcObject) { videoEl.pause(); videoEl.srcObject = null; videoEl.src = ''; }
+            // FIX: Ensure old streams are deeply killed before requesting a new one
+            if (videoEl.srcObject) { 
+                const tracks = videoEl.srcObject.getTracks();
+                tracks.forEach(t => t.stop());
+                videoEl.pause(); 
+                videoEl.srcObject = null; 
+                videoEl.src = ''; 
+            }
             if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
             localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             videoEl.srcObject = localStream;
@@ -2125,10 +2132,10 @@
         }
     });
 
-    // Start Live Clock
-    setInterval(() => {
+    // Start Live Clock (Optimized with a global reference to prevent memory leaks)
+    window.liveClockInterval = setInterval(() => {
         const clockEl = document.getElementById('live-clock');
-        if(clockEl) {
+        if(clockEl && currentStaffId) { // FIX: Only update DOM if user is logged in
             clockEl.innerText = new Date().toLocaleTimeString('en-US', { 
                 hour12: true, hour: 'numeric', minute: '2-digit', second: '2-digit' 
             });
