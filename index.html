@@ -500,6 +500,7 @@
         <div class="nav-tab" id="tab-birthdays">🎂 B'days</div>
         <div class="nav-tab" id="tab-directory">👥 Team</div>
         <div class="nav-tab" id="tab-leave">🌴 Requests</div>
+        <div class="nav-tab" id="tab-customers">📝 Leads</div>
     </div>
 
     <!-- Scanner Feed Card -->
@@ -670,6 +671,37 @@
         <h3 style="font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">📋 My Leave History</h3>
         <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 4px;" id="my-leave-logs">
             <div style="color:var(--text-soft); text-align:center; padding:20px;">Loading requests...</div>
+        </div>
+    </div>
+
+    <!-- CUSTOMER / LEADS VIEW -->
+    <div class="main-card" id="customers-view" style="display: none; padding-top: 16px;">
+        <h2 style="margin-bottom: 16px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;">Customer Logs</h2>
+        
+        <div style="background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px;">
+            <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--primary);">➕ New Entry</h3>
+            
+            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 4px; display: block;">Customer Name</label>
+            <input type="text" id="cust-name" class="input-field" placeholder="Enter name..." style="margin-bottom: 12px;">
+
+            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 4px; display: block;">Phone Number (Optional)</label>
+            <input type="tel" id="cust-phone" class="input-field" placeholder="10-digit mobile number..." maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);" style="margin-bottom: 12px;">
+
+            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 4px; display: block;">Log Type</label>
+            <select id="cust-type" class="input-field" style="margin-bottom: 12px;">
+                <option value="Walkout">🚶‍♂️ Walkout (Missed Lead)</option>
+                <option value="Expected">📅 Expected Tomorrow (Follow-up)</option>
+            </select>
+            
+            <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 4px; display: block;">Reason / Remarks</label>
+            <textarea id="cust-remarks" class="input-field" rows="3" placeholder="Enter reason for walkout or details for tomorrow's visit..." style="margin-bottom: 12px; resize: none;"></textarea>
+            
+            <button id="btn-submit-customer" class="btn-action btn-reach" style="width: 100%; padding: 12px;">Submit Log</button>
+        </div>
+
+        <h3 style="font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">📋 My Recent Logs</h3>
+        <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 4px;" id="my-customer-logs">
+            <div style="color:var(--text-soft); text-align:center; padding:20px;">No recent logs.</div>
         </div>
     </div>
   </div>
@@ -2272,6 +2304,71 @@
                 stopScanner();
             }
         }
+    });
+
+    // --- CUSTOMER MODULE LOGIC ---
+    document.getElementById('tab-customers')?.addEventListener('click', () => {
+        ['tab-scanner', 'tab-stats', 'tab-birthdays', 'tab-directory', 'tab-leave'].forEach(id => document.getElementById(id).classList.remove('active'));
+        document.getElementById('tab-customers').classList.add('active');
+        
+        ['scanner-view', 'stats-view', 'birthdays-view', 'directory-view', 'leave-view'].forEach(id => document.getElementById(id).style.display = 'none');
+        document.getElementById('customers-view').style.display = 'block';
+        stopScanner();
+        loadMyCustomerLogs();
+    });
+
+    async function loadMyCustomerLogs() {
+        if (!currentStaffId) return;
+        const container = document.getElementById('my-customer-logs');
+        container.innerHTML = '<div style="color:var(--text-soft); text-align:center;">Loading...</div>';
+        try {
+            const { data, error } = await supabase.from('customer_logs').select('*').eq('staff_id', currentStaffId).order('created_at', { ascending: false }).limit(10);
+            if (error) throw error;
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-soft); text-align:center;">No logs found.</div>'; return;
+            }
+            container.innerHTML = data.map(log => {
+                const date = new Date(log.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                const badge = log.log_type.includes('Walkout') ? `<span class="badge-status" style="background: var(--danger-alpha); color: var(--danger);">Walkout</span>` : `<span class="badge-status" style="background: var(--success-alpha); color: var(--success);">Expected</span>`;
+                return `
+                <div style="background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 14px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <strong style="color: var(--primary); font-size: 14px;">${log.customer_name}</strong>
+                        ${badge}
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-soft); margin-bottom: 8px;">📞 ${log.customer_phone || 'N/A'} &nbsp;|&nbsp; 📅 ${date}</div>
+                    <div style="font-size: 13px; color: var(--text-main);">${log.remarks}</div>
+                </div>`;
+            }).join('');
+        } catch(e) { container.innerHTML = '<div style="color:var(--danger); text-align:center;">Error loading logs.</div>'; }
+    }
+
+    document.getElementById('btn-submit-customer')?.addEventListener('click', async () => {
+        if (!currentStaffId) return;
+        const btn = document.getElementById('btn-submit-customer');
+        const name = document.getElementById('cust-name').value.trim();
+        const phone = document.getElementById('cust-phone').value.trim();
+        const type = document.getElementById('cust-type').value;
+        const remarks = document.getElementById('cust-remarks').value.trim();
+        
+        if (!name || !remarks) return displayToast("Name and Reason are required!", "error");
+        if (phone && phone.length !== 10) return displayToast("Phone number must be exactly 10 digits!", "error");
+
+        btn.innerText = "Submitting..."; btn.disabled = true;
+        try {
+            const { error } = await supabase.from('customer_logs').insert([{
+                staff_id: currentStaffId, staff_name: currentStaffName, branch_id: lastBranchId,
+                customer_name: name, customer_phone: phone, log_type: type, remarks: remarks
+            }]);
+            if (error) throw error;
+            displayToast("Customer log submitted!", "success");
+            
+            document.getElementById('cust-name').value = '';
+            document.getElementById('cust-phone').value = '';
+            document.getElementById('cust-remarks').value = '';
+            loadMyCustomerLogs();
+        } catch (err) { displayToast("Error saving customer log.", "error"); } 
+        finally { btn.innerText = "Submit Log"; btn.disabled = false; }
     });
 
   </script>
