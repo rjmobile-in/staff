@@ -1283,14 +1283,26 @@
             document.getElementById('dashboard').style.display = 'flex';
             
             const email = user.email.toLowerCase();
-            // Fetch query ab phone_number bhi include karegi
-            const { data: staffData } = await supabase.from('staff_directory').select('id, name, role, default_branch_id, dob, profile_pic, joining_date, phone_number').eq('email', email).maybeSingle();
+            // Fetch query updated to include role_id and shift_start
+            const { data: staffData } = await supabase.from('staff_directory').select('id, name, role, role_id, default_branch_id, dob, profile_pic, joining_date, phone_number, shift_start').eq('email', email).maybeSingle();
             
             if (staffData) {
                 currentStaffId = staffData.id;
                 currentStaffName = staffData.name;
                 startLiveGPS(); // Track live location immediately upon secure login
                 currentStaffRole = staffData.role || '';
+                
+                // ⏱️ HIERARCHY SHIFT TIME FETCHING FOR UI
+                let shiftTime = staffData.shift_start;
+                if (!shiftTime && staffData.role_id) {
+                    const { data: roleData } = await supabase.from('roles_directory').select('shift_start').eq('id', staffData.role_id).maybeSingle();
+                    if (roleData && roleData.shift_start) shiftTime = roleData.shift_start;
+                }
+                if (!shiftTime) {
+                    const { data: globalData } = await supabase.from('system_settings').select('setting_value').eq('setting_name', 'global_shift').maybeSingle();
+                    if (globalData && globalData.setting_value && globalData.setting_value.start) shiftTime = globalData.setting_value.start;
+                }
+                window.myShiftStart = shiftTime || "10:00:00"; // Store globally for UI check
                 
                 // 1. Set Greetings & Name
                 const hour = new Date().getHours();
@@ -1414,8 +1426,33 @@
         const completeMsg = document.getElementById('shift-completed-msg');
         if (completeMsg) completeMsg.style.display = 'none';
 
+        // ⏱️ TIME BUFFER CALCULATION (Shift Time + 30 Mins)
+        let maxMins = Infinity;
+        if (window.myShiftStart) {
+            const [h, m] = window.myShiftStart.split(':');
+            maxMins = (parseInt(h) * 60) + parseInt(m) + 30; // 30 minutes buffer
+        }
+        
+        const now = new Date();
+        const currentMins = (now.getHours() * 60) + now.getMinutes();
+
         if (currentStaffId) {
-            if (allowedAction === 'none') { btnIn.style.display = 'flex'; } 
+            if (allowedAction === 'none') { 
+                btnIn.style.display = 'flex'; 
+                
+                // Disable if current time > Max Buffer Time
+                if (currentMins > maxMins) {
+                    btnIn.disabled = true;
+                    btnIn.innerHTML = "🚫 Time Over";
+                    btnIn.style.background = "var(--card-border)";
+                    btnIn.style.color = "var(--text-soft)";
+                    btnIn.style.boxShadow = "none";
+                } else {
+                    btnIn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Clock In`;
+                    btnIn.style.background = "var(--success)";
+                    btnIn.style.color = "#fff";
+                }
+            } 
             else if (allowedAction === 'working') { btnTravelStart.style.display = 'flex'; btnOut.style.display = 'flex'; } 
             else if (allowedAction === 'traveling') { btnTravelEnd.style.display = 'flex'; btnOut.style.display = 'flex'; } 
             else if (allowedAction === 'completed') { 
