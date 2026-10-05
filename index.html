@@ -239,8 +239,20 @@
     #theme-toggle { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-soft); cursor: pointer; padding: 10px; border-radius: var(--radius-md); transition: 0.2s; }
     #theme-toggle:hover { background: var(--input-bg); color: var(--text-main); }
 
-    .nav-tabs { display: flex; gap: 8px; width: 100%; margin-bottom: 24px; }
-    .nav-tab { flex: 1; padding: 12px; text-align: center; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); font-weight: 700; color: var(--text-soft); cursor: pointer; transition: 0.2s; font-size: 13px;}
+    .nav-tabs { 
+        display: flex; 
+        gap: 8px; 
+        width: 100%; 
+        margin-bottom: 24px; 
+        overflow-x: auto; 
+        white-space: nowrap; 
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Hide scrollbar for Firefox */
+    }
+    .nav-tabs::-webkit-scrollbar { display: none; /* Hide scrollbar for Chrome/Safari */ }
+    
+    .nav-tab { flex: 0 0 auto; padding: 12px 16px; text-align: center; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); font-weight: 700; color: var(--text-soft); cursor: pointer; transition: 0.2s; font-size: 13px;}
     .nav-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
     .main-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 24px; width: 100%; position: relative; overflow: visible; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
@@ -286,6 +298,24 @@
     .directory-card { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 16px; display: flex; align-items: center; gap: 12px; transition: 0.2s; }
     .directory-card:hover { border-color: var(--primary); transform: translateY(-2px); }
     .directory-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); background: var(--card-bg); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary); font-size: 18px; flex-shrink: 0; }
+    
+    /* PRINT STYLES FOR PAYSLIP */
+    @media print {
+        body * { visibility: hidden; }
+        #staff-payslip-modal, #staff-payslip-modal * { visibility: visible; }
+        #staff-payslip-modal {
+            position: absolute !important; left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: transparent !important; display: block !important;
+        }
+        #staff-payslip-modal .modal-card {
+            position: absolute; left: 0; top: 0; margin: 0;
+            border: none; box-shadow: none !important;
+            max-width: 100%; width: 100%; transform: none !important;
+        }
+        .hide-on-print { display: none !important; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
   </style>
 </head>
 <body>
@@ -344,7 +374,7 @@
               📸 Upload Photo
               <input type="file" id="profile-pic-upload" accept="image/png, image/jpeg" style="display: none;">
           </label>
-          <div style="margin-top: 8px;"><button class="icon-btn" id="btn-remove-pic" style="color: var(--danger);">🗑️ Remove Photo</button></div>
+          <div style="margin-top: 8px;"><button class="icon-btn" id="btn-remove-pic" style="color: var(--danger); background: transparent; border: none; font-size: 12px; cursor: pointer;">🗑️ Remove Photo</button></div>
       </div>
 
       <div style="margin-top: 16px;">
@@ -366,7 +396,7 @@
           </div>
       </div>
 
-      <button id="btn-save-profile" class="btn-primary" style="justify-content: center; padding: 14px; margin-top: 8px;">Save Profile</button>
+      <button id="btn-save-profile" class="btn-primary" style="justify-content: center; padding: 14px; margin-top: 8px; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-weight: bold; cursor: pointer;">Save Profile</button>
     </div>
   </div>
 
@@ -449,6 +479,60 @@
     </div>
   </div>
 
+  <!-- PAYSLIP VIEW MODAL -->
+  <div id="staff-payslip-modal" class="modal-overlay" onclick="this.style.display='none'">
+    <div class="modal-card" style="max-width: 600px; padding: 0; overflow: hidden; background: #fff; color: #000;" onclick="event.stopPropagation()">
+      <div style="padding: 24px; border-bottom: 2px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+              <img src="logo.png" alt="RJ Mobile Logo" style="height: 48px; width: 48px; object-fit: contain;">
+              <div>
+                  <h2 style="margin: 0; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 28px; font-weight: 800;">RJ Mobile</h2>
+                  <div style="color: #64748b; font-weight: 600; margin-top: 4px; font-size: 13px;">Salary Slip - <span id="slip-month">Month Year</span></div>
+              </div>
+          </div>
+          <span class="hide-on-print" style="color: #94a3b8; cursor: pointer; font-size: 28px; font-weight: bold; line-height: 1;" onclick="document.getElementById('staff-payslip-modal').style.display='none'">&times;</span>
+      </div>
+      <div style="padding: 32px 24px; display: flex; flex-direction: column; gap: 24px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                  <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700;">Employee Name</div>
+                  <div style="font-size: 18px; font-weight: 700; color: #0f172a;" id="slip-name">--</div>
+              </div>
+              <div>
+                  <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700;">Designation</div>
+                  <div style="font-size: 16px; font-weight: 600; color: #334155;" id="slip-role">--</div>
+              </div>
+          </div>
+          <div style="background: #f1f5f9; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden;">
+              <div style="display: flex; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+                  <span style="font-weight: 600; color: #475569;">Base Salary</span>
+                  <span style="font-weight: 700; color: #0f172a;" id="slip-base">₹0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+                  <span style="font-weight: 600; color: #475569;">Payable Days (<span id="slip-days-detail" style="font-size: 11px;">0/0</span>)</span>
+                  <span style="font-weight: 700; color: #0f172a;" id="slip-calc">₹0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+                  <span style="font-weight: 600; color: #ef4444;">Tax Deduction (2%)</span>
+                  <span style="font-weight: 700; color: #ef4444;" id="slip-tax">-₹0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e2e8f0;" id="slip-adj-row">
+                  <span style="font-weight: 600; color: #475569;">Manual Adjustment <br><span id="slip-adj-reason" style="font-size: 11px; font-weight: 400;">Reason</span></span>
+                  <span style="font-weight: 700; color: #0f172a;" id="slip-adj">₹0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 16px; background: #0f172a; color: #fff;">
+                  <span style="font-weight: 800; font-size: 18px;">NET PAYABLE</span>
+                  <span style="font-weight: 800; font-size: 18px;" id="slip-net">₹0</span>
+              </div>
+          </div>
+          <div id="slip-timestamp" style="text-align: right; color: #10b981; font-weight: 700; font-size: 13px;">✅ Paid on --</div>
+      </div>
+      <div class="hide-on-print" style="display: flex; padding: 0 24px 24px 24px; gap: 12px;">
+          <button class="btn-action btn-reach" style="flex: 1; background: #0f172a;" onclick="window.print()">🖨️ Print / Save PDF</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Login Screen -->
   <div id="login-screen">
     <img src="logo.png" alt="Logo" style="height: 48px; object-fit: contain; margin-bottom: 24px;" onerror="this.style.display='none'">
@@ -478,8 +562,8 @@
         </div>
       </div>
       <div class="header-controls">
-        <button id="btn-open-theme" class="btn-secondary" title="Theme Customizer" style="padding: 10px; font-size: 16px;">🎨</button>
-        <button id="logout-btn" class="btn-secondary">Log Out</button>
+        <button id="btn-open-theme" class="btn-secondary" title="Theme Customizer" style="padding: 10px; font-size: 16px; background: transparent; border: none;">🎨</button>
+        <button id="logout-btn" class="btn-secondary" style="background: transparent; border: none; color: var(--danger);">Log Out</button>
       </div>
     </div>
 
@@ -494,6 +578,7 @@
         <div class="branch" id="assigned-branch-name">Loading Schedule...</div>
     </div>
 
+    <!-- TABS MENU -->
     <div class="nav-tabs">
         <div class="nav-tab active" id="tab-scanner">📸 Scanner</div>
         <div class="nav-tab" id="tab-stats">📊 Stats</div>
@@ -501,6 +586,8 @@
         <div class="nav-tab" id="tab-directory">👥 Team</div>
         <div class="nav-tab" id="tab-leave">🌴 Requests</div>
         <div class="nav-tab" id="tab-customers">📝 Leads</div>
+        <!-- NEW TAB FOR PAYSLIPS -->
+        <div class="nav-tab" id="tab-payslips">💰 Payslips</div>
     </div>
 
     <!-- Scanner Feed Card -->
@@ -704,6 +791,17 @@
             <div style="color:var(--text-soft); text-align:center; padding:20px;">No recent logs.</div>
         </div>
     </div>
+    
+    <!-- PAYSLIPS VIEW -->
+    <div class="main-card" id="payslips-view" style="display: none; padding-top: 16px;">
+        <h2 style="margin-bottom: 16px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;">My Salary Slips</h2>
+        <p style="color: var(--text-soft); font-size: 13px; text-align: center; margin-bottom: 24px;">View and download your generated payslips.</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; padding-right: 4px;" id="my-payslips-list">
+            <div style="color:var(--text-soft); text-align:center; padding:20px;">Loading payslips...</div>
+        </div>
+    </div>
+
   </div>
 
   <script type="module">
@@ -748,7 +846,7 @@
         disableMobile: true
     });
 
-    // --- NEW: STATS DATE RANGE FILTER ---
+    // --- STATS DATE RANGE FILTER ---
     let statsStartDate = null;
     let statsEndDate = null;
 
@@ -794,6 +892,9 @@
     let hasAutoDetected = false; // Prevents the popup from showing again on tab switches
     let cooldownActive = false;  // 5-second anti-spam protection
     
+    // Globals for Payslips
+    let myPayrollRecords = [];
+
     const flashOverlay = document.getElementById('flash-overlay');
     const videoEl = document.getElementById('native-video');
     
@@ -802,78 +903,58 @@
     const btnTravelEnd = document.getElementById('btn-travel-end');
     const btnOut = document.getElementById('btn-clock-out');
 
+    function switchTab(activeTabId, activeViewId) {
+        // Reset all tabs
+        ['tab-scanner', 'tab-stats', 'tab-birthdays', 'tab-directory', 'tab-leave', 'tab-customers', 'tab-payslips'].forEach(id => {
+            if(document.getElementById(id)) document.getElementById(id).classList.remove('active');
+        });
+        
+        // Hide all views
+        ['scanner-view', 'stats-view', 'birthdays-view', 'directory-view', 'leave-view', 'customers-view', 'payslips-view'].forEach(id => {
+            if(document.getElementById(id)) document.getElementById(id).style.display = 'none';
+        });
+
+        // Set active tab and view
+        document.getElementById(activeTabId).classList.add('active');
+        document.getElementById(activeViewId).style.display = 'block';
+
+        if(activeTabId !== 'tab-scanner') stopScanner();
+    }
+
     document.getElementById('tab-scanner').addEventListener('click', () => {
-        document.getElementById('tab-scanner').classList.add('active');
-        document.getElementById('tab-stats').classList.remove('active');
-        document.getElementById('tab-birthdays').classList.remove('active');
-        document.getElementById('tab-directory').classList.remove('active');
-        document.getElementById('tab-leave').classList.remove('active');
-        document.getElementById('scanner-view').style.display = 'block';
-        document.getElementById('stats-view').style.display = 'none';
-        document.getElementById('birthdays-view').style.display = 'none';
-        document.getElementById('directory-view').style.display = 'none';
-        document.getElementById('leave-view').style.display = 'none';
+        switchTab('tab-scanner', 'scanner-view');
         if(!cameraActive) startCamera();
     });
 
     document.getElementById('tab-stats').addEventListener('click', () => {
-        document.getElementById('tab-stats').classList.add('active');
-        document.getElementById('tab-scanner').classList.remove('active');
-        document.getElementById('tab-birthdays').classList.remove('active');
-        document.getElementById('tab-directory').classList.remove('active');
-        document.getElementById('tab-leave').classList.remove('active');
-        document.getElementById('scanner-view').style.display = 'none';
-        document.getElementById('stats-view').style.display = 'block';
-        document.getElementById('birthdays-view').style.display = 'none';
-        document.getElementById('directory-view').style.display = 'none';
-        document.getElementById('leave-view').style.display = 'none';
-        stopScanner();
+        switchTab('tab-stats', 'stats-view');
         loadPersonalStats();
     });
     
     document.getElementById('tab-birthdays').addEventListener('click', () => {
-        document.getElementById('tab-birthdays').classList.add('active');
-        document.getElementById('tab-scanner').classList.remove('active');
-        document.getElementById('tab-stats').classList.remove('active');
-        document.getElementById('tab-directory').classList.remove('active');
-        document.getElementById('tab-leave').classList.remove('active');
-        document.getElementById('birthdays-view').style.display = 'block';
-        document.getElementById('scanner-view').style.display = 'none';
-        document.getElementById('stats-view').style.display = 'none';
-        document.getElementById('directory-view').style.display = 'none';
-        document.getElementById('leave-view').style.display = 'none';
-        stopScanner();
+        switchTab('tab-birthdays', 'birthdays-view');
         fetchAndRenderStaffBirthdays();
     });
 
     document.getElementById('tab-directory').addEventListener('click', () => {
-        document.getElementById('tab-directory').classList.add('active');
-        document.getElementById('tab-scanner').classList.remove('active');
-        document.getElementById('tab-stats').classList.remove('active');
-        document.getElementById('tab-birthdays').classList.remove('active');
-        document.getElementById('tab-leave').classList.remove('active');
-        document.getElementById('directory-view').style.display = 'block';
-        document.getElementById('scanner-view').style.display = 'none';
-        document.getElementById('stats-view').style.display = 'none';
-        document.getElementById('birthdays-view').style.display = 'none';
-        document.getElementById('leave-view').style.display = 'none';
-        stopScanner();
+        switchTab('tab-directory', 'directory-view');
         loadStaffDirectory();
     });
 
     document.getElementById('tab-leave').addEventListener('click', () => {
-        document.getElementById('tab-leave').classList.add('active');
-        document.getElementById('tab-scanner').classList.remove('active');
-        document.getElementById('tab-stats').classList.remove('active');
-        document.getElementById('tab-birthdays').classList.remove('active');
-        document.getElementById('tab-directory').classList.remove('active');
-        document.getElementById('leave-view').style.display = 'block';
-        document.getElementById('scanner-view').style.display = 'none';
-        document.getElementById('stats-view').style.display = 'none';
-        document.getElementById('birthdays-view').style.display = 'none';
-        document.getElementById('directory-view').style.display = 'none';
-        stopScanner();
+        switchTab('tab-leave', 'leave-view');
         loadMyLeaves();
+    });
+
+    document.getElementById('tab-customers')?.addEventListener('click', () => {
+        switchTab('tab-customers', 'customers-view');
+        loadMyCustomerLogs();
+    });
+    
+    // NEW PAYSLIP TAB EVENT
+    document.getElementById('tab-payslips')?.addEventListener('click', () => {
+        switchTab('tab-payslips', 'payslips-view');
+        loadMyPayslips();
     });
 
     let globalStaffDirectoryCache = [];
@@ -1105,7 +1186,7 @@
                 return resolve(liveCoords);
             }
 
-            // SLOW PATH: Agar memory me location purani ho chuki hai (jaise tab bahot der khula chhod dena), to hard fetch karo
+            // SLOW PATH: Agar memory me location purani ho chuki hai, to hard fetch karo
             const options = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
@@ -1138,8 +1219,6 @@
             );
         });
     }
-
-    
 
     // --- ✨ NEW: AUTO-DETECT BRANCH ON SITE LOAD ---
     async function autoDetectBranch() {
@@ -1187,7 +1266,6 @@
     async function startCamera() {
         document.getElementById('camera-error-overlay').style.display = 'none';
         try {
-            // FIX: Ensure old streams are deeply killed before requesting a new one
             if (videoEl.srcObject) { 
                 const tracks = videoEl.srcObject.getTracks();
                 tracks.forEach(t => t.stop());
@@ -1598,151 +1676,6 @@
     btnTravelEnd.addEventListener('click', () => logAttendance('Transit End', 'btn-travel-end'));
     btnOut.addEventListener('click', () => logAttendance('Clock Out', 'btn-clock-out'));
 
-    // --- ADVANCED THEME CUSTOMIZER WITH PRESETS ---
-    try {
-        const themeModal = document.getElementById('theme-modal');
-        const colorInputs = document.querySelectorAll('.theme-color-input');
-        const btnOpenTheme = document.getElementById('btn-open-theme');
-        const btnCloseTheme = document.getElementById('btn-close-theme');
-        const btnResetTheme = document.getElementById('btn-reset-theme');
-        const presetBtns = document.querySelectorAll('.preset-btn');
-        
-        window.hexToRgba = window.hexToRgba || function(hex, alpha) {
-            if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex)) return hex;
-            let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
-            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        };
-
-        const themePresets = {
-            rjmobile: { class: 'dark', vars: { '--primary': '#f37021', '--bg-base': '#0a1023', '--card-bg': '#121b33', '--card-border': '#1e2d4a', '--input-bg': '#0a1023', '--text-main': '#f8fafc' } },
-            dark: { class: 'dark', vars: { '--primary': '#6366f1', '--bg-base': '#09090b', '--card-bg': '#18181b', '--card-border': '#27272a', '--input-bg': '#09090b', '--text-main': '#f4f4f5' } },
-            light: { class: 'light-theme', vars: { '--primary': '#4f46e5', '--bg-base': '#f1f5f9', '--card-bg': '#ffffff', '--card-border': '#e2e8f0', '--input-bg': '#f8fafc', '--text-main': '#0f172a' } },
-            ocean: { class: 'dark', vars: { '--primary': '#0ea5e9', '--bg-base': '#082f49', '--card-bg': '#0c4a6e', '--card-border': '#0369a1', '--input-bg': '#082f49', '--text-main': '#f0f9ff' } },
-            forest: { class: 'dark', vars: { '--primary': '#10b981', '--bg-base': '#022c22', '--card-bg': '#064e3b', '--card-border': '#047857', '--input-bg': '#022c22', '--text-main': '#ecfdf5' } },
-            sunset: { class: 'dark', vars: { '--primary': '#f43f5e', '--bg-base': '#2a0a18', '--card-bg': '#4c0519', '--card-border': '#881337', '--input-bg': '#2a0a18', '--text-main': '#fff1f2' } },
-            midnight: { class: 'dark', vars: { '--primary': '#a855f7', '--bg-base': '#171026', '--card-bg': '#2e1065', '--card-border': '#4c1d95', '--input-bg': '#171026', '--text-main': '#f5f3ff' } },
-            coffee: { class: 'dark', vars: { '--primary': '#d97706', '--bg-base': '#292524', '--card-bg': '#44403c', '--card-border': '#57534e', '--input-bg': '#292524', '--text-main': '#fafaf9' } },
-            cyberpunk: { class: 'dark', vars: { '--primary': '#f0abfc', '--bg-base': '#0f172a', '--card-bg': '#1e1b4b', '--card-border': '#3b0764', '--input-bg': '#0f172a', '--text-main': '#f8fafc' } },
-            dracula: { class: 'dark', vars: { '--primary': '#ff79c6', '--bg-base': '#282a36', '--card-bg': '#44475a', '--card-border': '#6272a4', '--input-bg': '#282a36', '--text-main': '#f8f8f2' } },
-            nord: { class: 'dark', vars: { '--primary': '#88c0d0', '--bg-base': '#2e3440', '--card-bg': '#3b4252', '--card-border': '#434c5e', '--input-bg': '#2e3440', '--text-main': '#eceff4' } },
-            neon: { class: 'dark', vars: { '--primary': '#39ff14', '--bg-base': '#000000', '--card-bg': '#0a0a0a', '--card-border': '#111111', '--input-bg': '#000000', '--text-main': '#ffffff' } },
-            rosegold: { class: 'dark', vars: { '--primary': '#e0bfb8', '--bg-base': '#2a2426', '--card-bg': '#3a3234', '--card-border': '#4a4043', '--input-bg': '#2a2426', '--text-main': '#f9f6f6' } }
-        };
-
-        function updateBaseThemeClass(className) {
-            if (className === 'light-theme') {
-                document.documentElement.classList.add('light-theme');
-                localStorage.setItem('rj_theme', 'light');
-            } else {
-                document.documentElement.classList.remove('light-theme');
-                localStorage.setItem('rj_theme', 'dark');
-            }
-            const fpEl = document.getElementById('flatpickr-theme');
-            if (fpEl) fpEl.href = `https://npmcdn.com/flatpickr/dist/themes/${className === 'light-theme' ? 'light' : 'dark'}.css`;
-            Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-soft').trim();
-            if(document.getElementById('tab-stats').classList.contains('active')){
-                loadPersonalStats(); 
-            }
-        }
-
-        function applySavedTheme() {
-            const savedTheme = JSON.parse(localStorage.getItem('rj_advanced_theme') || '{}');
-            colorInputs.forEach(input => {
-                const varName = input.getAttribute('data-var');
-                if (savedTheme[varName]) {
-                    input.value = savedTheme[varName];
-                    document.documentElement.style.setProperty(varName, savedTheme[varName]);
-                    if (varName === '--primary') {
-                        document.documentElement.style.setProperty('--primary-hover', savedTheme[varName]);
-                        document.documentElement.style.setProperty('--primary-alpha', window.hexToRgba(savedTheme[varName], 0.15));
-                    }
-                    if (varName === '--card-bg') {
-                        document.documentElement.style.setProperty('--card-bg-alpha', window.hexToRgba(savedTheme[varName], 0.85));
-                    }
-                }
-            });
-        }
-        
-        applySavedTheme();
-
-        if (btnOpenTheme && themeModal) btnOpenTheme.addEventListener('click', () => themeModal.style.display = 'flex');
-        if (btnCloseTheme && themeModal) btnCloseTheme.addEventListener('click', () => themeModal.style.display = 'none');
-
-        // Manual color picker inputs
-        colorInputs.forEach(input => {
-            input.addEventListener('input', (e) => {
-                const varName = e.target.getAttribute('data-var');
-                const newColor = e.target.value;
-                document.documentElement.style.setProperty(varName, newColor);
-                if (varName === '--primary') {
-                    document.documentElement.style.setProperty('--primary-hover', newColor);
-                    document.documentElement.style.setProperty('--primary-alpha', window.hexToRgba(newColor, 0.15));
-                }
-                if (varName === '--card-bg') {
-                    document.documentElement.style.setProperty('--card-bg-alpha', window.hexToRgba(newColor, 0.85));
-                }
-                const savedTheme = JSON.parse(localStorage.getItem('rj_advanced_theme') || '{}');
-                savedTheme[varName] = newColor;
-                localStorage.setItem('rj_advanced_theme', JSON.stringify(savedTheme));
-            });
-        });
-
-        // Preset button clicks
-        presetBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const presetKey = e.target.getAttribute('data-preset');
-                const preset = themePresets[presetKey];
-                if (!preset) return;
-                
-                updateBaseThemeClass(preset.class);
-                
-                const savedTheme = JSON.parse(localStorage.getItem('rj_advanced_theme') || '{}');
-                
-                Object.keys(preset.vars).forEach(varName => {
-                    const newColor = preset.vars[varName];
-                    document.documentElement.style.setProperty(varName, newColor);
-                    
-                    if (varName === '--primary') {
-                        document.documentElement.style.setProperty('--primary-hover', newColor);
-                        document.documentElement.style.setProperty('--primary-alpha', window.hexToRgba(newColor, 0.15));
-                    }
-                    if (varName === '--card-bg') {
-                        document.documentElement.style.setProperty('--card-bg-alpha', window.hexToRgba(newColor, 0.85));
-                    }
-                    savedTheme[varName] = newColor;
-                    
-                    const input = document.querySelector(`.theme-color-input[data-var="${varName}"]`);
-                    if (input) input.value = newColor;
-                });
-                
-                localStorage.setItem('rj_advanced_theme', JSON.stringify(savedTheme));
-                displayToast(`Applied ${presetKey} theme!`, "success");
-            });
-        });
-
-        if (btnResetTheme) {
-            btnResetTheme.addEventListener('click', () => {
-                localStorage.removeItem('rj_advanced_theme');
-                localStorage.setItem('rj_theme', 'dark');
-                colorInputs.forEach(input => {
-                    const varName = input.getAttribute('data-var');
-                    document.documentElement.style.removeProperty(varName);
-                    if (varName === '--primary') {
-                        document.documentElement.style.removeProperty('--primary-hover');
-                        document.documentElement.style.removeProperty('--primary-alpha');
-                    }
-                    if (varName === '--card-bg') {
-                        document.documentElement.style.removeProperty('--card-bg-alpha');
-                    }
-                });
-                displayToast("Theme reset. Reloading page...", "primary");
-                setTimeout(() => location.reload(), 1000);
-            });
-        }
-    } catch (err) {
-        console.error("Theme Customizer setup failed:", err);
-    }
-
     function renderGraphs(dailyStats, totalWorkMs, totalTravelMs) {
         const rootStyle = getComputedStyle(document.documentElement);
         const primaryColor = rootStyle.getPropertyValue('--primary').trim();
@@ -1753,7 +1686,7 @@
         const barCanvas = document.getElementById('weeklyBarChart');
         if (window.staffCharts['weekly']) window.staffCharts['weekly'].destroy();
         
-        const chartData = dailyStats; // Removed .slice(-7) to show the exact filtered range
+        const chartData = dailyStats; 
 
         window.staffCharts['weekly'] = new Chart(barCanvas, {
             type: 'bar',
@@ -1957,7 +1890,6 @@
         listContainer.innerHTML = '<div style="color:var(--text-soft); text-align:center;">Fetching records...</div>';
 
         try {
-            // Update: Fetching from the secure View so RLS won't block it!
             const { data: bdayStaff, error } = await supabase
                 .from('public_staff_info')
                 .select('name, dob, profile_pic')
@@ -1994,7 +1926,6 @@
 
             const realNextBday = enriched[0];
 
-            // Update: Matching by Name instead of Email, since Email is hidden for security
             let currentUserIndex = enriched.findIndex(s => s.name === currentStaffName);
             if (currentUserIndex !== -1) {
                 let pinnedBday = enriched.splice(currentUserIndex, 1)[0];
@@ -2009,8 +1940,8 @@
             const emojiEl = document.getElementById('bday-top-emoji');
             if (realNextBday.profile_pic) {
                 bgContainer.style.background = `url('${realNextBday.profile_pic}')`;
-                bgContainer.style.opacity = '0.85'; // Made opacity brighter for better image visibility
-                emojiEl.style.display = 'none'; // Hide emoji if photo exists
+                bgContainer.style.opacity = '0.85'; 
+                emojiEl.style.display = 'none';
             } else {
                 bgContainer.style.background = `linear-gradient(135deg, var(--primary-alpha) 0%, var(--card-bg) 100%)`;
                 bgContainer.style.opacity = '1';
@@ -2201,10 +2132,10 @@
         }
     });
 
-    // Start Live Clock (Optimized with a global reference to prevent memory leaks)
+    // Start Live Clock
     window.liveClockInterval = setInterval(() => {
         const clockEl = document.getElementById('live-clock');
-        if(clockEl && currentStaffId) { // FIX: Only update DOM if user is logged in
+        if(clockEl && currentStaffId) {
             clockEl.innerText = new Date().toLocaleTimeString('en-US', { 
                 hour12: true, hour: 'numeric', minute: '2-digit', second: '2-digit' 
             });
@@ -2226,13 +2157,10 @@
         document.getElementById('dynamic-btn-row').style.opacity = '1';
         document.getElementById('dynamic-btn-row').style.pointerEvents = 'auto';
         displayToast("Back online! You can now log your attendance.", "success");
-        if (currentStaffId) checkStaffStatus(); // Refresh status just in case
+        if (currentStaffId) checkStaffStatus(); 
     });
 
-    // --- SILENT GPS PRE-WARMER & BACKGROUND RECOVERY ---
     function preWarmGPS() {
-        // Mobile browsers aggressive background pausing se bachne ke liye
-        // Jaise hi user app par wapas aayega, watcher ko restart karke fresh lock nikal lenge
         if (currentStaffId) {
             stopLiveGPS();
             startLiveGPS();
@@ -2305,7 +2233,7 @@
             if (error) throw error;
             
             displayToast("Profile Updated Successfully!", "success");
-            setTimeout(() => location.reload(), 1000); // Reload to reflect changes globally
+            setTimeout(() => location.reload(), 1000); 
         } catch (e) {
             displayToast("Failed to update profile. RLS policy might be blocking.", "error");
         } finally {
@@ -2313,30 +2241,20 @@
         }
     });
 
-    window.openStaffProfileModal = () => {
-        tempBase64Photo = null; // Reset temp variable
-        document.getElementById('profile-modal').style.display='flex';
-    }
-
     // =========================================================================
     //  MOBILE APP-SWITCHING HARDWARE WAKE-UP
     // =========================================================================
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-            preWarmGPS(); // Chupchaap background mein GPS cache fresh karega
-            
-            // Re-check status in case the day changed while app was in background overnight
+            preWarmGPS(); 
             if (currentStaffId) checkStaffStatus();
             
-            // App is back on screen. Check if we are on the scanner tab and logged in.
             if (document.getElementById('tab-scanner').classList.contains('active') && currentStaffId) {
-                // If the video feed is dead or paused, restart it silently
                 if (!localStream || !videoEl.srcObject || videoEl.paused) {
                     startCamera(); 
                 }
             }
         } else {
-            // App went to background. Cut the camera to save battery and stop green dot.
             if (cameraActive) {
                 stopScanner();
             }
@@ -2344,16 +2262,6 @@
     });
 
     // --- CUSTOMER MODULE LOGIC ---
-    document.getElementById('tab-customers')?.addEventListener('click', () => {
-        ['tab-scanner', 'tab-stats', 'tab-birthdays', 'tab-directory', 'tab-leave'].forEach(id => document.getElementById(id).classList.remove('active'));
-        document.getElementById('tab-customers').classList.add('active');
-        
-        ['scanner-view', 'stats-view', 'birthdays-view', 'directory-view', 'leave-view'].forEach(id => document.getElementById(id).style.display = 'none');
-        document.getElementById('customers-view').style.display = 'block';
-        stopScanner();
-        loadMyCustomerLogs();
-    });
-
     async function loadMyCustomerLogs() {
         if (!currentStaffId) return;
         const container = document.getElementById('my-customer-logs');
@@ -2407,6 +2315,108 @@
         } catch (err) { displayToast("Error saving customer log.", "error"); } 
         finally { btn.innerText = "Submit Log"; btn.disabled = false; }
     });
+
+    // =========================================================================
+    // PAYSLIPS LOGIC
+    // =========================================================================
+    
+    async function loadMyPayslips() {
+        if (!currentStaffId) return;
+        const listContainer = document.getElementById('my-payslips-list');
+        listContainer.innerHTML = '<div style="color:var(--text-soft); text-align:center; padding:20px;">Fetching payslips...</div>';
+        
+        try {
+            // Only fetch Paid records for the logged-in staff
+            const { data, error } = await supabase
+                .from('payroll_records')
+                .select('*')
+                .eq('staff_id', currentStaffId)
+                .eq('status', 'Paid')
+                .order('month_year', { ascending: false });
+                
+            if (error) throw error;
+            
+            if (!data || data.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="text-align:center; padding:40px; color: var(--text-soft);">
+                        <div style="font-size: 32px; margin-bottom: 12px;">💸</div>
+                        <div>No salary slips available yet.</div>
+                    </div>`;
+                return;
+            }
+            
+            myPayrollRecords = data; // Save globally so the modal can access details
+            
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            
+            listContainer.innerHTML = data.map(p => {
+                const [y, m] = p.month_year.split('-');
+                const prettyMonth = `${monthNames[parseInt(m)-1]} ${y}`;
+                const paidDate = p.paid_at ? new Date(p.paid_at).toLocaleDateString('en-GB') : '';
+                
+                return `
+                <div style="background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="color: var(--primary); font-weight: 800; font-size: 15px; margin-bottom: 4px;">${prettyMonth}</div>
+                        <div style="font-size: 12px; color: var(--text-soft);">Net Pay: <strong style="color: var(--text-main);">₹${p.net_salary.toLocaleString()}</strong></div>
+                        <div style="font-size: 10px; color: var(--success); margin-top: 4px;">Paid on ${paidDate}</div>
+                    </div>
+                    <button class="btn-secondary" style="padding: 8px 12px; border-color: var(--primary); color: var(--primary);" onclick="viewPayslip('${p.id}')">View</button>
+                </div>
+                `;
+            }).join('');
+            
+        } catch (err) {
+            console.error(err);
+            listContainer.innerHTML = '<div style="color:var(--danger); text-align:center; padding:20px;">Failed to load payslips.</div>';
+        }
+    }
+    
+    window.viewPayslip = function(recordId) {
+        const p = myPayrollRecords.find(x => x.id === recordId);
+        if(!p) return;
+
+        const [y, m] = p.month_year.split('-');
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const prettyMonth = `${monthNames[parseInt(m)-1]} ${y}`;
+
+        document.getElementById('slip-month').innerText = prettyMonth;
+        document.getElementById('slip-name').innerText = currentStaffName;
+        document.getElementById('slip-role').innerText = currentStaffRole;
+        document.getElementById('slip-base').innerText = `₹${p.base_salary.toLocaleString()}`;
+        
+        // Handling days since they might not be stored in payroll_records directly in older setups,
+        // but let's assume they are there as per the admin code (payable_days, etc.)
+        const payableDays = p.payable_days || '--';
+        const totalDays = p.days_in_month || new Date(parseInt(y), parseInt(m), 0).getDate();
+        
+        document.getElementById('slip-days-detail').innerText = `${payableDays}/${totalDays}`;
+        document.getElementById('slip-calc').innerText = `₹${(p.calculated_salary || 0).toLocaleString()}`;
+        document.getElementById('slip-tax').innerText = `-₹${(p.tax_amount || 0).toLocaleString()}`;
+        
+        const adjRow = document.getElementById('slip-adj-row');
+        const adj = p.manual_adjustment_amount || 0;
+        if (adj !== 0) {
+            document.getElementById('slip-adj-reason').innerText = p.manual_adjustment_reason || 'Manual Adjustment';
+            document.getElementById('slip-adj').innerText = adj > 0 ? `+₹${adj.toLocaleString()}` : `-₹${Math.abs(adj).toLocaleString()}`;
+            document.getElementById('slip-adj').style.color = adj > 0 ? '#10b981' : '#ef4444';
+            adjRow.style.display = 'flex';
+        } else {
+            adjRow.style.display = 'none';
+        }
+
+        document.getElementById('slip-net').innerText = `₹${(p.net_salary || 0).toLocaleString()}`;
+        
+        const timestampEl = document.getElementById('slip-timestamp');
+        if (p.paid_at) {
+            const pd = new Date(p.paid_at);
+            timestampEl.innerHTML = `✅ Paid electronically on ${pd.toLocaleDateString('en-GB')} at ${pd.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+        } else {
+            timestampEl.innerHTML = `⚠️ Data Unverified`;
+        }
+
+        document.getElementById('staff-payslip-modal').style.display = 'flex';
+    };
 
   </script>
 </body>
