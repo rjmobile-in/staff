@@ -347,6 +347,36 @@ table tbody tr:hover{background:color-mix(in srgb,var(--primary,#3b82f6) 6%,tran
 .sidebar.collapsed .rj-side-btn span{display:none}.sidebar.collapsed .rj-side-btn{justify-content:center}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 </style>
+<style id="rj-phones-css">
+.rjp-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.rjp-bar .input-field{margin:0;width:auto}.rjp-grow{flex:1 1 220px}.rjp-num{width:110px!important}
+.rjp-lbl{font-size:12px;font-weight:700;color:var(--text-soft,#94a3b8);text-transform:uppercase}
+.rjp-chips{display:flex;gap:6px;flex-wrap:wrap}
+.rjp-chip{padding:6px 12px;border-radius:999px;border:1px solid var(--card-border,rgba(148,163,184,.3));background:var(--input-bg,transparent);color:var(--text-main,inherit);font:600 12px inherit;cursor:pointer}
+.rjp-chip.on{background:var(--primary,#3b82f6);color:#fff;border-color:transparent}
+.rjp-count{font-size:12px;color:var(--text-soft,#94a3b8);margin:4px 0 12px}
+.rjp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.rjp-card{background:var(--input-bg,rgba(148,163,184,.08));border:1px solid var(--card-border,rgba(148,163,184,.25));border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px;transition:transform .15s,box-shadow .2s}
+.rjp-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.rjp-off{opacity:.55}
+.rjp-top{display:flex;gap:6px;align-items:center;justify-content:space-between}
+.rjp-brand{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--primary,#3b82f6)}
+.rjp-new{font-size:10px;font-weight:800;background:#10b981;color:#fff;border-radius:6px;padding:2px 6px}
+.rjp-hid{font-size:10px;font-weight:700;background:rgba(148,163,184,.3);border-radius:6px;padding:2px 6px}
+.rjp-model{font-size:15px;font-weight:700;color:var(--text-main,inherit)}
+.rjp-var{font-size:12px;color:var(--text-soft,#94a3b8)}
+.rjp-prices{display:flex;gap:14px;align-items:flex-end;margin-top:4px}
+.rjp-prices small{display:block;font-size:10px;font-weight:700;color:var(--text-soft,#94a3b8);letter-spacing:.05em}
+.rjp-prices b{font-size:19px;color:var(--text-main,inherit)}.rjp-prices s{font-size:13px;color:var(--text-soft,#94a3b8)}
+.rjp-notes{font-size:12px;color:var(--text-soft,#94a3b8);line-height:1.4}
+.rjp-act{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}
+.rjp-act button{padding:7px 12px;border-radius:8px;border:1px solid var(--card-border,rgba(148,163,184,.3));background:transparent;color:var(--text-main,inherit);font:600 12px inherit;cursor:pointer}
+.rjp-empty{grid-column:1/-1;text-align:center;padding:40px 12px;color:var(--text-soft,#94a3b8)}
+.rjp-modal{position:fixed;inset:0;z-index:1000000;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px}
+.rjp-box{width:100%;max-width:440px;max-height:92vh;overflow:auto;background:var(--card-bg,var(--bg-card,#18181b));color:var(--text-main,#f8fafc);border:1px solid var(--card-border,rgba(148,163,184,.3));border-radius:16px;padding:20px}
+.rjp-box h3{margin:0 0 12px}.rjp-box label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-soft,#94a3b8);margin:10px 0 4px}
+.rjp-box .input-field{margin:0;width:100%}.rjp-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rjp-chk{display:flex!important;gap:8px;align-items:center;text-transform:none!important;font-size:13px!important}
+</style>
 </head>
 <body>
 
@@ -620,6 +650,7 @@ table tbody tr:hover{background:color-mix(in srgb,var(--primary,#3b82f6) 6%,tran
         <div class="nav-tab" id="tab-directory">👥 Team</div>
         <div class="nav-tab" id="tab-leave">🌴 Requests</div>
         <div class="nav-tab" id="tab-customers">📝 Leads</div>
+        <div class="nav-tab" id="tab-phones">📱 Phones</div>
         <!-- NEW TAB FOR PAYSLIPS -->
         <div class="nav-tab" id="tab-payslips">💰 Payslips</div>
     </div>
@@ -796,6 +827,8 @@ table tbody tr:hover{background:color-mix(in srgb,var(--primary,#3b82f6) 6%,tran
     </div>
 
     <!-- CUSTOMER / LEADS VIEW -->
+    <div class="main-card" id="phones-view" style="display: none; padding-top: 16px;"><h2 style="margin-bottom:16px;font-size:18px;text-align:center;border-bottom:1px solid var(--card-border);padding-bottom:12px;font-family:'Plus Jakarta Sans',sans-serif;">📱 Phone Price List</h2><div id="rj-phones-root"></div></div>
+
     <div class="main-card" id="customers-view" style="display: none; padding-top: 16px;">
         <h2 style="margin-bottom: 16px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif;">Customer Logs</h2>
         
@@ -939,12 +972,12 @@ table tbody tr:hover{background:color-mix(in srgb,var(--primary,#3b82f6) 6%,tran
 
     function switchTab(activeTabId, activeViewId) {
         // Reset all tabs
-        ['tab-scanner', 'tab-stats', 'tab-birthdays', 'tab-directory', 'tab-leave', 'tab-customers', 'tab-payslips'].forEach(id => {
+        ['tab-scanner', 'tab-stats', 'tab-birthdays', 'tab-directory', 'tab-leave', 'tab-customers', 'tab-payslips', 'tab-phones'].forEach(id => {
             if(document.getElementById(id)) document.getElementById(id).classList.remove('active');
         });
         
         // Hide all views
-        ['scanner-view', 'stats-view', 'birthdays-view', 'directory-view', 'leave-view', 'customers-view', 'payslips-view'].forEach(id => {
+        ['scanner-view', 'stats-view', 'birthdays-view', 'directory-view', 'leave-view', 'customers-view', 'payslips-view', 'phones-view'].forEach(id => {
             if(document.getElementById(id)) document.getElementById(id).style.display = 'none';
         });
 
@@ -2452,6 +2485,82 @@ table tbody tr:hover{background:color-mix(in srgb,var(--primary,#3b82f6) 6%,tran
         document.getElementById('staff-payslip-modal').style.display = 'flex';
     };
 
-  </script>
+  
+(function(){
+const ADMIN=false, db=supabase, toast=(m,t)=>displayToast(m,t);
+const root=document.getElementById('rj-phones-root'); if(!root) return;
+const E=window.esc, $=id=>document.getElementById(id); let rows=[]; const f={q:'',brand:'',min:'',max:'',sort:'new'};
+const inr=n=>(n===null||n===undefined||n==='')?'—':'₹'+Number(n).toLocaleString('en-IN');
+const px=r=>Number(r.mop!=null?r.mop:(r.mrp||0)); const fresh=r=>Date.now()-new Date(r.created_at).getTime()<2592e6;
+const CHIPS=[['Under 10k',0,10000],['10–20k',10000,20000],['20–30k',20000,30000],['30–50k',30000,50000],['50k+',50000,'']];
+root.innerHTML=`<div class="rjp-bar"><input id="rjp-q" class="input-field rjp-grow" type="search" placeholder="🔍 Search brand, model, RAM/storage…" aria-label="Search phones">
+<select id="rjp-brand" class="input-field" aria-label="Brand"><option value="">All brands</option></select>
+<select id="rjp-sort" class="input-field" aria-label="Sort"><option value="new">Newest first</option><option value="lo">Price: low → high</option><option value="hi">Price: high → low</option><option value="az">Brand A–Z</option></select>
+${ADMIN?'<button id="rjp-add" class="btn-primary" type="button">➕ Add Phone</button>':''}</div>
+<div class="rjp-bar"><span class="rjp-lbl">Budget ₹</span><input id="rjp-min" class="input-field rjp-num" type="number" min="0" placeholder="Min" aria-label="Minimum budget"><span>–</span><input id="rjp-max" class="input-field rjp-num" type="number" min="0" placeholder="Max" aria-label="Maximum budget">
+<div class="rjp-chips">${CHIPS.map((c,i)=>`<button type="button" class="rjp-chip" data-chip="${i}">${c[0]}</button>`).join('')}<button type="button" class="rjp-chip" data-chip="x">✕ Clear</button></div></div>
+<div id="rjp-count" class="rjp-count"></div><div id="rjp-grid" class="rjp-grid"></div>`;
+function card(x){return `<div class="rjp-card${x.is_active?'':' rjp-off'}"><div class="rjp-top"><span class="rjp-brand">${E(x.brand)}</span>${fresh(x)?'<span class="rjp-new">NEW</span>':''}${x.is_active?'':'<span class="rjp-hid">Hidden</span>'}</div>
+<div class="rjp-model">${E(x.model)}</div>${x.variant?`<div class="rjp-var">${E(x.variant)}</div>`:''}
+<div class="rjp-prices"><div><small>MOP</small><b>${inr(x.mop)}</b></div>${x.mrp?`<div><small>MRP</small><s>${inr(x.mrp)}</s></div>`:''}</div>
+${x.notes?`<div class="rjp-notes">${E(x.notes)}</div>`:''}
+${ADMIN?`<div class="rjp-act"><button type="button" data-edit="${x.id}">✏️ Edit</button><button type="button" data-del="${x.id}">🗑️ Delete</button></div>`:''}</div>`;}
+function apply(){
+ const toks=f.q.toLowerCase().split(/\s+/).filter(Boolean), min=f.min===''?0:+f.min, max=f.max===''?Infinity:+f.max;
+ const r=rows.filter(x=>{const h=[x.brand,x.model,x.variant,x.notes].join(' ').toLowerCase(),p=px(x);return toks.every(t=>h.includes(t))&&(!f.brand||x.brand===f.brand)&&p>=min&&p<=max;});
+ r.sort({new:(a,b)=>new Date(b.created_at)-new Date(a.created_at),lo:(a,b)=>px(a)-px(b),hi:(a,b)=>px(b)-px(a),az:(a,b)=>(a.brand+a.model).localeCompare(b.brand+b.model)}[f.sort]);
+ $('rjp-count').textContent=r.length+' of '+rows.length+' phones';
+ $('rjp-grid').innerHTML=r.length?r.map(card).join(''):'<div class="rjp-empty">No phones match these filters.</div>';
+ root.querySelectorAll('[data-chip]').forEach(b=>{const c=CHIPS[b.dataset.chip];b.classList.toggle('on',!!c&&String(c[1])===(f.min===''?'0':f.min)&&String(c[2])===f.max);});
+}
+async function load(){
+ let q=db.from('phone_models').select('*'); if(!ADMIN) q=q.eq('is_active',true);
+ const {data,error}=await q.order('created_at',{ascending:false});
+ if(error){toast('Could not load phones: '+error.message,'error');return;}
+ rows=data||[]; const cur=f.brand;
+ $('rjp-brand').innerHTML='<option value="">All brands</option>'+[...new Set(rows.map(r=>r.brand))].sort().map(b=>`<option>${E(b)}</option>`).join(''); $('rjp-brand').value=cur; apply();
+}
+window.rjPhonesLoad=load;
+$('rjp-q').addEventListener('input',e=>{f.q=e.target.value;apply();});
+$('rjp-brand').addEventListener('change',e=>{f.brand=e.target.value;apply();});
+$('rjp-sort').addEventListener('change',e=>{f.sort=e.target.value;apply();});
+$('rjp-min').addEventListener('input',e=>{f.min=e.target.value;apply();});
+$('rjp-max').addEventListener('input',e=>{f.max=e.target.value;apply();});
+root.addEventListener('click',e=>{
+ const c=e.target.closest('[data-chip]'); if(c){const k=CHIPS[c.dataset.chip];f.min=k?String(k[1]):'';f.max=k?String(k[2]):'';$('rjp-min').value=f.min;$('rjp-max').value=f.max;apply();return;}
+ if(!ADMIN) return;
+ if(e.target.closest('#rjp-add')) return openForm(null);
+ const ed=e.target.closest('[data-edit]'); if(ed) return openForm(rows.find(r=>r.id===ed.dataset.edit));
+ const dl=e.target.closest('[data-del]'); if(dl){const x=rows.find(r=>r.id===dl.dataset.del); if(x&&confirm('Delete '+x.brand+' '+x.model+(x.variant?' ('+x.variant+')':'')+'? This cannot be undone.')) del(x);}
+});
+async function del(x){const {error}=await db.from('phone_models').delete().eq('id',x.id); if(error){toast(error.message,'error');return;} toast('Phone deleted','success'); load();}
+function openForm(x){
+ const m=document.createElement('div'); m.className='rjp-modal'; m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true');
+ const brands=[...new Set(rows.map(r=>r.brand))].map(b=>`<option value="${E(b)}">`).join('');
+ m.innerHTML=`<div class="rjp-box"><h3>${x?'Edit phone':'Add phone'}</h3>
+<label>Brand</label><input id="rjf-brand" class="input-field" list="rjf-brands" autocomplete="off"><datalist id="rjf-brands">${brands}</datalist>
+<label>Model</label><input id="rjf-model" class="input-field" autocomplete="off">
+<label>Variant (RAM / Storage)</label><input id="rjf-variant" class="input-field" placeholder="8GB/128GB" autocomplete="off">
+<div class="rjp-two"><div><label>MOP ₹</label><input id="rjf-mop" class="input-field" type="number" min="0"></div><div><label>MRP ₹ (optional)</label><input id="rjf-mrp" class="input-field" type="number" min="0"></div></div>
+<label>Notes (offers, colours…)</label><textarea id="rjf-notes" class="input-field" rows="2"></textarea>
+<label class="rjp-chk"><input id="rjf-active" type="checkbox"> Visible to staff</label>
+<div class="rjp-act"><button id="rjf-cancel" type="button">Cancel</button><button id="rjf-save" class="btn-primary" type="button">Save</button></div></div>`;
+ document.body.appendChild(m); const g=id=>m.querySelector('#'+id), close=()=>m.remove();
+ g('rjf-brand').value=x?x.brand:''; g('rjf-model').value=x?x.model:''; g('rjf-variant').value=(x&&x.variant)||''; g('rjf-mop').value=x&&x.mop!=null?x.mop:''; g('rjf-mrp').value=x&&x.mrp!=null?x.mrp:''; g('rjf-notes').value=(x&&x.notes)||''; g('rjf-active').checked=x?x.is_active!==false:true;
+ g('rjf-cancel').onclick=close; m.addEventListener('mousedown',e=>{if(e.target===m)close();}); g('rjf-brand').focus();
+ g('rjf-save').onclick=async()=>{
+  const n=id=>g(id).value===''?null:Number(g(id).value);
+  const p={brand:g('rjf-brand').value.trim(),model:g('rjf-model').value.trim(),variant:g('rjf-variant').value.trim()||null,mop:n('rjf-mop'),mrp:n('rjf-mrp'),notes:g('rjf-notes').value.trim()||null,is_active:g('rjf-active').checked};
+  if(!p.brand||!p.model||p.mop===null||p.mop<0){toast('Brand, Model and MOP are required','error');return;}
+  if(p.mrp!==null&&p.mrp<p.mop){toast('MRP cannot be less than MOP','error');return;}
+  const btn=g('rjf-save'); btn.disabled=true; if(x) p.updated_at=new Date().toISOString();
+  const {error}=x?await db.from('phone_models').update(p).eq('id',x.id):await db.from('phone_models').insert([p]);
+  btn.disabled=false; if(error){toast(error.code==='23505'?'This phone variant already exists':error.message,'error');return;}
+  toast(x?'Phone updated':'Phone added','success'); close(); load();
+ };
+}
+document.getElementById('tab-phones')?.addEventListener('click',()=>{switchTab('tab-phones','phones-view');load();});
+})();
+</script>
 </body>
 </html>
