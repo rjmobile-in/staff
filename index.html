@@ -1181,46 +1181,46 @@
         }
     }
 
+    function gpsErrorMessage(err) {
+        if (err && err.code === 1) return "Location block hai. Phone Settings me Browser ko Location Allow (Precise ON) karo, phir dobara try karo.";
+        if (err && err.code === 2) return "Location nahi mil rahi. Phone ki Location ON karo aur khuli jagah jao.";
+        if (err && err.code === 3) return "GPS slow hai. Gate/window ke paas jaake dobara try karo.";
+        return (err && err.message) || "GPS error. Dobara try karo.";
+    }
+
     function getCurrentLocation() {
         return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) return reject(new Error("No GPS support"));
+            if (!navigator.geolocation) return reject(new Error("Is browser me GPS support nahi hai."));
 
-            // 🚀 FAST PATH: Agar active watcher ki location pichle 15 sec se nayi hai, INSTANT bhej do
-            if (liveCoords && (Date.now() - liveCoordsTime) <= 15000) {
+            // Pichli reading achhi aur taazi ho to turant use karo
+            if (liveCoords && (Date.now() - liveCoordsTime) <= 10000 && liveCoords.accuracy <= 50) {
                 return resolve(liveCoords);
             }
 
-            // SLOW PATH: Agar memory me location purani ho chuki hai, to hard fetch karo
-            const options = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
-            navigator.geolocation.getCurrentPosition(
+            const MAX_WAIT = 15000;   // zyada se zyada 15 sec
+            const GOOD_ENOUGH = 30;   // 30m ya behtar mil jaye to ruk jao
+            let best = null, done = false, lastErr = null, watchId = null, timer = null;
+
+            const finish = () => {
+                if (done) return; done = true;
+                clearTimeout(timer);
+                if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+                if (best) { liveCoords = best; liveCoordsTime = Date.now(); resolve(best); }
+                else reject(lastErr || new Error("GPS signal nahi mila. Khuli jagah jaake dobara try karo."));
+            };
+
+            watchId = navigator.geolocation.watchPosition(
                 (pos) => {
-                    const gpsAge = Date.now() - pos.timestamp;
-                    if (gpsAge > 30000) {
-                        const watchId = navigator.geolocation.watchPosition(
-                            (newPos) => {
-                                if (Date.now() - newPos.timestamp <= 30000) {
-                                    navigator.geolocation.clearWatch(watchId);
-                                    liveCoords = newPos.coords;
-                                    liveCoordsTime = newPos.timestamp;
-                                    resolve(newPos.coords);
-                                }
-                            },
-                            (err) => { navigator.geolocation.clearWatch(watchId); reject(err); },
-                            options
-                        );
-                        setTimeout(() => {
-                            navigator.geolocation.clearWatch(watchId);
-                            reject(new Error("Timeout waiting for live GPS. Try again."));
-                        }, 15000);
-                    } else {
-                        liveCoords = pos.coords;
-                        liveCoordsTime = pos.timestamp;
-                        resolve(pos.coords);
+                    const c = pos.coords;
+                    if (!best || c.accuracy < best.accuracy) {
+                        best = { latitude: c.latitude, longitude: c.longitude, accuracy: c.accuracy };
                     }
+                    if (best.accuracy <= GOOD_ENOUGH) finish();
                 },
-                (err) => reject(err),
-                options
+                (err) => { lastErr = new Error(gpsErrorMessage(err)); if (err.code === 1) finish(); },
+                { enableHighAccuracy: true, maximumAge: 0, timeout: MAX_WAIT }
             );
+            timer = setTimeout(finish, MAX_WAIT);
         });
     }
 
