@@ -149,6 +149,53 @@
     #toast.show { visibility: visible; opacity: 1; transform: translate(-50%, 0); }
     #toast-icon { display: flex; flex-shrink: 0; }
 
+
+    /* =========================================================
+       PHONE INCENTIVES (staff) - mobile first
+       ========================================================= */
+    #phones-view .ph-title { margin-bottom: 14px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Bricolage Grotesque', sans-serif; }
+    .ph-searchbar { display: flex; gap: 8px; align-items: stretch; margin-bottom: 10px; }
+    .ph-searchbar .input-field { margin-bottom: 0; flex: 1; min-width: 0; }
+    .ph-filter-btn { position: relative; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: var(--radius-md); border: 1px solid var(--card-border); background: var(--input-bg); color: var(--text-main); font-weight: 800; font-size: 13px; font-family: inherit; cursor: pointer; }
+    .ph-filter-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .ph-filter-btn.on { border-color: var(--primary); color: var(--primary-text); background: var(--primary-alpha); }
+    .ph-filter-btn .ph-badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--primary); color: var(--on-gold); font-size: 11px; font-weight: 800; display: none; align-items: center; justify-content: center; }
+    .ph-filter-btn.has .ph-badge { display: inline-flex; }
+    .ph-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 10px; margin: 0 -2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .ph-chips::-webkit-scrollbar { display: none; }
+    .ph-chip { flex-shrink: 0; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--card-border); background: var(--input-bg); color: var(--text-soft); font-size: 12.5px; font-weight: 800; font-family: inherit; cursor: pointer; white-space: nowrap; transition: all 0.15s ease; }
+    .ph-chip:active { transform: scale(0.95); }
+    .ph-chip.active { background: var(--primary); color: var(--on-gold); border-color: var(--primary); }
+    .ph-chip .n { opacity: 0.65; font-weight: 700; margin-left: 4px; }
+    .ph-panel { display: none; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; }
+    .ph-panel.open { display: block; animation: viewIn 0.25s ease; }
+    .ph-panel label.ph-lbl { display: block; font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-soft); margin-bottom: 6px; letter-spacing: 0.4px; }
+    .ph-panel .input-field { margin-bottom: 0; padding: 12px 14px; background: var(--card-bg); }
+    .ph-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .ph-range { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .ph-range span { color: var(--text-soft); font-weight: 700; }
+    .ph-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .ph-preset { padding: 6px 11px; border-radius: 999px; border: 1px dashed var(--card-border); background: transparent; color: var(--text-soft); font-size: 11.5px; font-weight: 700; font-family: inherit; cursor: pointer; }
+    .ph-preset.active { border-style: solid; border-color: var(--primary); color: var(--primary-text); background: var(--primary-alpha); }
+    .ph-reset { width: 100%; padding: 11px; border-radius: var(--radius-sm); border: 1px solid var(--danger-alpha); background: var(--danger-alpha); color: var(--danger); font-weight: 800; font-size: 13px; font-family: inherit; cursor: pointer; }
+    .ph-count { font-size: 12px; color: var(--text-soft); font-weight: 700; margin: 2px 2px 10px; }
+    .ph-list { display: flex; flex-direction: column; gap: 10px; }
+    .ph-card { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 14px; }
+    .ph-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .ph-brand { font-size: 10.5px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: var(--primary-text); margin-bottom: 3px; }
+    .ph-model { font-size: 16px; font-weight: 800; color: var(--text-main); line-height: 1.25; word-break: break-word; }
+    .ph-inc { flex-shrink: 0; text-align: right; background: var(--success-alpha); border: 1px solid rgba(52,211,153,0.28); border-radius: 12px; padding: 7px 11px; }
+    .ph-inc small { display: block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--success); opacity: 0.85; }
+    .ph-inc b { font-size: 18px; font-weight: 800; color: var(--success); font-family: 'Bricolage Grotesque', sans-serif; }
+    .ph-specs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .ph-spec { padding: 4px 10px; border-radius: 8px; background: var(--card-bg); border: 1px solid var(--card-border); font-size: 11.5px; font-weight: 700; color: var(--text-soft); }
+    .ph-price { margin-top: 10px; font-size: 13px; color: var(--text-soft); font-weight: 700; }
+    .ph-price b { color: var(--text-main); font-size: 15px; }
+    .ph-notes { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--card-border); font-size: 12px; line-height: 1.5; color: var(--text-soft); }
+    .ph-empty { text-align: center; color: var(--text-soft); padding: 28px 12px; font-size: 13px; line-height: 1.6; }
+    .ph-empty button { margin-top: 12px; }
+    @media (min-width: 700px) { .ph-list { display: grid; grid-template-columns: repeat(2, 1fr); } }
+
     /* Date picker (Flatpickr) in gold */
     .input-field[readonly], .flatpickr-input[readonly] { background-color: var(--input-bg) !important; color: var(--text-main) !important; cursor: pointer; opacity: 1 !important; }
     .flatpickr-calendar { background: rgba(20, 20, 20, 0.97) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; border: 1px solid var(--card-border) !important; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(212, 175, 55, 0.08) !important; border-radius: 18px !important; padding: 8px !important; }
@@ -519,6 +566,7 @@
     <!-- BOTTOM DOCK NAVIGATION -->
     <div class="nav-tabs">
         <div class="nav-tab active" id="tab-scanner"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Scan</span></div>
+        <div class="nav-tab" id="tab-phones"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg><span>Phones</span></div>
         <div class="nav-tab" id="tab-stats"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Stats</span></div>
         <div class="nav-tab" id="tab-birthdays"><svg viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg><span>B'days</span></div>
         <div class="nav-tab" id="tab-directory"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Team</span></div>
@@ -649,6 +697,52 @@
         <input type="text" id="directory-search" class="input-field" placeholder="🔍 Search colleague by name or role..." style="margin-bottom: 16px;">
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; max-height: 500px; overflow-y: auto;" id="staff-directory-grid">
             <div style="color: var(--text-soft); text-align: center; grid-column: 1/-1; padding: 20px;">Loading directory...</div>
+        </div>
+    </div>
+
+    <!-- PHONE INCENTIVES VIEW -->
+    <div class="main-card" id="phones-view" style="display: none; padding-top: 16px;">
+        <h2 class="ph-title">Phone Incentives</h2>
+
+        <div class="ph-searchbar">
+            <input type="text" id="ph-search" class="input-field" placeholder="🔍 Search phone, model, RAM..." autocomplete="off">
+            <button type="button" id="ph-filter-btn" class="ph-filter-btn">
+                <svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filters<span class="ph-badge" id="ph-badge">0</span>
+            </button>
+        </div>
+
+        <div class="ph-chips" id="ph-brand-chips"></div>
+
+        <div class="ph-panel" id="ph-panel">
+            <div class="ph-row2">
+                <div><label class="ph-lbl" for="ph-ram">RAM</label><select id="ph-ram" class="input-field"></select></div>
+                <div><label class="ph-lbl" for="ph-storage">Storage</label><select id="ph-storage" class="input-field"></select></div>
+            </div>
+
+            <div id="ph-price-block">
+                <label class="ph-lbl">Price Range (₹)</label>
+                <div class="ph-range">
+                    <input type="number" inputmode="numeric" id="ph-pmin" class="input-field" min="0" placeholder="Min">
+                    <span>–</span>
+                    <input type="number" inputmode="numeric" id="ph-pmax" class="input-field" min="0" placeholder="Max">
+                </div>
+                <div class="ph-presets" id="ph-price-presets"></div>
+            </div>
+
+            <label class="ph-lbl" for="ph-sort">Sort By</label>
+            <select id="ph-sort" class="input-field" style="margin-bottom: 14px;">
+                <option value="brand">Company (A → Z)</option>
+                <option value="price-desc">Price (High → Low)</option>
+                <option value="price-asc">Price (Low → High)</option>
+                <option value="ram">RAM (Low → High)</option>
+                <option value="storage">Storage (Low → High)</option>
+            </select>
+            <button type="button" class="ph-reset" id="ph-reset">Reset All Filters</button>
+        </div>
+
+        <div class="ph-count" id="ph-count"></div>
+        <div class="ph-list" id="ph-list">
+            <div class="ph-empty">Loading phones...</div>
         </div>
     </div>
 
@@ -799,7 +893,7 @@
             if (selectedDates.length === 2) {
                 statsStartDate = selectedDates[0];
                 
-                // End date ko us din ke end (23:59:59) tak set karna taaki pura din cover ho jaye
+                // Set the end date to the end of that day (23:59:59) so the full day is included
                 statsEndDate = new Date(selectedDates[1]);
                 statsEndDate.setHours(23, 59, 59, 999);
                 
@@ -842,12 +936,12 @@
 
     function switchTab(activeTabId, activeViewId) {
         // Reset all tabs
-        ['tab-scanner', 'tab-stats', 'tab-birthdays', 'tab-directory', 'tab-leave', 'tab-customers', 'tab-payslips'].forEach(id => {
+        ['tab-scanner', 'tab-phones', 'tab-stats', 'tab-birthdays', 'tab-directory', 'tab-leave', 'tab-customers', 'tab-payslips'].forEach(id => {
             if(document.getElementById(id)) document.getElementById(id).classList.remove('active');
         });
         
         // Hide all views
-        ['scanner-view', 'stats-view', 'birthdays-view', 'directory-view', 'leave-view', 'customers-view', 'payslips-view'].forEach(id => {
+        ['scanner-view', 'phones-view', 'stats-view', 'birthdays-view', 'directory-view', 'leave-view', 'customers-view', 'payslips-view'].forEach(id => {
             if(document.getElementById(id)) document.getElementById(id).style.display = 'none';
         });
 
@@ -893,6 +987,207 @@
         switchTab('tab-payslips', 'payslips-view');
         loadMyPayslips();
     });
+
+    // =========================================================================
+    //  PHONE INCENTIVES (read-only for staff, data from phone_models)
+    // =========================================================================
+    document.getElementById('tab-phones')?.addEventListener('click', () => {
+        switchTab('tab-phones', 'phones-view');
+        loadPhones();
+    });
+
+    let phoneRows = [];
+    let phonesLoaded = false;
+    const phEsc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const phInr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
+    const phHasPrice = () => phoneRows.some(p => p.price !== null && p.price !== undefined && p.price !== '' && !isNaN(Number(p.price)));
+    const phF = { brand: '', ram: '', storage: '', pmin: null, pmax: null, q: '', sort: 'brand' };
+
+    // "8GB" / "8 GB" / "1TB" -> GB number, used for sorting
+    function phSizeGB(v) {
+        const m = String(v || '').toUpperCase().replace(/\s+/g, '').match(/([\d.]+)(TB|GB|MB)?/);
+        if (!m) return 0;
+        const n = parseFloat(m[1]) || 0;
+        return m[2] === 'TB' ? n * 1024 : m[2] === 'MB' ? n / 1024 : n;
+    }
+
+    async function loadPhones() {
+        const list = document.getElementById('ph-list');
+        if (!phonesLoaded) list.innerHTML = '<div class="ph-empty">Loading phones...</div>';
+        try {
+            const { data, error } = await supabase.from('phone_models').select('id, brand, model, ram, storage, mop, incentive, notes').order('brand').order('model');
+            if (error) throw error;
+            phoneRows = (data || []).map(r => ({ ...r, price: r.mop })); // price = mop
+            phonesLoaded = true;
+            document.getElementById('ph-price-block').style.display = phHasPrice() ? 'block' : 'none';
+            phRefresh();
+        } catch (e) {
+            console.error(e);
+            list.innerHTML = '<div class="ph-empty" style="color: var(--danger);">Unable to load phones. Please check your internet connection and try again.<br><button type="button" class="btn-secondary" id="ph-retry">Retry</button></div>';
+        }
+    }
+
+    function phMatches(p, skip) {
+        const f = phF;
+        if (skip !== 'brand' && f.brand && p.brand !== f.brand) return false;
+        if (skip !== 'ram' && f.ram && p.ram !== f.ram) return false;
+        if (skip !== 'storage' && f.storage && p.storage !== f.storage) return false;
+        if (f.pmin !== null || f.pmax !== null) {
+            if (p.price === null || p.price === undefined || p.price === '' || isNaN(Number(p.price))) return false;
+            const pr = Number(p.price);
+            if (f.pmin !== null && pr < f.pmin) return false;
+            if (f.pmax !== null && pr > f.pmax) return false;
+        }
+        if (f.q) {
+            const hay = [p.brand, p.model, p.ram, p.storage, p.notes, p.incentive, p.price].join(' ').toLowerCase().replace(/\s+/g, ' ');
+            if (!f.q.split(' ').every(w => hay.includes(w))) return false;
+        }
+        return true;
+    }
+
+    // nice round bucket edges from the data, so presets always make sense
+    function phPresets(values) {
+        const nums = values.map(Number).filter(n => !isNaN(n) && n > 0);
+        if (nums.length < 2) return [];
+        const max = Math.max(...nums);
+        const rough = max / 4;
+        const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+        const step = Math.max(mag, Math.round(rough / mag) * mag);
+        const out = [];
+        for (let lo = 0; lo < max; lo += step) {
+            const hi = lo + step;
+            out.push(hi >= max ? { min: lo, max: null, label: `${phInr(lo)}+` } : { min: lo, max: hi, label: `${phInr(lo)} – ${phInr(hi)}` });
+        }
+        return out.slice(0, 5);
+    }
+
+    function phRenderPresets(boxId, values, kMin, kMax) {
+        const box = document.getElementById(boxId);
+        if (!box) return;
+        const presets = phPresets(values);
+        box.innerHTML = presets.map((p, i) => {
+            const on = phF[kMin] === p.min && phF[kMax] === p.max;
+            return `<button type="button" class="ph-preset${on ? ' active' : ''}" data-k="${kMin}|${kMax}" data-min="${p.min}" data-max="${p.max === null ? '' : p.max}">${p.label}</button>`;
+        }).join('');
+    }
+
+    function phRefresh() {
+        // brand chips (counts follow the other active filters)
+        const brandRows = phoneRows.filter(p => phMatches(p, 'brand'));
+        const brands = [...new Set(phoneRows.map(p => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+        if (phF.brand && !brands.includes(phF.brand)) phF.brand = '';
+        const chips = [`<button type="button" class="ph-chip${phF.brand === '' ? ' active' : ''}" data-brand="">All<span class="n">${brandRows.length}</span></button>`]
+            .concat(brands.map(b => {
+                const n = brandRows.filter(p => p.brand === b).length;
+                return `<button type="button" class="ph-chip${phF.brand === b ? ' active' : ''}" data-brand="${phEsc(b)}"${n === 0 ? ' style="opacity:0.4"' : ''}>${phEsc(b)}<span class="n">${n}</span></button>`;
+            }));
+        document.getElementById('ph-brand-chips').innerHTML = chips.join('');
+
+        // cascading RAM / Storage selects
+        [['ph-ram', 'ram', 'All RAM'], ['ph-storage', 'storage', 'All Storage']].forEach(([id, key, label]) => {
+            const el = document.getElementById(id);
+            const vals = [...new Set(phoneRows.filter(p => phMatches(p, key)).map(p => p[key]).filter(Boolean))].sort((a, b) => phSizeGB(a) - phSizeGB(b));
+            if (phF[key] && !vals.includes(phF[key])) phF[key] = '';
+            el.innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option value="${phEsc(v)}">${phEsc(v)}</option>`).join('');
+            el.value = phF[key];
+        });
+
+        // preset chips for ranges
+        if (phHasPrice()) phRenderPresets('ph-price-presets', phoneRows.map(p => p.price), 'pmin', 'pmax');
+
+        // sort options that need price only show when price exists
+        document.querySelectorAll('#ph-sort option[value^="price"]').forEach(o => o.hidden = !phHasPrice());
+
+        // filter badge
+        const active = ['brand', 'ram', 'storage'].filter(k => phF[k]).length
+            + (phF.pmin !== null || phF.pmax !== null ? 1 : 0);
+        const fb = document.getElementById('ph-filter-btn');
+        document.getElementById('ph-badge').innerText = active;
+        fb.classList.toggle('has', active > 0);
+        fb.classList.toggle('on', active > 0 || document.getElementById('ph-panel').classList.contains('open'));
+
+        phRenderList();
+    }
+
+    function phRenderList() {
+        const sortFn = {
+            'brand': (a, b) => String(a.brand || '').localeCompare(String(b.brand || '')) || String(a.model || '').localeCompare(String(b.model || '')),
+            'price-asc': (a, b) => Number(a.price || 0) - Number(b.price || 0),
+            'price-desc': (a, b) => Number(b.price || 0) - Number(a.price || 0),
+            'ram': (a, b) => phSizeGB(a.ram) - phSizeGB(b.ram),
+            'storage': (a, b) => phSizeGB(a.storage) - phSizeGB(b.storage)
+        }[phF.sort] || (() => 0);
+        const rows = phoneRows.filter(p => phMatches(p)).sort(sortFn);
+
+        const countEl = document.getElementById('ph-count');
+        const prs = rows.map(p => Number(p.price || 0));
+        countEl.innerText = rows.length
+            ? `${rows.length} phone${rows.length === 1 ? '' : 's'}` + (prs.length ? ` • Price ${phInr(Math.min(...prs))} – ${phInr(Math.max(...prs))}` : '')
+            : '';
+
+        const list = document.getElementById('ph-list');
+        if (phoneRows.length === 0) { list.innerHTML = '<div class="ph-empty">No phones have been added yet.</div>'; return; }
+        if (rows.length === 0) {
+            list.innerHTML = '<div class="ph-empty">No phones found 😕<br>Try adjusting or resetting your filters.<br><button type="button" class="btn-secondary" id="ph-empty-reset">Reset Filters</button></div>';
+            return;
+        }
+        const showPrice = phHasPrice();
+        list.innerHTML = rows.map(p => `
+            <div class="ph-card">
+                <div class="ph-top">
+                    <div><div class="ph-brand">${phEsc(p.brand)}</div><div class="ph-model">${phEsc(p.model)}</div></div>
+                    <div class="ph-inc"><small>Incentive</small><b>${phInr(p.incentive)}</b></div>
+                </div>
+                <div class="ph-specs">
+                    ${p.ram ? `<span class="ph-spec">${phEsc(p.ram)} RAM</span>` : ''}
+                    ${p.storage ? `<span class="ph-spec">${phEsc(p.storage)}</span>` : ''}
+                </div>
+                ${showPrice && p.price !== null && p.price !== undefined && p.price !== '' ? `<div class="ph-price">Price: <b>${phInr(p.price)}</b></div>` : ''}
+                ${p.notes ? `<div class="ph-notes">${phEsc(p.notes)}</div>` : ''}
+            </div>`).join('');
+    }
+
+    function phResetAll() {
+        Object.assign(phF, { brand: '', ram: '', storage: '', pmin: null, pmax: null, q: '', sort: 'brand' });
+        ['ph-search', 'ph-pmin', 'ph-pmax'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        document.getElementById('ph-sort').value = 'brand';
+        phRefresh();
+    }
+
+    (function initPhoneUI() {
+        const num = (v) => (v === '' || v == null || isNaN(parseFloat(v))) ? null : parseFloat(v);
+        const $ = (id) => document.getElementById(id);
+
+        $('ph-search').addEventListener('input', e => { phF.q = e.target.value.trim().toLowerCase().replace(/\s+/g, ' '); phRefresh(); });
+        $('ph-ram').addEventListener('change', e => { phF.ram = e.target.value; phRefresh(); });
+        $('ph-storage').addEventListener('change', e => { phF.storage = e.target.value; phRefresh(); });
+        $('ph-sort').addEventListener('change', e => { phF.sort = e.target.value; phRefresh(); });
+        [['ph-pmin', 'pmin'], ['ph-pmax', 'pmax']].forEach(([id, k]) =>
+            $(id).addEventListener('input', e => { phF[k] = num(e.target.value); phRefresh(); }));
+        $('ph-reset').addEventListener('click', phResetAll);
+
+        $('ph-filter-btn').addEventListener('click', () => {
+            $('ph-panel').classList.toggle('open');
+            phRefresh();
+        });
+
+        $('phones-view').addEventListener('click', (e) => {
+            const chip = e.target.closest('.ph-chip');
+            if (chip) { phF.brand = chip.dataset.brand || ''; phRefresh(); return; }
+            const pre = e.target.closest('.ph-preset');
+            if (pre) {
+                const [kMin, kMax] = pre.dataset.k.split('|');
+                const mn = num(pre.dataset.min), mx = num(pre.dataset.max);
+                const same = phF[kMin] === mn && phF[kMax] === mx;
+                phF[kMin] = same ? null : mn; phF[kMax] = same ? null : mx;
+                $({ pmin: 'ph-pmin', pmax: 'ph-pmax' }[kMin]).value = phF[kMin] ?? '';
+                $({ pmin: 'ph-pmin', pmax: 'ph-pmax' }[kMax]).value = phF[kMax] ?? '';
+                phRefresh(); return;
+            }
+            if (e.target.closest('#ph-empty-reset')) { phResetAll(); return; }
+            if (e.target.closest('#ph-retry')) { loadPhones(); }
+        });
+    })();
 
     let globalStaffDirectoryCache = [];
 
@@ -1115,23 +1410,23 @@
     }
 
     function gpsErrorMessage(err) {
-        if (err && err.code === 1) return "Location block hai. Phone Settings me Browser ko Location Allow (Precise ON) karo, phir dobara try karo.";
-        if (err && err.code === 2) return "Location nahi mil rahi. Phone ki Location ON karo aur khuli jagah jao.";
-        if (err && err.code === 3) return "GPS slow hai. Gate/window ke paas jaake dobara try karo.";
-        return (err && err.message) || "GPS error. Dobara try karo.";
+        if (err && err.code === 1) return "Location access is blocked. Please allow location access (with Precise Location on) for your browser in phone settings, then try again.";
+        if (err && err.code === 2) return "Unable to determine your location. Please turn on your phone's location services and move to an open area.";
+        if (err && err.code === 3) return "GPS signal is weak. Please move closer to the entrance or a window and try again.";
+        return (err && err.message) || "GPS error. Please try again.";
     }
 
     function getCurrentLocation() {
         return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) return reject(new Error("Is browser me GPS support nahi hai."));
+            if (!navigator.geolocation) return reject(new Error("This browser does not support GPS."));
 
-            // Pichli reading achhi aur taazi ho to turant use karo
+            // Use the previous reading immediately if it is recent and accurate
             if (liveCoords && (Date.now() - liveCoordsTime) <= 10000 && liveCoords.accuracy <= 50) {
                 return resolve(liveCoords);
             }
 
-            const MAX_WAIT = 15000;   // zyada se zyada 15 sec
-            const GOOD_ENOUGH = 30;   // 30m ya behtar mil jaye to ruk jao
+            const MAX_WAIT = 15000;   // maximum 15 seconds
+            const GOOD_ENOUGH = 30;   // stop as soon as accuracy of 30 m or better is achieved
             let best = null, done = false, lastErr = null, watchId = null, timer = null;
 
             const finish = () => {
@@ -1139,7 +1434,7 @@
                 clearTimeout(timer);
                 if (watchId !== null) navigator.geolocation.clearWatch(watchId);
                 if (best) { liveCoords = best; liveCoordsTime = Date.now(); resolve(best); }
-                else reject(lastErr || new Error("GPS signal nahi mila. Khuli jagah jaake dobara try karo."));
+                else reject(lastErr || new Error("Unable to get a GPS signal. Please move to an open area and try again."));
             };
 
             watchId = navigator.geolocation.watchPosition(
@@ -1382,7 +1677,7 @@
                 checkStaffStatus();
                 loadTodaySchedule(staffData.id, staffData.default_branch_id);
                 
-                // ✨ JAISE HI LOGIN HOGA / SITE REFRESH HOGI, AUTO DETECT CHAL JAYEGA
+                // Auto-detect the branch as soon as the user logs in or the page refreshes
                 if (!hasAutoDetected) {
                     autoDetectBranch(); 
                     hasAutoDetected = true;
@@ -1488,7 +1783,7 @@
             let currentState = 'none';
             if (data && data.length > 0) {
                 const lastAction = data[0].action;
-                lastBranchId = data[0].branch_id; // Last logged branch save kar li
+                lastBranchId = data[0].branch_id; // Save the last logged branch
                 if (lastAction === 'Clock Out') currentState = 'completed';
                 else if (lastAction === 'Transit Start') currentState = 'traveling';
                 else currentState = 'working';
@@ -1562,11 +1857,11 @@
             });
 
             if (error) {
-                // Supabase ka custom error (e.g. out of radius, wrong branch, weak accuracy) direct throw hoga
+                // Custom Supabase error (e.g. out of radius, wrong branch, weak accuracy) is thrown directly
                 throw new Error(error.message);
             }
             
-            // Database se aayi hui exact store location toast mein dikhegi
+            // Show the exact store location returned by the database in the toast
             displayToast(data.message, "success");
             
             if (targetAction === 'Clock Out') {
@@ -1595,7 +1890,7 @@
             setTimeout(() => checkStaffStatus(), 1000);
             
         } catch (err) {
-            // Sirf 1 toast, jo exactly batayega ki problem kya hai
+            // Show a single toast that states exactly what the problem is
             displayToast(err.message || "Network Error: Failed to save.", "error");
         } finally {
             isProcessing = false;
@@ -1710,7 +2005,7 @@
             if (statsStartDate && statsEndDate) {
                 query = query.gte('timestamp', statsStartDate.toISOString()).lte('timestamp', statsEndDate.toISOString());
             } else if (currentStaffJoiningDate) {
-                // Agar date filter blank hai (All Time), to by default data Joining Date se hi calculate hoga.
+                // If the date filter is blank (All Time), stats are calculated from the joining date by default
                 query = query.gte('timestamp', new Date(currentStaffJoiningDate).toISOString());
             }
 
