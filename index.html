@@ -934,16 +934,13 @@
     let hasAutoDetected = false; // Prevents the popup from showing again on tab switches
     let cooldownActive = false;  // 5-second anti-spam protection
     
-    // Globals for Face Recognition & Blink Liveness Engine
+    // Globals for Face Recognition Engine
     let faceModelsLoaded = false;
     let enrolledFaceDescriptors = [];
     let isFaceScanning = false;
     let faceScanInterval = null;
-    let hasBlinked = false;
-    let isEyeClosed = false;
     let isFaceVerified = false;
     let autoPunchTriggered = false;
-    let newEnrolledDescriptor = null;
     
     // Globals for Payslips
     let myPayrollRecords = [];
@@ -1535,8 +1532,6 @@
 
     async function prepareFaceEnrollment(staffData) {
         enrolledFaceDescriptors = [];
-        hasBlinked = false;
-        isEyeClosed = false;
         isFaceVerified = false;
         autoPunchTriggered = false;
 
@@ -1579,20 +1574,9 @@
         }
     }
 
-    function getEyeAspectRatio(eye) {
-        const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
-        const dV1 = dist(eye[1], eye[5]);
-        const dV2 = dist(eye[2], eye[4]);
-        const dH = dist(eye[0], eye[3]);
-        if (dH === 0) return 0.3;
-        return (dV1 + dV2) / (2.0 * dH);
-    }
-
     async function startFaceScanningLoop() {
         if (isFaceScanning) return;
         isFaceScanning = true;
-        hasBlinked = false;
-        isEyeClosed = false;
         isFaceVerified = false;
         autoPunchTriggered = false;
 
@@ -1648,34 +1632,12 @@
                     }
                 }
 
-                // 2. Check Blink Liveness (Required for both Enrollment and Punch!)
-                const landmarks = detection.landmarks;
-                const leftEye = landmarks.getLeftEye();
-                const rightEye = landmarks.getRightEye();
-                const avgEAR = (getEyeAspectRatio(leftEye) + getEyeAspectRatio(rightEye)) / 2.0;
-
-                if (!hasBlinked) {
-                    if (avgEAR < 0.20) {
-                        isEyeClosed = true;
-                    } else if (isEyeClosed && avgEAR > 0.24) {
-                        hasBlinked = true; // Genuine Blink Detected!
-                        isEyeClosed = false;
-                    }
-
-                    if (oval) oval.className = 'detected';
-                    if (pill) {
-                        pill.className = 'face-pill blink';
-                        pill.innerText = isEnrolling ? '👤 First Time: Blink Eyes to Enroll' : '👁️ Please Blink Eyes';
-                    }
-                    return;
-                }
-
-                // 3. BOTH FACE MATCHED (OR ENROLLING) AND BLINK VERIFIED!
+                // Face Matched (or First-Time Enrollment) Verified!
                 isFaceVerified = true;
                 if (oval) oval.className = 'verified';
                 if (pill) {
                     pill.className = 'face-pill verified';
-                    pill.innerText = isEnrolling ? '✅ Face Enrolled & Saved!' : '✅ Face & Blink Verified!';
+                    pill.innerText = isEnrolling ? '✅ Face Enrolled & Saved!' : '✅ Face Verified!';
                 }
 
                 // If First-Time Enrollment: Capture live selfie, enroll face descriptor, and save to Supabase!
@@ -1749,7 +1711,7 @@
                             }
                             setTimeout(() => {
                                 logAttendance(targetAction, targetBtnId);
-                            }, 600);
+                            }, 500);
                         }
                         return;
                     } catch (enrollErr) {
@@ -1758,14 +1720,14 @@
                     }
                 }
 
-                // 4. AUTO-PUNCH EXECUTION for already enrolled staff!
+                // Auto-Punch Execution for already enrolled staff
                 if (!autoPunchTriggered && !isProcessing && allowedAction !== 'completed' && allowedAction !== 'none') {
                     autoPunchTriggered = true;
                     if (window.RJSecurityNative && window.RJSecurityNative.vibrateSuccess) {
                         window.RJSecurityNative.vibrateSuccess();
                     }
                     triggerFlash();
-                    displayToast("Face & Blink Verified! Logging attendance...", "success");
+                    displayToast("Face Verified! Logging attendance...", "success");
 
                     let targetAction = 'Clock In';
                     let targetBtnId = 'btn-clock-in';
@@ -1779,7 +1741,7 @@
 
                     setTimeout(() => {
                         logAttendance(targetAction, targetBtnId);
-                    }, 500);
+                    }, 400);
                 }
 
             } catch (loopErr) {
@@ -2125,9 +2087,9 @@
             return;
         }
         
-        // 🔒 STRICT BIOMETRIC GATE: Face Match & Blink must be verified!
+        // 🔒 STRICT BIOMETRIC GATE: Face Match must be verified!
         if (enrolledFaceDescriptors.length > 0 && !isFaceVerified) {
-            displayToast("🚨 Face Match & Blink required before logging attendance!", "warning");
+            displayToast("🚨 Face Match required before logging attendance!", "warning");
             return;
         }
 
