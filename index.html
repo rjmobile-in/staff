@@ -524,6 +524,7 @@
                 <span id="team-modal-branch" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main);">🏢 Branch</span>
                 <span id="team-modal-phone" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none; transition: 0.2s;">📞 Phone</span>
                 <span id="team-modal-join" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none;">💼 Joined</span>
+                <span id="team-modal-dob" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none;">🎂 Birthday</span>
             </div>
             <button class="btn-secondary" style="width: 100%; padding: 12px; margin-top: 8px; justify-content: center;" onclick="document.getElementById('team-profile-modal').style.display='none'">Close Profile</button>
         </div>
@@ -1205,8 +1206,26 @@
         grid.innerHTML = '<div style="color:var(--text-soft); text-align:center; grid-column:1/-1; padding:20px;">Loading colleagues...</div>';
 
         try {
-            const { data: staffList, error } = await supabase.from('public_staff_info').select('*').order('name');
-            if (error) throw error;
+            let staffList = null;
+            // 1. Try get_team_directory RPC function
+            try {
+                const { data: rpcData, error: rpcErr } = await supabase.rpc('get_team_directory');
+                if (!rpcErr && rpcData && rpcData.length > 0) staffList = rpcData;
+            } catch (ign) {}
+
+            // 2. Try public_staff_info view
+            if (!staffList) {
+                try {
+                    const { data: vData, error: vErr } = await supabase.from('public_staff_info').select('*').order('name');
+                    if (!vErr && vData && vData.length > 0) staffList = vData;
+                } catch (ign2) {}
+            }
+
+            // 3. Fallback to direct staff_directory
+            if (!staffList) {
+                const { data: dData } = await supabase.from('staff_directory').select('id, name, role, default_branch_id, dob, profile_pic, joining_date, phone_number').order('name');
+                staffList = dData || [];
+            }
             
             const { data: branchList } = await supabase.from('branches_directory').select('id, branch_name');
             const bMap = {}; (branchList || []).forEach(b => bMap[b.id] = b.branch_name);
@@ -1236,6 +1255,24 @@
                 ? `<img src="${s.profile_pic}" class="directory-avatar" alt="👤">`
                 : `<div class="directory-avatar" style="border-color: ${color}; color: ${color};">${initials}</div>`;
 
+            // Format Date of Birth (DOB)
+            let dobCardText = '';
+            let dobModalText = '';
+            if (s.dob) {
+                try {
+                    const dParts = String(s.dob).split('T')[0].split('-');
+                    if (dParts.length === 3) {
+                        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        const mName = months[parseInt(dParts[1], 10) - 1] || dParts[1];
+                        const dayNum = parseInt(dParts[2], 10);
+                        dobCardText = `🎂 ${dayNum} ${mName}`;
+                        dobModalText = `🎂 DOB: ${dayNum} ${mName} ${dParts[0]}`;
+                    }
+                } catch (e) {}
+            }
+            const safeDobCard = dobCardText;
+            const safeDobModal = dobModalText.replace(/'/g, "\\'");
+
             // Prepare data for the onclick function safely
             const safeName = s.name.replace(/'/g, "\\'");
             const safeRole = (s.role || 'Staff').replace(/'/g, "\\'");
@@ -1246,19 +1283,19 @@
             const safePic = s.profile_pic ? s.profile_pic : '';
 
             return `
-            <div class="directory-card" style="cursor: pointer;" onclick="openTeamProfile('${safeName}', '${safeRole}', '${safeBranch}', '${safePic}', '${color}', '${initials}', '${safeJoin}', '${safePhone}')">
+            <div class="directory-card" style="cursor: pointer;" onclick="openTeamProfile('${safeName}', '${safeRole}', '${safeBranch}', '${safePic}', '${color}', '${initials}', '${safeJoin}', '${safePhone}', '${safeDobModal}')">
                 ${avatarHtml}
                 <div style="overflow: hidden; flex: 1;">
                     <div style="font-weight: 700; color: var(--text-main); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.name}</div>
                     <div style="font-size: 11px; color: var(--primary); font-weight: 700; text-transform: uppercase; margin-top: 2px;">${s.role || 'Staff'}</div>
-                    <div style="font-size: 11px; color: var(--text-soft); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🏢 ${branchName}</div>
+                    <div style="font-size: 11px; color: var(--text-soft); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🏢 ${branchName}${safeDobCard ? ' • ' + safeDobCard : ''}</div>
                 </div>
             </div>`;
         }).join('');
     }
 
     // Global function to open team profile popup dynamically
-    window.openTeamProfile = function(name, role, branch, picUrl, color, initials, joinDate, phone) {
+    window.openTeamProfile = function(name, role, branch, picUrl, color, initials, joinDate, phone, dob) {
         document.getElementById('team-modal-name').innerText = name;
         document.getElementById('team-modal-role').innerText = role;
         document.getElementById('team-modal-branch').innerText = `🏢 ${branch}`;
@@ -1283,6 +1320,16 @@
                 joinEl.style.display = 'inline-block';
             } else {
                 joinEl.style.display = 'none';
+            }
+        }
+
+        const dobEl = document.getElementById('team-modal-dob');
+        if(dobEl) {
+            if(dob) {
+                dobEl.innerText = dob;
+                dobEl.style.display = 'inline-block';
+            } else {
+                dobEl.style.display = 'none';
             }
         }
 
