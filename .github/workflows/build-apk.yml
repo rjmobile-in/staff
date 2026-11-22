@@ -29,6 +29,8 @@ jobs:
           mkdir -p www
           cp index.html www/
           cp logo.png www/ || true
+          cp face-api.min.js www/ || true
+          cp -r models www/models || true
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
           npx cap init "RJ Staff" "com.rjmobile.staff" --web-dir www

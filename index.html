@@ -24,6 +24,8 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
+  <!-- Face Recognition AI Engine -->
+  <script src="face-api.min.js"></script>
 
   <style>
     /* =========================================================
@@ -320,14 +322,83 @@
     #flash-overlay { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 20; }
     #flash-overlay.flash { opacity: 0.8; }
 
+    /* Face Recognition & Blink HUD */
+    #face-guide-oval {
+        position: absolute;
+        width: 190px;
+        height: 250px;
+        border-radius: 50%;
+        border: 2px dashed rgba(212, 175, 55, 0.7);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35), 0 0 25px rgba(212, 175, 55, 0.3);
+        pointer-events: none;
+        z-index: 7;
+        transition: all 0.3s ease;
+    }
+    #face-guide-oval.detected {
+        border-color: #38bdf8;
+        border-style: solid;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3), 0 0 35px rgba(56, 189, 248, 0.4);
+    }
+    #face-guide-oval.verified {
+        border-color: #22c55e;
+        border-style: solid;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.2), 0 0 50px rgba(34, 197, 94, 0.6);
+    }
+    #face-guide-oval.error {
+        border-color: #ef4444;
+        border-style: solid;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35), 0 0 35px rgba(239, 68, 68, 0.5);
+    }
+
+    .face-pill {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 8;
+        padding: 8px 18px;
+        border-radius: 30px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        background: rgba(18, 18, 18, 0.88);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(212, 175, 55, 0.4);
+        color: #fff;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+        pointer-events: none;
+        transition: all 0.25s ease;
+        white-space: nowrap;
+        text-align: center;
+    }
+    .face-pill.blink {
+        border-color: #38bdf8;
+        color: #38bdf8;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+        animation: pulseBlink 0.8s infinite alternate;
+    }
+    .face-pill.verified {
+        border-color: #22c55e;
+        color: #22c55e;
+        background: rgba(10, 40, 20, 0.9);
+        box-shadow: 0 0 25px rgba(34, 197, 94, 0.5);
+    }
+    .face-pill.error {
+        border-color: #ef4444;
+        color: #ef4444;
+        background: rgba(40, 10, 10, 0.9);
+    }
+    @keyframes pulseBlink {
+        from { transform: translateX(-50%) scale(1); }
+        to { transform: translateX(-50%) scale(1.05); }
+    }
+
     /* =========================================================
-       9. PROFILE, BIRTHDAY, DIRECTORY
+       9. PROFILE & DIRECTORY
        ========================================================= */
     .staff-avatar-header { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); cursor: pointer; background: var(--input-bg); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--primary-text); font-size: 20px; flex-shrink: 0; box-shadow: 0 0 0 3px var(--primary-alpha), 0 0 18px var(--primary-glow); transition: 0.2s; }
     .staff-avatar-header:active { transform: scale(0.93); }
-    .bday-banner { background: linear-gradient(135deg, #e6c35a 0%, #d4af37 55%, #f59e0b 100%); color: var(--on-gold); padding: 16px; border-radius: var(--radius-md); margin-bottom: 16px; text-align: center; display: none; box-shadow: 0 12px 30px rgba(212, 175, 55, 0.28); position: relative; overflow: hidden; animation: viewIn 0.5s ease; width: 100%; }
-    .bday-banner h3 { font-size: 18px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; }
-    .bday-banner p { font-size: 13px; font-weight: 700; opacity: 0.85; }
     .edit-avatar-preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; background: var(--input-bg); color: var(--primary-text); font-size: 40px; font-weight: bold; box-shadow: 0 0 0 5px var(--primary-alpha), 0 0 30px var(--primary-glow); }
     .file-upload-btn { background: var(--primary-alpha); color: var(--primary-text); padding: 10px 16px; border-radius: var(--radius-sm); font-weight: 800; cursor: pointer; display: inline-block; font-size: 13px; border: 1px solid rgba(212, 175, 55, 0.4); transition: 0.2s; text-align: center; }
     .file-upload-btn:active { background: var(--primary); color: var(--on-gold); }
@@ -453,7 +524,6 @@
             <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
                 <span id="team-modal-branch" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main);">🏢 Branch</span>
                 <span id="team-modal-phone" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none; transition: 0.2s;">📞 Phone</span>
-                <span id="team-modal-bday" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none;">🎂 Bday</span>
                 <span id="team-modal-join" style="background: var(--input-bg); border: 1px solid var(--card-border); padding: 6px 12px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600; color: var(--text-main); display: none;">💼 Joined</span>
             </div>
             <button class="btn-secondary" style="width: 100%; padding: 12px; margin-top: 8px; justify-content: center;" onclick="document.getElementById('team-profile-modal').style.display='none'">Close Profile</button>
@@ -552,12 +622,6 @@
       </div>
     </div>
 
-    <!-- Birthday Celebration Banner -->
-    <div id="my-bday-banner" class="bday-banner">
-        <h3>🎂 Happy Birthday, <span id="bday-name">Star</span>! 🎉</h3>
-        <p>Wishing you a fantastic day ahead! 🍫🎁</p>
-    </div>
-
     <div class="schedule-banner" id="schedule-banner">
         <div class="title">Today's Assigned Location</div>
         <div class="branch" id="assigned-branch-name">Loading Schedule...</div>
@@ -568,7 +632,6 @@
         <div class="nav-tab active" id="tab-scanner"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Scan</span></div>
         <div class="nav-tab" id="tab-phones"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg><span>Phones</span></div>
         <div class="nav-tab" id="tab-stats"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Stats</span></div>
-        <div class="nav-tab" id="tab-birthdays"><svg viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg><span>B'days</span></div>
         <div class="nav-tab" id="tab-directory"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Team</span></div>
         <div class="nav-tab" id="tab-leave"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Requests</span></div>
         <div class="nav-tab" id="tab-payslips"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span>Payslips</span></div>
@@ -579,6 +642,8 @@
       <div id="video-wrapper">
         <video id="native-video" autoplay muted playsinline></video>
         <div id="flash-overlay"></div>
+        <div id="face-guide-oval"></div>
+        <div id="face-status-pill" class="face-pill">👤 Align Face in Circle</div>
         <div id="camera-error-overlay" style="display: none; position: absolute; inset: 0; background: var(--card-bg); flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; z-index: 10;">
             <div style="font-size: 32px; margin-bottom: 12px;">📷</div>
             <h3 style="color: var(--text-main); margin-bottom: 8px; font-size: 16px;">Camera Blocked</h3>
@@ -667,27 +732,6 @@
                 <div class="skeleton" style="width: 50px; height: 20px; border-radius: 4px;"></div>
             </div>
         </div>
-    </div>
-
-    <!-- Birthdays View -->
-    <div class="main-card" id="birthdays-view" style="display: none; padding-top: 16px;">
-        <h2 style="margin-bottom: 20px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Bricolage Grotesque', sans-serif;">Staff Birthdays</h2>
-        
-        <div id="bday-top-card" style="background: var(--card-bg); border-radius: var(--radius-lg); border: 1px solid var(--primary); padding: 40px 24px; padding-top: 350px; text-align: center; position: relative; overflow: hidden; margin-bottom: 24px; min-height: 640px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
-            <!-- Background Image Layer -->
-            <div id="bday-top-bg" style="position: absolute; inset: 0; background: linear-gradient(135deg, var(--primary-alpha) 0%, var(--card-bg) 100%); background-size: cover !important; background-position: center top !important; opacity: 0.95; z-index: 0; transition: opacity 0.5s;"></div>
-            <!-- Dark Bottom Gradient for Text Readability -->
-            <div style="position: absolute; inset: 0; background: linear-gradient(to top, var(--card-bg) 5%, rgba(18,18,18,0.8) 25%, transparent 65%); z-index: 1;"></div>
-            
-            <div style="background: var(--primary); color: var(--on-gold); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; padding: 5px 11px; border-radius: 999px; display: inline-block; margin-bottom: 12px; position: relative; z-index: 2; box-shadow: 0 4px 14px var(--primary-glow);">Next Celebration</div>
-            <div id="bday-top-emoji" style="font-size: 40px; margin-bottom: -5px; position: relative; z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.5);">🎉</div>
-            <div id="staff-next-bday-name" style="font-size: 24px; font-weight: 800; color: #fff; font-family: 'Bricolage Grotesque', sans-serif; position: relative; z-index: 2; text-shadow: 0 2px 8px rgba(0,0,0,0.8);">Loading...</div>
-            <div id="staff-next-bday-date" style="font-size: 14px; color: #f1f5f9; font-weight: 600; position: relative; z-index: 2; text-shadow: 0 2px 6px rgba(0,0,0,0.8);">--</div>
-            <div id="staff-next-bday-countdown" style="margin-top: 16px; font-size: 18px; font-weight: 800; color: var(--on-gold); background: var(--primary); box-shadow: 0 6px 20px var(--primary-glow); padding: 8px 16px; border-radius: var(--radius-lg); display: inline-block; position: relative; z-index: 2;">--</div>
-        </div>
-
-        <h3 style="font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">📅 All Upcoming Birthdays</h3>
-        <div style="display: flex; flex-direction: column; gap: 12px;" id="staff-bday-list"></div>
     </div>
 
     <!-- Staff Directory View -->
@@ -891,6 +935,17 @@
     let hasAutoDetected = false; // Prevents the popup from showing again on tab switches
     let cooldownActive = false;  // 5-second anti-spam protection
     
+    // Globals for Face Recognition & Blink Liveness Engine
+    let faceModelsLoaded = false;
+    let enrolledFaceDescriptors = [];
+    let isFaceScanning = false;
+    let faceScanInterval = null;
+    let hasBlinked = false;
+    let isEyeClosed = false;
+    let isFaceVerified = false;
+    let autoPunchTriggered = false;
+    let newEnrolledDescriptor = null;
+    
     // Globals for Payslips
     let myPayrollRecords = [];
 
@@ -904,12 +959,12 @@
 
     function switchTab(activeTabId, activeViewId) {
         // Reset all tabs
-        ['tab-scanner', 'tab-phones', 'tab-stats', 'tab-birthdays', 'tab-directory', 'tab-leave', 'tab-payslips'].forEach(id => {
+        ['tab-scanner', 'tab-phones', 'tab-stats', 'tab-directory', 'tab-leave', 'tab-payslips'].forEach(id => {
             if(document.getElementById(id)) document.getElementById(id).classList.remove('active');
         });
         
         // Hide all views
-        ['scanner-view', 'phones-view', 'stats-view', 'birthdays-view', 'directory-view', 'leave-view', 'payslips-view'].forEach(id => {
+        ['scanner-view', 'phones-view', 'stats-view', 'directory-view', 'leave-view', 'payslips-view'].forEach(id => {
             if(document.getElementById(id)) document.getElementById(id).style.display = 'none';
         });
 
@@ -928,11 +983,6 @@
     document.getElementById('tab-stats').addEventListener('click', () => {
         switchTab('tab-stats', 'stats-view');
         loadPersonalStats();
-    });
-    
-    document.getElementById('tab-birthdays').addEventListener('click', () => {
-        switchTab('tab-birthdays', 'birthdays-view');
-        fetchAndRenderStaffBirthdays();
     });
 
     document.getElementById('tab-directory').addEventListener('click', () => {
@@ -1190,38 +1240,29 @@
                 ? `<img src="${s.profile_pic}" class="directory-avatar" alt="👤">`
                 : `<div class="directory-avatar" style="border-color: ${color}; color: ${color};">${initials}</div>`;
 
-            let birthdayHtml = '';
-            if (s.dob) {
-                const bDate = new Date(s.dob);
-                birthdayHtml = `<div style="font-size: 11px; color: var(--text-soft); margin-top: 2px; font-weight: 500;">🎂 ${bDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>`;
-            }
-
             // Prepare data for the onclick function safely
             const safeName = s.name.replace(/'/g, "\\'");
             const safeRole = (s.role || 'Staff').replace(/'/g, "\\'");
             const safeBranch = branchName.replace(/'/g, "\\'");
             const safePhone = s.phone_number ? s.phone_number.replace(/'/g, "\\'") : '';
-            const bdayText = s.dob ? new Date(s.dob).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-            const safeBday = bdayText ? `🎂 ${bdayText}` : '';
             const joinText = s.joining_date ? new Date(s.joining_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
             const safeJoin = joinText ? `💼 Joined ${joinText}` : '';
             const safePic = s.profile_pic ? s.profile_pic : '';
 
             return `
-            <div class="directory-card" style="cursor: pointer;" onclick="openTeamProfile('${safeName}', '${safeRole}', '${safeBranch}', '${safeBday}', '${safePic}', '${color}', '${initials}', '${safeJoin}', '${safePhone}')">
+            <div class="directory-card" style="cursor: pointer;" onclick="openTeamProfile('${safeName}', '${safeRole}', '${safeBranch}', '${safePic}', '${color}', '${initials}', '${safeJoin}', '${safePhone}')">
                 ${avatarHtml}
                 <div style="overflow: hidden; flex: 1;">
                     <div style="font-weight: 700; color: var(--text-main); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.name}</div>
                     <div style="font-size: 11px; color: var(--primary); font-weight: 700; text-transform: uppercase; margin-top: 2px;">${s.role || 'Staff'}</div>
                     <div style="font-size: 11px; color: var(--text-soft); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🏢 ${branchName}</div>
-                    ${birthdayHtml}
                 </div>
             </div>`;
         }).join('');
     }
 
     // Global function to open team profile popup dynamically
-    window.openTeamProfile = function(name, role, branch, bday, picUrl, color, initials, joinDate, phone) {
+    window.openTeamProfile = function(name, role, branch, picUrl, color, initials, joinDate, phone) {
         document.getElementById('team-modal-name').innerText = name;
         document.getElementById('team-modal-role').innerText = role;
         document.getElementById('team-modal-branch').innerText = `🏢 ${branch}`;
@@ -1239,14 +1280,6 @@
             phoneEl.style.display = 'none';
         }
 
-        const bdayEl = document.getElementById('team-modal-bday');
-        if(bday) {
-            bdayEl.innerText = bday;
-            bdayEl.style.display = 'inline-block';
-        } else {
-            bdayEl.style.display = 'none';
-        }
-        
         const joinEl = document.getElementById('team-modal-join');
         if(joinEl) {
             if(joinDate) {
@@ -1474,6 +1507,222 @@
         }
     }
 
+    // =========================================================================
+    // 👤 FACE RECOGNITION, BLINK LIVENESS & AUTO-PUNCH ENGINE
+    // =========================================================================
+    async function loadFaceModels() {
+        if (faceModelsLoaded) return true;
+        try {
+            await faceapi.nets.tinyFaceDetector.loadFromUri('models');
+            await faceapi.nets.faceLandmark68TinyNet.loadFromUri('models');
+            await faceapi.nets.faceRecognitionNet.loadFromUri('models');
+            faceModelsLoaded = true;
+            console.log("Face AI models loaded successfully from local storage!");
+            return true;
+        } catch (e) {
+            console.warn("Local model loading failed, trying fallback CDN:", e);
+            try {
+                await faceapi.nets.tinyFaceDetector.loadFromUri('https://raw.githubusercontent.com/vladmandic/face-api/master/model');
+                await faceapi.nets.faceLandmark68TinyNet.loadFromUri('https://raw.githubusercontent.com/vladmandic/face-api/master/model');
+                await faceapi.nets.faceRecognitionNet.loadFromUri('https://raw.githubusercontent.com/vladmandic/face-api/master/model');
+                faceModelsLoaded = true;
+                return true;
+            } catch (err) {
+                console.error("All face model endpoints failed:", err);
+                return false;
+            }
+        }
+    }
+
+    async function prepareFaceEnrollment(staffData) {
+        enrolledFaceDescriptors = [];
+        hasBlinked = false;
+        isEyeClosed = false;
+        isFaceVerified = false;
+        autoPunchTriggered = false;
+
+        // Try checking pre-computed face descriptors if column exists
+        try {
+            const { data: fData } = await supabase.from('staff_directory').select('face_descriptors').eq('id', staffData.id).maybeSingle();
+            if (fData && fData.face_descriptors && Array.isArray(fData.face_descriptors) && fData.face_descriptors.length > 0) {
+                enrolledFaceDescriptors = fData.face_descriptors.map(d => new Float32Array(d));
+                console.log("Loaded enrolled face descriptors from DB:", enrolledFaceDescriptors.length);
+                return;
+            }
+        } catch (ign) {}
+
+        // Fallback: Compute descriptor from profile_pic!
+        if (staffData.profile_pic) {
+            try {
+                const ok = await loadFaceModels();
+                if (!ok) return;
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.src = staffData.profile_pic;
+                await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+                const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 }))
+                    .withFaceLandmarks(true)
+                    .withFaceDescriptor();
+                if (detection) {
+                    enrolledFaceDescriptors = [detection.descriptor];
+                    console.log("Enrolled face descriptor generated from profile picture!");
+                    try {
+                        await supabase.from('staff_directory').update({
+                            face_descriptors: [Array.from(detection.descriptor)],
+                            face_registered: true,
+                            face_registered_at: new Date().toISOString()
+                        }).eq('id', staffData.id);
+                    } catch (ign) {}
+                }
+            } catch (err) {
+                console.warn("prepareFaceEnrollment error:", err);
+            }
+        }
+    }
+
+    function getEyeAspectRatio(eye) {
+        const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        const dV1 = dist(eye[1], eye[5]);
+        const dV2 = dist(eye[2], eye[4]);
+        const dH = dist(eye[0], eye[3]);
+        if (dH === 0) return 0.3;
+        return (dV1 + dV2) / (2.0 * dH);
+    }
+
+    async function startFaceScanningLoop() {
+        if (isFaceScanning) return;
+        isFaceScanning = true;
+        hasBlinked = false;
+        isEyeClosed = false;
+        isFaceVerified = false;
+        autoPunchTriggered = false;
+
+        const oval = document.getElementById('face-guide-oval');
+        const pill = document.getElementById('face-status-pill');
+
+        const ok = await loadFaceModels();
+        if (!ok) {
+            if (pill) { pill.className = 'face-pill error'; pill.innerText = 'AI Engine Loading...'; }
+            return;
+        }
+
+        const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 });
+
+        faceScanInterval = setInterval(async () => {
+            if (!cameraActive || !videoEl || videoEl.paused || videoEl.ended || autoPunchTriggered || isProcessing) {
+                return;
+            }
+
+            try {
+                const detection = await faceapi.detectSingleFace(videoEl, options)
+                    .withFaceLandmarks(true)
+                    .withFaceDescriptor();
+
+                if (!detection) {
+                    if (oval) oval.className = '';
+                    if (pill) {
+                        pill.className = 'face-pill';
+                        pill.innerText = '👤 Align Face in Circle';
+                    }
+                    return;
+                }
+
+                // Check enrollment
+                if (!enrolledFaceDescriptors || enrolledFaceDescriptors.length === 0) {
+                    if (oval) oval.className = 'error';
+                    if (pill) {
+                        pill.className = 'face-pill error';
+                        pill.innerText = '⚠️ Upload Profile Photo First';
+                    }
+                    return;
+                }
+
+                // 1. Calculate Face Match Distance
+                let minDistance = 1.0;
+                for (const enrolled of enrolledFaceDescriptors) {
+                    const dist = faceapi.euclideanDistance(detection.descriptor, enrolled);
+                    if (dist < minDistance) minDistance = dist;
+                }
+
+                const isMatched = minDistance <= 0.48;
+
+                if (!isMatched) {
+                    if (oval) oval.className = 'error';
+                    if (pill) {
+                        pill.className = 'face-pill error';
+                        pill.innerText = '❌ Face Not Recognized';
+                    }
+                    return;
+                }
+
+                // 2. Face is Matched! Check Blink Liveness
+                const landmarks = detection.landmarks;
+                const leftEye = landmarks.getLeftEye();
+                const rightEye = landmarks.getRightEye();
+                const avgEAR = (getEyeAspectRatio(leftEye) + getEyeAspectRatio(rightEye)) / 2.0;
+
+                if (!hasBlinked) {
+                    if (avgEAR < 0.20) {
+                        isEyeClosed = true;
+                    } else if (isEyeClosed && avgEAR > 0.24) {
+                        hasBlinked = true; // Genuine Blink Detected!
+                        isEyeClosed = false;
+                    }
+
+                    if (oval) oval.className = 'detected';
+                    if (pill) {
+                        pill.className = 'face-pill blink';
+                        pill.innerText = '👁️ Please Blink Eyes';
+                    }
+                    return;
+                }
+
+                // 3. BOTH FACE MATCHED AND BLINK VERIFIED!
+                isFaceVerified = true;
+                if (oval) oval.className = 'verified';
+                if (pill) {
+                    pill.className = 'face-pill verified';
+                    pill.innerText = '✅ Face & Blink Verified!';
+                }
+
+                // 4. AUTO-PUNCH EXECUTION!
+                if (!autoPunchTriggered && !isProcessing && allowedAction !== 'completed') {
+                    autoPunchTriggered = true;
+                    if (window.RJSecurityNative && window.RJSecurityNative.vibrateSuccess) {
+                        window.RJSecurityNative.vibrateSuccess();
+                    }
+                    triggerFlash();
+                    displayToast("Face & Blink Verified! Logging attendance...", "success");
+
+                    let targetAction = 'Clock In';
+                    let targetBtnId = 'btn-clock-in';
+                    if (allowedAction === 'working') {
+                        targetAction = 'Clock Out';
+                        targetBtnId = 'btn-clock-out';
+                    } else if (allowedAction === 'traveling') {
+                        targetAction = 'Reached';
+                        targetBtnId = 'btn-travel-end';
+                    }
+
+                    setTimeout(() => {
+                        logAttendance(targetAction, targetBtnId);
+                    }, 500);
+                }
+
+            } catch (loopErr) {
+                console.error("Face scan loop error:", loopErr);
+            }
+        }, 250);
+    }
+
+    function stopFaceScanningLoop() {
+        isFaceScanning = false;
+        if (faceScanInterval) {
+            clearInterval(faceScanInterval);
+            faceScanInterval = null;
+        }
+    }
+
     // --- Camera Logic ---
     async function initScanner() {
         if(document.getElementById('tab-scanner').classList.contains('active') && !cameraActive) {
@@ -1497,6 +1746,7 @@
             try { await videoEl.play(); } catch (e) { if(e.name !== 'AbortError') console.error(e); }
             videoEl.classList.add("mirrored"); 
             cameraActive = true;
+            startFaceScanningLoop();
         } catch (err) {
             console.error("Camera Error:", err);
             displayToast("Camera access denied.", "error");
@@ -1505,6 +1755,7 @@
     }
 
     function stopScanner() {
+        stopFaceScanningLoop();
         if (videoEl.srcObject) { videoEl.pause(); videoEl.srcObject = null; videoEl.src = ''; }
         if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
         cameraActive = false;
@@ -1649,19 +1900,10 @@
                     joiningEl.value = staffData.joining_date ? new Date(staffData.joining_date).toLocaleDateString('en-GB') : 'Not Set';
                 }
                 
-                // 4. Check Birthday Celebration! 🎂
-                if (staffData.dob) {
-                    const today = new Date();
-                    const [bYear, bMonth, bDay] = staffData.dob.split('-');
-                    if (parseInt(bMonth) === (today.getMonth() + 1) && parseInt(bDay) === today.getDate()) {
-                        document.getElementById('my-bday-banner').style.display = 'block';
-                        document.getElementById('bday-name').innerText = currentStaffName.split(' ')[0];
-                        setTimeout(() => confetti({ particleCount: 150, spread: 80, origin: { y: 0.3 } }), 1000);
-                    }
-                }
 
                 checkStaffStatus();
                 loadTodaySchedule(staffData.id, staffData.default_branch_id);
+                prepareFaceEnrollment(staffData);
                 
                 // Auto-detect the branch as soon as the user logs in or the page refreshes
                 if (!hasAutoDetected) {
@@ -1794,6 +2036,12 @@
             return;
         }
         
+        // 🔒 STRICT BIOMETRIC GATE: Face Match & Blink must be verified!
+        if (enrolledFaceDescriptors.length > 0 && !isFaceVerified) {
+            displayToast("🚨 Face Match & Blink required before logging attendance!", "warning");
+            return;
+        }
+
         isProcessing = true;
         
         // Find the precise button that was clicked and transform it into a loading state
@@ -2133,119 +2381,7 @@
         }
     }
 
-    async function fetchAndRenderStaffBirthdays() {
-        const listContainer = document.getElementById('staff-bday-list');
-        listContainer.innerHTML = '<div style="color:var(--text-soft); text-align:center;">Fetching records...</div>';
 
-        try {
-            const { data: bdayStaff, error } = await supabase
-                .from('public_staff_info')
-                .select('name, dob, profile_pic')
-                .not('dob', 'is', null);
-
-            if (error) throw error;
-            if (!bdayStaff || bdayStaff.length === 0) {
-                listContainer.innerHTML = '<div style="text-align:center; color: var(--text-soft);">No staff birthdays recorded yet.</div>';
-                return;
-            }
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            const enriched = bdayStaff.map(staff => {
-                const [year, month, day] = staff.dob.split('-');
-                const bdayThisYear = new Date(today.getFullYear(), parseInt(month) - 1, parseInt(day));
-                
-                let nextBday = new Date(bdayThisYear);
-                let turningAge = today.getFullYear() - parseInt(year);
-                
-                if (bdayThisYear.getTime() < today.getTime()) {
-                    nextBday.setFullYear(today.getFullYear() + 1);
-                    turningAge++;
-                }
-                
-                const diffDays = Math.ceil((nextBday - today) / (1000 * 60 * 60 * 24));
-                const formattedDate = new Date(nextBday.getFullYear(), parseInt(month) - 1, parseInt(day)).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-                
-                return { ...staff, daysLeft: diffDays, turningAge, formattedDate };
-            });
-
-            enriched.sort((a, b) => a.daysLeft - b.daysLeft);
-
-            const realNextBday = enriched[0];
-
-            let currentUserIndex = enriched.findIndex(s => s.name === currentStaffName);
-            if (currentUserIndex !== -1) {
-                let pinnedBday = enriched.splice(currentUserIndex, 1)[0];
-                enriched.unshift(pinnedBday);
-            }
-
-            document.getElementById('staff-next-bday-name').innerText = (realNextBday.name === currentStaffName) ? "Your Birthday" : realNextBday.name;
-            document.getElementById('staff-next-bday-date').innerText = `Turning ${realNextBday.turningAge} • ${realNextBday.formattedDate}`;
-            
-            // Set Background Image for Next Birthday
-            const bgContainer = document.getElementById('bday-top-bg');
-            const emojiEl = document.getElementById('bday-top-emoji');
-            if (realNextBday.profile_pic) {
-                bgContainer.style.background = `url('${realNextBday.profile_pic}')`;
-                bgContainer.style.opacity = '0.85'; 
-                emojiEl.style.display = 'none';
-            } else {
-                bgContainer.style.background = `linear-gradient(135deg, var(--primary-alpha) 0%, var(--card-bg) 100%)`;
-                bgContainer.style.opacity = '1';
-                emojiEl.style.display = 'block';
-            }
-            
-            const countdownEl = document.getElementById('staff-next-bday-countdown');
-            if (realNextBday.daysLeft === 0) {
-                countdownEl.innerText = "It's Today! 🎂🎉";
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#d4af37', '#e6c35a', '#34d399', '#f59e0b', '#ffffff'] });
-            } else if (realNextBday.daysLeft === 1) {
-                countdownEl.innerText = "Tomorrow!";
-            } else {
-                countdownEl.innerText = `In ${realNextBday.daysLeft} Days`;
-            }
-
-            listContainer.innerHTML = enriched.map(staff => {
-                const isCurrentUser = (staff.name === currentStaffName);
-                const displayName = isCurrentUser ? "Your Birthday 📌" : staff.name;
-                
-                let tagClass = 'background: var(--card-bg); color: var(--text-soft); border: 1px solid var(--card-border);';
-                let tagText = `In ${staff.daysLeft} d`;
-
-                if (staff.daysLeft === 0) { tagClass = 'background: var(--success-alpha); color: var(--success);'; tagText = 'Today! 🎂'; } 
-                else if (staff.daysLeft <= 7) { tagClass = 'background: var(--warning-alpha); color: var(--warning);'; if (staff.daysLeft === 1) tagText = 'Tmrw'; }
-                
-                const initials = staff.name ? staff.name.substring(0,2).toUpperCase() : 'RJ';
-                const colors = ['#f43f5e', '#a855f7', '#0ea5e9', '#10b981', '#f59e0b'];
-                const color = colors[staff.name.length % colors.length];
-                
-                let avatarHtml = staff.profile_pic 
-                    ? `<img src="${staff.profile_pic}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid ${color}; flex-shrink: 0;" alt="👤">`
-                    : `<div style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid ${color}; color: ${color}; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;">${initials}</div>`;
-
-                return `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md);">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        ${avatarHtml}
-                        <div>
-                            <div style="font-size: 14px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-                                ${displayName} <span style="font-size: 10px; color: ${isCurrentUser ? 'var(--success)' : 'var(--primary)'}; background: ${isCurrentUser ? 'var(--success-alpha)' : 'var(--primary-alpha)'}; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Age ${staff.turningAge}</span>
-                            </div>
-                            <div style="font-size: 12px; color: var(--text-soft); font-weight: 500; margin-top: 4px;">${staff.formattedDate}</div>
-                        </div>
-                    </div>
-                    <div style="${tagClass} font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: var(--radius-sm); text-align: center; min-width: 70px;">
-                        ${tagText}
-                    </div>
-                </div>`;
-            }).join('');
-
-        } catch(err) {
-            console.error("Birthday Load Error:", err);
-            listContainer.innerHTML = '<div style="color:var(--danger); text-align:center;">Failed to load birthdays. Check Database connection.</div>';
-        }
-    }
 
     // =========================================================================
     // LEAVE REQUEST LOGIC (STAFF)
@@ -2442,7 +2578,7 @@
         reader.readAsDataURL(file);
     }
 
-    window.onProfilePhotoSelected = function(base64) {
+    window.onProfilePhotoSelected = async function(base64) {
         if (!base64) return;
         tempBase64Photo = base64;
         const editImg = document.getElementById('edit-avatar-img');
@@ -2454,7 +2590,28 @@
         if (editFallback) {
             editFallback.style.display = 'none';
         }
-        displayToast("Photo selected! Click 'Save Profile' to apply.", "success");
+        displayToast("Photo selected! Analyzing face...", "info");
+        try {
+            const ok = await loadFaceModels();
+            if (ok) {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.src = base64;
+                await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+                const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 }))
+                    .withFaceLandmarks(true)
+                    .withFaceDescriptor();
+                if (detection) {
+                    newEnrolledDescriptor = Array.from(detection.descriptor);
+                    enrolledFaceDescriptors = [detection.descriptor];
+                    displayToast("Face enrolled! Click 'Save Profile' to apply.", "success");
+                } else {
+                    displayToast("Warning: No clear face detected in photo. Please choose a front-facing selfie.", "warning");
+                }
+            }
+        } catch (fErr) {
+            console.warn("Face detect on photo failed:", fErr);
+        }
     };
 
     window.triggerProfilePhotoPick = function(e) {
@@ -2482,6 +2639,7 @@
 
     document.getElementById('btn-remove-pic')?.addEventListener('click', () => {
         tempBase64Photo = 'REMOVE';
+        newEnrolledDescriptor = 'REMOVE';
         document.getElementById('edit-avatar-img').style.display = 'none';
         document.getElementById('edit-avatar-fallback').style.display = 'flex';
     });
@@ -2496,17 +2654,34 @@
         const newPhone = document.getElementById('edit-my-phone').value.trim();
 
         let updatePayload = { name: newName, dob: newDob || null, phone_number: newPhone || null };
-        if (tempBase64Photo === 'REMOVE') updatePayload.profile_pic = null;
-        else if (tempBase64Photo) updatePayload.profile_pic = tempBase64Photo;
+        if (tempBase64Photo === 'REMOVE') {
+            updatePayload.profile_pic = null;
+            updatePayload.face_descriptors = [];
+            updatePayload.face_registered = false;
+        } else if (tempBase64Photo) {
+            updatePayload.profile_pic = tempBase64Photo;
+            if (newEnrolledDescriptor && newEnrolledDescriptor !== 'REMOVE') {
+                updatePayload.face_descriptors = [newEnrolledDescriptor];
+                updatePayload.face_registered = true;
+                updatePayload.face_registered_at = new Date().toISOString();
+            }
+        }
 
         try {
             const { error } = await supabase.from('staff_directory').update(updatePayload).eq('id', currentStaffId);
-            if (error) throw error;
+            if (error) {
+                // If face_descriptors column is not in DB yet, fallback gracefully
+                delete updatePayload.face_descriptors;
+                delete updatePayload.face_registered;
+                delete updatePayload.face_registered_at;
+                const { error: errFallback } = await supabase.from('staff_directory').update(updatePayload).eq('id', currentStaffId);
+                if (errFallback) throw errFallback;
+            }
             
             displayToast("Profile Updated Successfully!", "success");
             setTimeout(() => location.reload(), 1000); 
         } catch (e) {
-            displayToast("Failed to update profile. RLS policy might be blocking.", "error");
+            displayToast("Failed to update profile: " + (e.message || "RLS blocking"), "error");
         } finally {
             btn.innerText = "Save Profile"; btn.disabled = false;
         }
