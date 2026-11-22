@@ -407,10 +407,10 @@
           <img id="edit-avatar-img" class="edit-avatar-preview" src="" alt="👤" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
           <div id="edit-avatar-fallback" class="edit-avatar-preview" style="display: none;">👤</div>
           
-          <label class="file-upload-btn">
+          <button type="button" class="file-upload-btn" id="btn-upload-photo" onclick="triggerProfilePhotoPick(event)">
               📸 Upload Photo
-              <input type="file" id="profile-pic-upload" accept="image/png, image/jpeg" style="display: none;">
-          </label>
+          </button>
+          <input type="file" id="profile-pic-upload" accept="image/png, image/jpeg" style="display: none;">
           <div style="margin-top: 8px;"><button class="icon-btn" id="btn-remove-pic" style="color: var(--danger); background: transparent; border: none; font-size: 12px; cursor: pointer;">🗑️ Remove Photo</button></div>
       </div>
 
@@ -2442,18 +2442,41 @@
         reader.readAsDataURL(file);
     }
 
+    window.onProfilePhotoSelected = function(base64) {
+        if (!base64) return;
+        tempBase64Photo = base64;
+        const editImg = document.getElementById('edit-avatar-img');
+        const editFallback = document.getElementById('edit-avatar-fallback');
+        if (editImg) {
+            editImg.src = base64;
+            editImg.style.display = 'flex';
+        }
+        if (editFallback) {
+            editFallback.style.display = 'none';
+        }
+        displayToast("Photo selected! Click 'Save Profile' to apply.", "success");
+    };
+
+    window.triggerProfilePhotoPick = function(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        if (window.RJSecurityNative && typeof window.RJSecurityNative.pickProfilePhoto === 'function') {
+            window.RJSecurityNative.pickProfilePhoto();
+        } else {
+            const fileInput = document.getElementById('profile-pic-upload');
+            if (fileInput) fileInput.click();
+        }
+    };
+
     document.getElementById('profile-pic-upload')?.addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (!file) return;
         if (file.size > 5 * 1024 * 1024) return displayToast("Image is too large. Max 5MB.", "error");
 
         compressImage(file, (base64) => {
-            tempBase64Photo = base64;
-            const editImg = document.getElementById('edit-avatar-img');
-            const editFallback = document.getElementById('edit-avatar-fallback');
-            editImg.src = base64;
-            editImg.style.display = 'flex';
-            editFallback.style.display = 'none';
+            window.onProfilePhotoSelected(base64);
         });
     });
 
