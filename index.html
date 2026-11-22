@@ -1574,6 +1574,21 @@
         }
     }
 
+    function getAutoPunchTarget() {
+        if (allowedAction === 'completed') return null;
+        if (allowedAction === 'working') {
+            return { action: 'Clock Out', btnId: 'btn-clock-out' };
+        }
+        if (allowedAction === 'traveling') {
+            return { action: 'Reached', btnId: 'btn-travel-end' };
+        }
+        if (allowedAction === 'none') {
+            if (btnIn && btnIn.disabled) return null;
+            return { action: 'Clock In', btnId: 'btn-clock-in' };
+        }
+        return null;
+    }
+
     async function startFaceScanningLoop() {
         if (isFaceScanning) return;
         isFaceScanning = true;
@@ -1698,19 +1713,11 @@
                             console.warn("DB face save error:", dbEx);
                         }
 
-                        // Auto-Punch Attendance
-                        if (!isProcessing && allowedAction !== 'completed' && allowedAction !== 'none') {
-                            let targetAction = 'Clock In';
-                            let targetBtnId = 'btn-clock-in';
-                            if (allowedAction === 'working') {
-                                targetAction = 'Clock Out';
-                                targetBtnId = 'btn-clock-out';
-                            } else if (allowedAction === 'traveling') {
-                                targetAction = 'Reached';
-                                targetBtnId = 'btn-travel-end';
-                            }
+                        // Auto-Punch Attendance on First-Time Enrollment
+                        const punchTarget = getAutoPunchTarget();
+                        if (!isProcessing && punchTarget) {
                             setTimeout(() => {
-                                logAttendance(targetAction, targetBtnId);
+                                logAttendance(punchTarget.action, punchTarget.btnId);
                             }, 500);
                         }
                         return;
@@ -1721,27 +1728,20 @@
                 }
 
                 // Auto-Punch Execution for already enrolled staff
-                if (!autoPunchTriggered && !isProcessing && allowedAction !== 'completed' && allowedAction !== 'none') {
-                    autoPunchTriggered = true;
-                    if (window.RJSecurityNative && window.RJSecurityNative.vibrateSuccess) {
-                        window.RJSecurityNative.vibrateSuccess();
-                    }
-                    triggerFlash();
-                    displayToast("Face Verified! Logging attendance...", "success");
+                if (!autoPunchTriggered && !isProcessing) {
+                    const punchTarget = getAutoPunchTarget();
+                    if (punchTarget) {
+                        autoPunchTriggered = true;
+                        if (window.RJSecurityNative && window.RJSecurityNative.vibrateSuccess) {
+                            window.RJSecurityNative.vibrateSuccess();
+                        }
+                        triggerFlash();
+                        displayToast("Face Verified! Logging " + punchTarget.action + "...", "success");
 
-                    let targetAction = 'Clock In';
-                    let targetBtnId = 'btn-clock-in';
-                    if (allowedAction === 'working') {
-                        targetAction = 'Clock Out';
-                        targetBtnId = 'btn-clock-out';
-                    } else if (allowedAction === 'traveling') {
-                        targetAction = 'Reached';
-                        targetBtnId = 'btn-travel-end';
+                        setTimeout(() => {
+                            logAttendance(punchTarget.action, punchTarget.btnId);
+                        }, 400);
                     }
-
-                    setTimeout(() => {
-                        logAttendance(targetAction, targetBtnId);
-                    }, 400);
                 }
 
             } catch (loopErr) {
