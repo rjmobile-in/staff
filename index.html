@@ -867,6 +867,18 @@
     Chart.defaults.font.family = "'Manrope', sans-serif";
     window.staffCharts = {};
 
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+    window.escapeHtml = escapeHtml;
+
+
     // Initialize Flatpickr for Leave Dates (Min Date: Today, No Max Date)
     const fpConfigLeaves = {
         dateFormat: "Y-m-d",
@@ -1200,40 +1212,27 @@
     })();
 
     let globalStaffDirectoryCache = [];
+    let globalBranchMap = {};
 
     async function loadStaffDirectory() {
         const grid = document.getElementById('staff-directory-grid');
         grid.innerHTML = '<div style="color:var(--text-soft); text-align:center; grid-column:1/-1; padding:20px;">Loading colleagues...</div>';
 
         try {
-            let staffList = null;
-            // 1. Try get_team_directory RPC function
-            try {
-                const { data: rpcData, error: rpcErr } = await supabase.rpc('get_team_directory');
-                if (!rpcErr && rpcData && rpcData.length > 0) staffList = rpcData;
-            } catch (ign) {}
-
-            // 2. Try public_staff_info view
-            if (!staffList) {
-                try {
-                    const { data: vData, error: vErr } = await supabase.from('public_staff_info').select('*').order('name');
-                    if (!vErr && vData && vData.length > 0) staffList = vData;
-                } catch (ign2) {}
+            const { data: rpcData, error: rpcErr } = await supabase.rpc('get_team_directory');
+            if (rpcErr || !rpcData || rpcData.length === 0) {
+                grid.innerHTML = '<div style="color:var(--danger); text-align:center; grid-column:1/-1; padding:20px;">Could not load the team directory. Please try again.</div>';
+                return;
             }
 
-            // 3. Fallback to direct staff_directory
-            if (!staffList) {
-                const { data: dData } = await supabase.from('staff_directory').select('id, name, role, default_branch_id, dob, profile_pic, joining_date, phone_number').order('name');
-                staffList = dData || [];
-            }
-            
             const { data: branchList } = await supabase.from('branches_directory').select('id, branch_name');
             const bMap = {}; (branchList || []).forEach(b => bMap[b.id] = b.branch_name);
+            globalBranchMap = bMap;
 
-            globalStaffDirectoryCache = staffList || [];
+            globalStaffDirectoryCache = rpcData;
             renderDirectoryCards(globalStaffDirectoryCache, bMap);
         } catch (e) {
-            grid.innerHTML = '<div style="color:var(--danger); text-align:center; grid-column:1/-1; padding:20px;">Failed to load directory.</div>';
+            grid.innerHTML = '<div style="color:var(--danger); text-align:center; grid-column:1/-1; padding:20px;">Could not load the team directory. Please try again.</div>';
         }
     }
 
@@ -1246,18 +1245,17 @@
 
         const colors = ['#f43f5e', '#a855f7', '#0ea5e9', '#10b981', '#f59e0b'];
 
-        grid.innerHTML = staffArray.map(s => {
+        grid.innerHTML = staffArray.map((s, index) => {
             const branchName = bMap[s.default_branch_id] || 'General';
-            const initials = s.name ? s.name.substring(0,2).toUpperCase() : 'RJ';
-            const color = colors[s.name.length % colors.length];
+            const initials = s.name ? escapeHtml(s.name.substring(0,2).toUpperCase()) : 'RJ';
+            const color = colors[(s.name ? s.name.length : 0) % colors.length];
 
             let avatarHtml = s.profile_pic 
-                ? `<img src="${s.profile_pic}" class="directory-avatar" alt="👤">`
+                ? `<img src="${encodeURI(s.profile_pic)}" class="directory-avatar" alt="👤">`
                 : `<div class="directory-avatar" style="border-color: ${color}; color: ${color};">${initials}</div>`;
 
             // Format Date of Birth (DOB)
             let dobCardText = '';
-            let dobModalText = '';
             if (s.dob) {
                 try {
                     const dParts = String(s.dob).split('T')[0].split('-');
@@ -1266,33 +1264,52 @@
                         const mName = months[parseInt(dParts[1], 10) - 1] || dParts[1];
                         const dayNum = parseInt(dParts[2], 10);
                         dobCardText = `🎂 ${dayNum} ${mName}`;
-                        dobModalText = `🎂 DOB: ${dayNum} ${mName} ${dParts[0]}`;
                     }
                 } catch (e) {}
             }
-            const safeDobCard = dobCardText;
-            const safeDobModal = dobModalText.replace(/'/g, "\\'");
 
-            // Prepare data for the onclick function safely
-            const safeName = s.name.replace(/'/g, "\\'");
-            const safeRole = (s.role || 'Staff').replace(/'/g, "\\'");
-            const safeBranch = branchName.replace(/'/g, "\\'");
-            const safePhone = s.phone_number ? s.phone_number.replace(/'/g, "\\'") : '';
-            const joinText = s.joining_date ? new Date(s.joining_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
-            const safeJoin = joinText ? `💼 Joined ${joinText}` : '';
-            const safePic = s.profile_pic ? s.profile_pic : '';
+            const nameEsc = escapeHtml(s.name);
+            const roleEsc = escapeHtml(s.role || 'Staff');
+            const branchEsc = escapeHtml(branchName);
+            const dobCardEsc = escapeHtml(dobCardText);
 
             return `
-            <div class="directory-card" style="cursor: pointer;" onclick="openTeamProfile('${safeName}', '${safeRole}', '${safeBranch}', '${safePic}', '${color}', '${initials}', '${safeJoin}', '${safePhone}', '${safeDobModal}')">
+            <div class="directory-card" style="cursor: pointer;" onclick="openTeamProfileByIndex(${index})">
                 ${avatarHtml}
                 <div style="overflow: hidden; flex: 1;">
-                    <div style="font-weight: 700; color: var(--text-main); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.name}</div>
-                    <div style="font-size: 11px; color: var(--primary); font-weight: 700; text-transform: uppercase; margin-top: 2px;">${s.role || 'Staff'}</div>
-                    <div style="font-size: 11px; color: var(--text-soft); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🏢 ${branchName}${safeDobCard ? ' • ' + safeDobCard : ''}</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nameEsc}</div>
+                    <div style="font-size: 11px; color: var(--primary); font-weight: 700; text-transform: uppercase; margin-top: 2px;">${roleEsc}</div>
+                    <div style="font-size: 11px; color: var(--text-soft); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🏢 ${branchEsc}${dobCardEsc ? ' • ' + dobCardEsc : ''}</div>
                 </div>
             </div>`;
         }).join('');
     }
+
+    window.openTeamProfileByIndex = function(index) {
+        const s = globalStaffDirectoryCache[index];
+        if (!s) return;
+        const branchName = globalBranchMap[s.default_branch_id] || 'General';
+        const colors = ['#f43f5e', '#a855f7', '#0ea5e9', '#10b981', '#f59e0b'];
+        const initials = s.name ? s.name.substring(0,2).toUpperCase() : 'RJ';
+        const color = colors[(s.name ? s.name.length : 0) % colors.length];
+
+        let dobModalText = '';
+        if (s.dob) {
+            try {
+                const dParts = String(s.dob).split('T')[0].split('-');
+                if (dParts.length === 3) {
+                    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    const mName = months[parseInt(dParts[1], 10) - 1] || dParts[1];
+                    const dayNum = parseInt(dParts[2], 10);
+                    dobModalText = `🎂 DOB: ${dayNum} ${mName} ${dParts[0]}`;
+                }
+            } catch (e) {}
+        }
+        const joinText = s.joining_date ? new Date(s.joining_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+        const safeJoin = joinText ? `💼 Joined ${joinText}` : '';
+        
+        openTeamProfile(s.name, s.role || 'Staff', branchName, s.profile_pic || '', color, initials, safeJoin, s.phone_number || '', dobModalText);
+    };
 
     // Global function to open team profile popup dynamically
     window.openTeamProfile = function(name, role, branch, picUrl, color, initials, joinDate, phone, dob) {
@@ -1936,7 +1953,7 @@
                 // 1. Set Greetings & Name
                 const hour = new Date().getHours();
                 let greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
-                document.getElementById('detected-staff-display').innerHTML = `${greeting}, <b>${currentStaffName.split(' ')[0]}</b>`;
+                document.getElementById('detected-staff-display').innerHTML = `${greeting}, <b>${escapeHtml(currentStaffName.split(' ')[0])}</b>`;
                 
                 // 2. Setup Profile Picture (Header & Modal)
                 const avatarImg = document.getElementById('header-avatar');
@@ -2529,20 +2546,23 @@
                     timeStrHtml = `<span style="font-size: 11px; color: var(--text-soft); font-weight: normal; margin-left: 6px;">(Expected: ${h}:${t[1]} ${ampm})</span>`;
                 }
 
+                const titleEsc = escapeHtml(leave.reason_title);
+                const descEsc = escapeHtml(leave.reason_desc || 'No description provided.');
+
                 return `
                 <div style="background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 14px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                         <div style="flex: 1; padding-right: 12px;">
                             <div style="display: flex; align-items: center; flex-wrap: wrap; margin-bottom: 4px;">
                                 ${typeBadge}
-                                <strong style="color: var(--text-main); font-size: 14px; line-height: 1.3;">${leave.reason_title}</strong>
+                                <strong style="color: var(--text-main); font-size: 14px; line-height: 1.3;">${titleEsc}</strong>
                                 ${timeStrHtml}
                             </div>
                             <div style="font-size: 12px; color: var(--text-soft); font-weight: 600;">📅 ${dateDisplay}</div>
                         </div>
                         <div style="flex-shrink: 0;">${statusBadge}</div>
                     </div>
-                    <div style="font-size: 13px; color: var(--text-main); background: var(--card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--card-border); margin-top: 8px;">${leave.reason_desc || 'No description provided.'}</div>
+                    <div style="font-size: 13px; color: var(--text-main); background: var(--card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--card-border); margin-top: 8px;">${descEsc}</div>
                 </div>`;
             }).join('');
         } catch (err) {
@@ -2593,7 +2613,7 @@
 
             if (error) {
                 console.log(error);
-                throw new Error("RLS blocked update or Network error");
+                throw new Error("Your leave request could not be submitted. Please check your connection and try again.");
             }
 
             displayToast("Leave requested successfully!", "success");
@@ -2608,7 +2628,7 @@
             
             loadMyLeaves();
         } catch (err) {
-            displayToast("Error submitting request. Check policies.", "error");
+            displayToast(err.message || "Your leave request could not be submitted. Please check your connection and try again.", "error");
         } finally {
             btn.innerText = "Submit Request"; btn.disabled = false;
         }
@@ -2696,60 +2716,7 @@
         }
     });
 
-    // --- CUSTOMER MODULE LOGIC ---
-    async function loadMyCustomerLogs() {
-        if (!currentStaffId) return;
-        const container = document.getElementById('my-customer-logs');
-        container.innerHTML = '<div style="color:var(--text-soft); text-align:center;">Loading...</div>';
-        try {
-            const { data, error } = await supabase.from('customer_logs').select('*').eq('staff_id', currentStaffId).order('created_at', { ascending: false }).limit(10);
-            if (error) throw error;
-            if (!data || data.length === 0) {
-                container.innerHTML = '<div style="color:var(--text-soft); text-align:center;">No logs found.</div>'; return;
-            }
-            container.innerHTML = data.map(log => {
-                const date = new Date(log.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-                const badge = log.log_type.includes('Walkout') ? `<span class="badge-status" style="background: var(--danger-alpha); color: var(--danger);">Walkout</span>` : `<span class="badge-status" style="background: var(--success-alpha); color: var(--success);">Expected</span>`;
-                return `
-                <div style="background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 14px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <strong style="color: var(--primary); font-size: 14px;">${log.customer_name}</strong>
-                        ${badge}
-                    </div>
-                    <div style="font-size: 11px; color: var(--text-soft); margin-bottom: 8px;">📞 ${log.customer_phone || 'N/A'} &nbsp;|&nbsp; 📅 ${date}</div>
-                    <div style="font-size: 13px; color: var(--text-main);">${log.remarks}</div>
-                </div>`;
-            }).join('');
-        } catch(e) { container.innerHTML = '<div style="color:var(--danger); text-align:center;">Error loading logs.</div>'; }
-    }
 
-    document.getElementById('btn-submit-customer')?.addEventListener('click', async () => {
-        if (!currentStaffId) return;
-        const btn = document.getElementById('btn-submit-customer');
-        const name = document.getElementById('cust-name').value.trim();
-        const phone = document.getElementById('cust-phone').value.trim();
-        const type = document.getElementById('cust-type').value;
-        const remarks = document.getElementById('cust-remarks').value.trim();
-        
-        if (!name || !remarks) return displayToast("Name and Reason are required!", "error");
-        if (phone && phone.length !== 10) return displayToast("Phone number must be exactly 10 digits!", "error");
-
-        btn.innerText = "Submitting..."; btn.disabled = true;
-        try {
-            const { error } = await supabase.from('customer_logs').insert([{
-                staff_id: currentStaffId, staff_name: currentStaffName, branch_id: lastBranchId,
-                customer_name: name, customer_phone: phone, log_type: type, remarks: remarks
-            }]);
-            if (error) throw error;
-            displayToast("Customer log submitted!", "success");
-            
-            document.getElementById('cust-name').value = '';
-            document.getElementById('cust-phone').value = '';
-            document.getElementById('cust-remarks').value = '';
-            loadMyCustomerLogs();
-        } catch (err) { displayToast("Error saving customer log.", "error"); } 
-        finally { btn.innerText = "Submit Log"; btn.disabled = false; }
-    });
 
     // =========================================================================
     // PAYSLIPS LOGIC
