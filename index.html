@@ -478,11 +478,10 @@
           <img id="edit-avatar-img" class="edit-avatar-preview" src="" alt="👤" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
           <div id="edit-avatar-fallback" class="edit-avatar-preview" style="display: none;">👤</div>
           
-          <button type="button" class="file-upload-btn" id="btn-upload-photo" onclick="triggerProfilePhotoPick(event)">
-              📸 Upload Photo
-          </button>
-          <input type="file" id="profile-pic-upload" accept="image/png, image/jpeg" style="display: none;">
-          <div style="margin-top: 8px;"><button class="icon-btn" id="btn-remove-pic" style="color: var(--danger); background: transparent; border: none; font-size: 12px; cursor: pointer;">🗑️ Remove Photo</button></div>
+          <div id="profile-face-badge" style="margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; background: rgba(52, 211, 153, 0.12); color: var(--success); border: 1px solid rgba(52, 211, 153, 0.3);">
+              🔒 Face Biometrics Enrolled & Locked
+          </div>
+          <div style="font-size: 11px; color: var(--text-soft); margin-top: 6px;">Profile photo is set automatically via live face scan and cannot be edited.</div>
       </div>
 
       <div style="margin-top: 16px;">
@@ -1618,44 +1617,38 @@
                     .withFaceLandmarks(true)
                     .withFaceDescriptor();
 
+                const isEnrolling = (!enrolledFaceDescriptors || enrolledFaceDescriptors.length === 0);
+
                 if (!detection) {
                     if (oval) oval.className = '';
                     if (pill) {
                         pill.className = 'face-pill';
-                        pill.innerText = '👤 Align Face in Circle';
+                        pill.innerText = isEnrolling ? '👤 First Time: Align Face in Circle' : '👤 Align Face in Circle';
                     }
                     return;
                 }
 
-                // Check enrollment
-                if (!enrolledFaceDescriptors || enrolledFaceDescriptors.length === 0) {
-                    if (oval) oval.className = 'error';
-                    if (pill) {
-                        pill.className = 'face-pill error';
-                        pill.innerText = '⚠️ Upload Profile Photo First';
+                // If already enrolled, verify face match
+                if (!isEnrolling) {
+                    let minDistance = 1.0;
+                    for (const enrolled of enrolledFaceDescriptors) {
+                        const dist = faceapi.euclideanDistance(detection.descriptor, enrolled);
+                        if (dist < minDistance) minDistance = dist;
                     }
-                    return;
-                }
 
-                // 1. Calculate Face Match Distance
-                let minDistance = 1.0;
-                for (const enrolled of enrolledFaceDescriptors) {
-                    const dist = faceapi.euclideanDistance(detection.descriptor, enrolled);
-                    if (dist < minDistance) minDistance = dist;
-                }
+                    const isMatched = minDistance <= 0.48;
 
-                const isMatched = minDistance <= 0.48;
-
-                if (!isMatched) {
-                    if (oval) oval.className = 'error';
-                    if (pill) {
-                        pill.className = 'face-pill error';
-                        pill.innerText = '❌ Face Not Recognized';
+                    if (!isMatched) {
+                        if (oval) oval.className = 'error';
+                        if (pill) {
+                            pill.className = 'face-pill error';
+                            pill.innerText = '❌ Face Not Recognized';
+                        }
+                        return;
                     }
-                    return;
                 }
 
-                // 2. Face is Matched! Check Blink Liveness
+                // 2. Check Blink Liveness (Required for both Enrollment and Punch!)
                 const landmarks = detection.landmarks;
                 const leftEye = landmarks.getLeftEye();
                 const rightEye = landmarks.getRightEye();
@@ -1672,21 +1665,101 @@
                     if (oval) oval.className = 'detected';
                     if (pill) {
                         pill.className = 'face-pill blink';
-                        pill.innerText = '👁️ Please Blink Eyes';
+                        pill.innerText = isEnrolling ? '👤 First Time: Blink Eyes to Enroll' : '👁️ Please Blink Eyes';
                     }
                     return;
                 }
 
-                // 3. BOTH FACE MATCHED AND BLINK VERIFIED!
+                // 3. BOTH FACE MATCHED (OR ENROLLING) AND BLINK VERIFIED!
                 isFaceVerified = true;
                 if (oval) oval.className = 'verified';
                 if (pill) {
                     pill.className = 'face-pill verified';
-                    pill.innerText = '✅ Face & Blink Verified!';
+                    pill.innerText = isEnrolling ? '✅ Face Enrolled & Saved!' : '✅ Face & Blink Verified!';
                 }
 
-                // 4. AUTO-PUNCH EXECUTION!
-                if (!autoPunchTriggered && !isProcessing && allowedAction !== 'completed') {
+                // If First-Time Enrollment: Capture live selfie, enroll face descriptor, and save to Supabase!
+                if (isEnrolling && !autoPunchTriggered) {
+                    autoPunchTriggered = true;
+                    try {
+                        const capCanvas = document.createElement('canvas');
+                        capCanvas.width = 400;
+                        capCanvas.height = 400;
+                        const ctx = capCanvas.getContext('2d');
+                        ctx.translate(capCanvas.width, 0);
+                        ctx.scale(-1, 1);
+                        const vw = videoEl.videoWidth || 640;
+                        const vh = videoEl.videoHeight || 480;
+                        const minDim = Math.min(vw, vh);
+                        const sx = (vw - minDim) / 2;
+                        const sy = (vh - minDim) / 2;
+                        ctx.drawImage(videoEl, sx, sy, minDim, minDim, 0, 0, 400, 400);
+                        const capturedPfp = capCanvas.toDataURL('image/jpeg', 0.85);
+
+                        enrolledFaceDescriptors = [detection.descriptor];
+
+                        // Update avatars in UI
+                        const avatarImg = document.getElementById('header-avatar');
+                        const editImg = document.getElementById('edit-avatar-img');
+                        if (avatarImg) { avatarImg.src = capturedPfp; avatarImg.style.display = 'flex'; }
+                        if (editImg) { editImg.src = capturedPfp; editImg.style.display = 'flex'; }
+                        const avatarFallback = document.getElementById('header-avatar-fallback');
+                        const editFallback = document.getElementById('edit-avatar-fallback');
+                        if (avatarFallback) avatarFallback.style.display = 'none';
+                        if (editFallback) editFallback.style.display = 'none';
+                        const badge = document.getElementById('profile-face-badge');
+                        if (badge) {
+                            badge.innerHTML = '🔒 Face Biometrics Enrolled & Locked';
+                            badge.style.color = 'var(--success)';
+                            badge.style.borderColor = 'rgba(52, 211, 153, 0.3)';
+                            badge.style.background = 'rgba(52, 211, 153, 0.12)';
+                        }
+
+                        if (window.RJSecurityNative && window.RJSecurityNative.vibrateSuccess) {
+                            window.RJSecurityNative.vibrateSuccess();
+                        }
+                        triggerFlash();
+                        displayToast("Face Registered & Profile Photo Saved!", "success");
+
+                        // Save to Supabase DB
+                        try {
+                            const { error: dbErr } = await supabase.from('staff_directory').update({
+                                profile_pic: capturedPfp,
+                                face_descriptors: [Array.from(detection.descriptor)],
+                                face_registered: true,
+                                face_registered_at: new Date().toISOString()
+                            }).eq('id', currentStaffId);
+                            if (dbErr) {
+                                await supabase.from('staff_directory').update({ profile_pic: capturedPfp }).eq('id', currentStaffId);
+                            }
+                        } catch (dbEx) {
+                            console.warn("DB face save error:", dbEx);
+                        }
+
+                        // Auto-Punch Attendance
+                        if (!isProcessing && allowedAction !== 'completed' && allowedAction !== 'none') {
+                            let targetAction = 'Clock In';
+                            let targetBtnId = 'btn-clock-in';
+                            if (allowedAction === 'working') {
+                                targetAction = 'Clock Out';
+                                targetBtnId = 'btn-clock-out';
+                            } else if (allowedAction === 'traveling') {
+                                targetAction = 'Reached';
+                                targetBtnId = 'btn-travel-end';
+                            }
+                            setTimeout(() => {
+                                logAttendance(targetAction, targetBtnId);
+                            }, 600);
+                        }
+                        return;
+                    } catch (enrollErr) {
+                        console.error("Enrollment error:", enrollErr);
+                        autoPunchTriggered = false;
+                    }
+                }
+
+                // 4. AUTO-PUNCH EXECUTION for already enrolled staff!
+                if (!autoPunchTriggered && !isProcessing && allowedAction !== 'completed' && allowedAction !== 'none') {
                     autoPunchTriggered = true;
                     if (window.RJSecurityNative && window.RJSecurityNative.vibrateSuccess) {
                         window.RJSecurityNative.vibrateSuccess();
@@ -1876,6 +1949,22 @@
                     const colors = ['#f43f5e', '#a855f7', '#0ea5e9', '#10b981', '#f59e0b'];
                     const color = colors[currentStaffName.length % colors.length];
                     avatarFallback.style.borderColor = color; avatarFallback.style.color = color;
+                }
+
+                // Update Profile Biometric Badge
+                const faceBadge = document.getElementById('profile-face-badge');
+                if (faceBadge) {
+                    if (staffData.profile_pic) {
+                        faceBadge.innerHTML = '🔒 Face Biometrics Enrolled & Locked';
+                        faceBadge.style.color = 'var(--success)';
+                        faceBadge.style.borderColor = 'rgba(52, 211, 153, 0.3)';
+                        faceBadge.style.background = 'rgba(52, 211, 153, 0.12)';
+                    } else {
+                        faceBadge.innerHTML = '⚠️ Face Not Enrolled (Scan to Register)';
+                        faceBadge.style.color = 'var(--warning)';
+                        faceBadge.style.borderColor = 'rgba(251, 191, 36, 0.3)';
+                        faceBadge.style.background = 'rgba(251, 191, 36, 0.12)';
+                    }
                 }
 
                 // 3. Populate Edit Form
@@ -2552,98 +2641,8 @@
     }
 
     // =========================================================================
-    //  PROFILE EDIT LOGIC & BASE64 COMPRESSION
+    //  PROFILE EDIT LOGIC (Name, Phone, DOB - Photo locked to live biometric scan)
     // =========================================================================
-    let tempBase64Photo = null;
-
-    // Resize image to max 400px width/height and compress to 0.7 quality
-    function compressImage(file, callback) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                const maxSize = 400;
-                let width = img.width; let height = img.height;
-                if (width > height && width > maxSize) { height *= maxSize / width; width = maxSize; }
-                else if (height > maxSize) { width *= maxSize / height; height = maxSize; }
-                
-                canvas.width = width; canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                callback(canvas.toDataURL('image/jpeg', 0.7)); 
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-
-    window.onProfilePhotoSelected = async function(base64) {
-        if (!base64) return;
-        tempBase64Photo = base64;
-        const editImg = document.getElementById('edit-avatar-img');
-        const editFallback = document.getElementById('edit-avatar-fallback');
-        if (editImg) {
-            editImg.src = base64;
-            editImg.style.display = 'flex';
-        }
-        if (editFallback) {
-            editFallback.style.display = 'none';
-        }
-        displayToast("Photo selected! Analyzing face...", "info");
-        try {
-            const ok = await loadFaceModels();
-            if (ok) {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.src = base64;
-                await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-                const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 }))
-                    .withFaceLandmarks(true)
-                    .withFaceDescriptor();
-                if (detection) {
-                    newEnrolledDescriptor = Array.from(detection.descriptor);
-                    enrolledFaceDescriptors = [detection.descriptor];
-                    displayToast("Face enrolled! Click 'Save Profile' to apply.", "success");
-                } else {
-                    displayToast("Warning: No clear face detected in photo. Please choose a front-facing selfie.", "warning");
-                }
-            }
-        } catch (fErr) {
-            console.warn("Face detect on photo failed:", fErr);
-        }
-    };
-
-    window.triggerProfilePhotoPick = function(e) {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        if (window.RJSecurityNative && typeof window.RJSecurityNative.pickProfilePhoto === 'function') {
-            window.RJSecurityNative.pickProfilePhoto();
-        } else {
-            const fileInput = document.getElementById('profile-pic-upload');
-            if (fileInput) fileInput.click();
-        }
-    };
-
-    document.getElementById('profile-pic-upload')?.addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) return displayToast("Image is too large. Max 5MB.", "error");
-
-        compressImage(file, (base64) => {
-            window.onProfilePhotoSelected(base64);
-        });
-    });
-
-    document.getElementById('btn-remove-pic')?.addEventListener('click', () => {
-        tempBase64Photo = 'REMOVE';
-        newEnrolledDescriptor = 'REMOVE';
-        document.getElementById('edit-avatar-img').style.display = 'none';
-        document.getElementById('edit-avatar-fallback').style.display = 'flex';
-    });
-
     document.getElementById('btn-save-profile')?.addEventListener('click', async () => {
         if (!currentStaffId) return;
         const btn = document.getElementById('btn-save-profile');
@@ -2653,37 +2652,18 @@
         const newDob = document.getElementById('edit-my-dob').value;
         const newPhone = document.getElementById('edit-my-phone').value.trim();
 
-        let updatePayload = { name: newName, dob: newDob || null, phone_number: newPhone || null };
-        if (tempBase64Photo === 'REMOVE') {
-            updatePayload.profile_pic = null;
-            updatePayload.face_descriptors = [];
-            updatePayload.face_registered = false;
-        } else if (tempBase64Photo) {
-            updatePayload.profile_pic = tempBase64Photo;
-            if (newEnrolledDescriptor && newEnrolledDescriptor !== 'REMOVE') {
-                updatePayload.face_descriptors = [newEnrolledDescriptor];
-                updatePayload.face_registered = true;
-                updatePayload.face_registered_at = new Date().toISOString();
-            }
-        }
+        const updatePayload = { name: newName, dob: newDob || null, phone_number: newPhone || null };
 
         try {
             const { error } = await supabase.from('staff_directory').update(updatePayload).eq('id', currentStaffId);
-            if (error) {
-                // If face_descriptors column is not in DB yet, fallback gracefully
-                delete updatePayload.face_descriptors;
-                delete updatePayload.face_registered;
-                delete updatePayload.face_registered_at;
-                const { error: errFallback } = await supabase.from('staff_directory').update(updatePayload).eq('id', currentStaffId);
-                if (errFallback) throw errFallback;
-            }
+            if (error) throw error;
             
             displayToast("Profile Updated Successfully!", "success");
             setTimeout(() => location.reload(), 1000); 
         } catch (e) {
-            displayToast("Failed to update profile: " + (e.message || "RLS blocking"), "error");
+            displayToast("Failed to update profile: " + (e.message || "Error"), "error");
         } finally {
-            btn.innerText = "Save Profile"; btn.disabled = false;
+            btn.innerText = "Save Changes"; btn.disabled = false;
         }
     });
 
