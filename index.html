@@ -1416,7 +1416,30 @@
         return (err && err.message) || "GPS error. Please try again.";
     }
 
-    function getCurrentLocation() {
+    async function getCurrentLocation() {
+        // 🛡️ HARDWARE ANTI-MOCK VERIFICATION
+        if (window.RJSecurityNative && window.RJSecurityNative.getVerifiedLocation) {
+            try {
+                const raw = window.RJSecurityNative.getVerifiedLocation();
+                const parsed = JSON.parse(raw);
+                if (parsed.isMock || parsed.error === 'MOCK_LOCATION_DETECTED') {
+                    throw new Error("🚨 MOCK LOCATION BLOCKED: Fake GPS detected! Please disable fake GPS / location spoofing apps to punch attendance.");
+                }
+                if (parsed.success && parsed.latitude && parsed.longitude) {
+                    return {
+                        latitude: parsed.latitude,
+                        longitude: parsed.longitude,
+                        accuracy: parsed.accuracy || 10,
+                        isHardwareVerified: true
+                    };
+                }
+            } catch (secErr) {
+                if (secErr.message && secErr.message.includes("MOCK LOCATION")) {
+                    throw secErr;
+                }
+            }
+        }
+
         return new Promise((resolve, reject) => {
             if (!navigator.geolocation) return reject(new Error("This browser does not support GPS."));
 
@@ -1842,7 +1865,34 @@
         const ctx = hiddenCanvas.getContext('2d');
         ctx.translate(hiddenCanvas.width, 0); ctx.scale(-1, 1);
         ctx.drawImage(videoEl, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
-        const base64Data = hiddenCanvas.toDataURL('image/jpeg', 0.6);
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform for un-mirrored watermark badge
+
+        // --- 🛡️ BURN LIVE SECURITY WATERMARK ---
+        const now = new Date();
+        const timeStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
+                        now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        const coordsStr = `GPS: ${coords.latitude.toFixed(5)}°, ${coords.longitude.toFixed(5)}° (±${Math.round(coords.accuracy || 0)}m)`;
+        const staffStr = `${currentStaffName || 'Staff'} (ID: ${currentStaffId || 'N/A'}) • ${targetAction}`;
+
+        ctx.fillStyle = 'rgba(7, 7, 7, 0.85)';
+        ctx.fillRect(0, 520, 480, 120);
+        ctx.fillStyle = '#d4af37';
+        ctx.fillRect(0, 520, 480, 3);
+
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillStyle = '#e6c35a';
+        ctx.fillText('RJ MOBILE • ATTENDANCE VERIFIED', 16, 545);
+
+        ctx.font = '600 13px sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(staffStr, 16, 568);
+        ctx.fillText(`Time: ${timeStr} IST`, 16, 590);
+
+        ctx.font = '500 12px sans-serif';
+        ctx.fillStyle = '#34d399';
+        ctx.fillText(`✓ ${coordsStr} [HW VERIFIED]`, 16, 612);
+
+        const base64Data = hiddenCanvas.toDataURL('image/jpeg', 0.65);
 
         // 3. SEND TO SUPABASE JUDGE FUNCTION (No frontend math needed!)
         try {
@@ -1863,6 +1913,9 @@
             
             // Show the exact store location returned by the database in the toast
             displayToast(data.message, "success");
+            if (window.RJSecurityNative && window.RJSecurityNative.vibrateSuccess) {
+                window.RJSecurityNative.vibrateSuccess();
+            }
             
             if (targetAction === 'Clock Out') {
                 confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#d4af37', '#e6c35a', '#34d399', '#f59e0b', '#ffffff'] });
@@ -2659,6 +2712,9 @@
       document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches(fields)) { clearTimeout(t); document.body.classList.add('kb-open'); } });
       document.addEventListener('focusout', () => { clearTimeout(t); t = setTimeout(() => document.body.classList.remove('kb-open'), 120); });
     })();
+
+    // 🛡️ Security: Disable inspect and right-click
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
   </script>
 </body>
 </html>
