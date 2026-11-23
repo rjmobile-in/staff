@@ -642,8 +642,27 @@
       <div id="video-wrapper">
         <video id="native-video" autoplay muted playsinline></video>
         <div id="flash-overlay"></div>
-        <div id="face-guide-oval"></div>
-        <div id="face-status-pill" class="face-pill">👤 Align Face in Circle</div>
+        <div id="face-guide-oval" style="display: none;"></div>
+        <div id="face-status-pill" class="face-pill" style="display: none;">👤 Align Face in Circle</div>
+
+        <!-- Camera Standby Overlay (Default state: No auto-scan on open) -->
+        <div id="camera-standby-overlay" style="position: absolute; inset: 0; background: var(--card-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; z-index: 5;">
+            <div style="width: 76px; height: 76px; border-radius: 50%; background: var(--primary-alpha); border: 2px dashed var(--primary); display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 16px; box-shadow: 0 0 30px var(--primary-glow);">
+                📷
+            </div>
+            <h3 style="color: var(--text-main); font-size: 18px; font-weight: 800; margin-bottom: 6px;">Camera on Standby</h3>
+            <p style="color: var(--text-soft); font-size: 13px; max-width: 270px; line-height: 1.5; margin-bottom: 20px;">Tap an action below or open camera when ready to verify face.</p>
+            <button id="btn-start-camera" class="btn-secondary" style="padding: 11px 22px; font-size: 14px; font-weight: 800; border-color: var(--primary); color: var(--primary-text); display: inline-flex; align-items: center; gap: 8px; border-radius: var(--radius-md); cursor: pointer;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                Open Camera
+            </button>
+        </div>
+
+        <!-- Close Camera Button (Only visible when camera is live) -->
+        <button id="btn-stop-camera" style="display: none; position: absolute; top: 14px; right: 14px; z-index: 10; background: rgba(0,0,0,0.72); border: 1px solid var(--card-border); color: #fff; border-radius: 999px; padding: 7px 14px; font-size: 12px; font-weight: 700; backdrop-filter: blur(8px); cursor: pointer; align-items: center; gap: 6px;">
+            ✖ Close Camera
+        </button>
+
         <div id="camera-error-overlay" style="display: none; position: absolute; inset: 0; background: var(--card-bg); flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; z-index: 10;">
             <div style="font-size: 32px; margin-bottom: 12px;">📷</div>
             <h3 style="color: var(--text-main); margin-bottom: 8px; font-size: 16px;">Camera Blocked</h3>
@@ -950,6 +969,7 @@
     // Globals for Face Recognition Engine
     let faceModelsLoaded = false;
     let enrolledFaceDescriptors = [];
+    let pendingPunchAction = null;
     let isFaceScanning = false;
     let faceScanInterval = null;
     let isFaceVerified = false;
@@ -967,6 +987,8 @@
     const btnOut = document.getElementById('btn-clock-out');
 
     function switchTab(activeTabId, activeViewId) {
+        try { localStorage.setItem('rj_staff_active_tab', activeTabId); } catch(e){}
+
         // Reset all tabs
         ['tab-scanner', 'tab-phones', 'tab-stats', 'tab-directory', 'tab-leave', 'tab-payslips'].forEach(id => {
             if(document.getElementById(id)) document.getElementById(id).classList.remove('active');
@@ -986,7 +1008,6 @@
 
     document.getElementById('tab-scanner').addEventListener('click', () => {
         switchTab('tab-scanner', 'scanner-view');
-        if(!cameraActive) startCamera();
     });
 
     document.getElementById('tab-stats').addEventListener('click', () => {
@@ -1778,10 +1799,11 @@
                         }
 
                         // Auto-Punch Attendance on First-Time Enrollment
-                        const punchTarget = getAutoPunchTarget();
+                        const punchTarget = pendingPunchAction || getAutoPunchTarget();
+                        pendingPunchAction = null;
                         if (!isProcessing && punchTarget) {
                             setTimeout(() => {
-                                logAttendance(punchTarget.action, punchTarget.btnId);
+                                logAttendance(punchTarget.targetAction || punchTarget.action, punchTarget.btnId);
                             }, 500);
                         }
                         return;
@@ -1791,21 +1813,20 @@
                     }
                 }
 
-                // Auto-Punch Execution for already enrolled staff
-                if (!autoPunchTriggered && !isProcessing) {
-                    const punchTarget = getAutoPunchTarget();
-                    if (punchTarget) {
-                        autoPunchTriggered = true;
-                        if (window.RJSecurityNative && window.RJSecurityNative.vibrateSuccess) {
-                            window.RJSecurityNative.vibrateSuccess();
-                        }
-                        triggerFlash();
-                        displayToast("Face Verified! Logging " + punchTarget.action + "...", "success");
-
-                        setTimeout(() => {
-                            logAttendance(punchTarget.action, punchTarget.btnId);
-                        }, 400);
+                // Intentional Punch Execution: ONLY triggers if staff tapped an action button!
+                if (pendingPunchAction && !autoPunchTriggered && !isProcessing) {
+                    const punchTarget = pendingPunchAction;
+                    pendingPunchAction = null;
+                    autoPunchTriggered = true;
+                    if (window.RJSecurityNative && window.RJSecurityNative.vibrateSuccess) {
+                        window.RJSecurityNative.vibrateSuccess();
                     }
+                    triggerFlash();
+                    displayToast("Face Verified! Logging " + punchTarget.targetAction + "...", "success");
+
+                    setTimeout(() => {
+                        logAttendance(punchTarget.targetAction, punchTarget.btnId);
+                    }, 400);
                 }
 
             } catch (loopErr) {
@@ -1824,13 +1845,20 @@
 
     // --- Camera Logic ---
     async function initScanner() {
-        if(document.getElementById('tab-scanner').classList.contains('active') && !cameraActive) {
-            startCamera();
-        }
+        stopScanner(); // Keep camera in Standby on app load
     }
 
     async function startCamera() {
         document.getElementById('camera-error-overlay').style.display = 'none';
+        const standbyOverlay = document.getElementById('camera-standby-overlay');
+        if (standbyOverlay) standbyOverlay.style.display = 'none';
+        const oval = document.getElementById('face-guide-oval');
+        if (oval) oval.style.display = 'block';
+        const pill = document.getElementById('face-status-pill');
+        if (pill) pill.style.display = 'block';
+        const stopBtn = document.getElementById('btn-stop-camera');
+        if (stopBtn) stopBtn.style.display = 'flex';
+
         try {
             if (videoEl.srcObject) { 
                 const tracks = videoEl.srcObject.getTracks();
@@ -1850,6 +1878,8 @@
             console.error("Camera Error:", err);
             displayToast("Camera access denied.", "error");
             document.getElementById('camera-error-overlay').style.display = 'flex';
+            if (standbyOverlay) standbyOverlay.style.display = 'none';
+            if (stopBtn) stopBtn.style.display = 'none';
         }
     }
 
@@ -1858,7 +1888,25 @@
         if (videoEl.srcObject) { videoEl.pause(); videoEl.srcObject = null; videoEl.src = ''; }
         if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
         cameraActive = false;
+        isFaceVerified = false;
+        pendingPunchAction = null;
+
+        const standbyOverlay = document.getElementById('camera-standby-overlay');
+        if (standbyOverlay) standbyOverlay.style.display = 'flex';
+        const oval = document.getElementById('face-guide-oval');
+        if (oval) { oval.style.display = 'none'; oval.className = ''; }
+        const pill = document.getElementById('face-status-pill');
+        if (pill) { pill.style.display = 'none'; pill.className = 'face-pill'; pill.innerText = '👤 Align Face in Circle'; }
+        const stopBtn = document.getElementById('btn-stop-camera');
+        if (stopBtn) stopBtn.style.display = 'none';
     }
+
+    document.getElementById('btn-start-camera')?.addEventListener('click', () => {
+        startCamera();
+    });
+    document.getElementById('btn-stop-camera')?.addEventListener('click', () => {
+        stopScanner();
+    });
 
     // --- Auth Logic ---
     async function loadTodaySchedule(staffId, defaultBranchId) {
@@ -2028,7 +2076,13 @@
             } else {
                 displayToast("Staff profile not found in system.", "error");
             }
-            initScanner();
+            // Restore last active tab if staff was on another tab, else stay on scanner in standby
+            const savedTab = localStorage.getItem('rj_staff_active_tab');
+            if (savedTab && savedTab !== 'tab-scanner' && document.getElementById(savedTab)) {
+                document.getElementById(savedTab).click();
+            } else {
+                initScanner();
+            }
         } else {
             document.getElementById('login-screen').style.display = 'block';
             document.getElementById('dashboard').style.display = 'none';
@@ -2150,13 +2204,23 @@
             displayToast("Please wait 5 seconds before tapping another action.", "warning");
             return;
         }
+
+        // 1. If camera is not currently active, open camera and set pending action
+        if (!cameraActive) {
+            pendingPunchAction = { targetAction, btnId };
+            await startCamera();
+            displayToast("Camera opened. Align face to confirm " + targetAction + "!", "warning");
+            return;
+        }
         
-        // 🔒 STRICT BIOMETRIC GATE: Face Match must be verified!
+        // 2. 🔒 STRICT BIOMETRIC GATE: Face Match must be verified!
         if (enrolledFaceDescriptors.length > 0 && !isFaceVerified) {
-            displayToast("🚨 Face Match required before logging attendance!", "warning");
+            pendingPunchAction = { targetAction, btnId };
+            displayToast("🚨 Align face in circle to verify before logging " + targetAction + "!", "warning");
             return;
         }
 
+        pendingPunchAction = null;
         isProcessing = true;
         
         // Find the precise button that was clicked and transform it into a loading state
@@ -2253,6 +2317,11 @@
             else if (targetAction === 'Clock Out') allowedAction = 'completed';
             
             updateButtonStates();
+
+            // Auto-close camera after successful attendance punch
+            setTimeout(() => {
+                stopScanner();
+            }, 1000);
 
             // 🛑 TRIGGER 5-SECOND COOLDOWN
             cooldownActive = true;
@@ -2704,11 +2773,7 @@
             preWarmGPS(); 
             if (currentStaffId) checkStaffStatus();
             
-            if (document.getElementById('tab-scanner').classList.contains('active') && currentStaffId) {
-                if (!localStream || !videoEl.srcObject || videoEl.paused) {
-                    startCamera(); 
-                }
-            }
+            // Keep camera stopped on app resume; user taps button to scan when ready
         } else {
             if (cameraActive) {
                 stopScanner();
