@@ -978,6 +978,8 @@
       }
     });
 
+    window.rjSupabase = supabase; // used by the Store Songs player
+
     Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-soft').trim() || '#94a3b8';
     Chart.defaults.font.family = "'Manrope', sans-serif";
     window.staffCharts = {};
@@ -1326,7 +1328,7 @@
                 const same = phF[kMin] === mn && phF[kMax] === mx;
                 phF[kMin] = same ? null : mn; phF[kMax] = same ? null : mx;
                 $({ pmin: 'ph-pmin', pmax: 'ph-pmax' }[kMin]).value = phF[kMin] ?? '';
-                $({ pmin: 'ph-pmin', pmax: 'ph-pmax' }[kMax]).value = phF[kMax] ?? '';
+                $({ pmin: 'ph-pmin', pmax: 'ph-pmax' }[kMax]).value = phF[kMin] ?? '';
                 phRefresh(); return;
             }
             if (e.target.closest('#ph-empty-reset')) { phResetAll(); return; }
@@ -2816,9 +2818,9 @@
         }
     }, 1000);
     
-    // =========================================================================
+    // =========================================================
     //  MOBILE NETWORK WATCHER
-    // =========================================================================
+    // =========================================================
     window.addEventListener('offline', () => {
         displayToast("No Internet Connection! Please find Wi-Fi or cellular data.", "error");
         document.documentElement.style.filter = 'grayscale(0.8)';
@@ -2841,9 +2843,9 @@
         }
     }
 
-    // =========================================================================
+    // =========================================================
     //  PROFILE EDIT LOGIC (Name, Phone, DOB - Photo locked to live biometric scan)
-    // =========================================================================
+    // =========================================================
     document.getElementById('btn-save-profile')?.addEventListener('click', async () => {
         if (!currentStaffId) return;
         const btn = document.getElementById('btn-save-profile');
@@ -2868,9 +2870,9 @@
         }
     });
 
-    // =========================================================================
+    // =========================================================
     //  MOBILE APP-SWITCHING HARDWARE WAKE-UP
-    // =========================================================================
+    // =========================================================
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             preWarmGPS(); 
@@ -2886,9 +2888,9 @@
 
 
 
-    // =========================================================================
+    // =========================================================
     // PAYSLIPS LOGIC
-    // =========================================================================
+    // =========================================================
     
     async function loadMyPayslips() {
         if (!currentStaffId) return;
@@ -2994,29 +2996,16 @@
      STORE SONGS PLAYER (merged from song.html)
      - Loads lazily the first time the Songs tab is opened.
      - Keeps playing when you switch to other tabs (audio element is never stopped).
-     - Songs are auto-detected from the "songs" folder of the GitHub repo below.
+     - Songs are read from a Supabase Storage bucket (default: "songs").
      ========================================================================= */
   (function () {
     const CONFIG = {
-      folder: 'songs',       // folder that contains the audio files
-      owner: 'rjmobile-in',  // GitHub username
-      repo: 'song',          // repository that holds the songs
-      branch: 'main',        // repository branch
+      bucket: 'songs',       // Supabase Storage bucket that holds the audio files (set it to Public)
+      folder: '',            // optional sub-folder inside the bucket ('' = top level)
       cacheMinutes: 5,       // how long the detected list is remembered on load
-      checkMinutes: 10       // how often an open app re-checks the folder
+      checkMinutes: 10       // how often an open app re-checks the bucket
     };
     const AUTOPLAY_ON_OPEN = false;   // set true to start playing as soon as the Songs tab is first opened
-
-    const DEFAULT_SONGS = [
-      'aaiye_rj_mobile_par.mp3',
-      'Ek_Hi_Naam_Yaad_Aaye.mp3',
-      'Jaipur_Ka_Mega_Dhamaka.mp3',
-      'Jaipur_Ki_Sabse_Badi_Deal.mp3',
-      'Jaipur_Walon_Lets_Go.mp3',
-      'RJ_Mobile_Mela.mp3',
-      'Sabki_Pehli_Taiyari.mp3',
-      'Sabse_Best_Deal_Laaye.mp3'
-    ];
 
     const AUDIO_EXT = /\.(mp3|wav|ogg|m4a|aac|flac)$/i;
     const $ = (id) => document.getElementById(id);
@@ -3028,13 +3017,11 @@
     const fmt = (s) => isFinite(s) && s > 0 ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '0:00';
     const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const toTrack = (file) => {
-      const encoded = encodeURIComponent(file);
-      const onlineUrl = `https://${CONFIG.owner}.github.io/${CONFIG.repo}/${CONFIG.folder}/${encoded}`;
-      const localUrl = `${CONFIG.folder}/${encoded}`;
+      const path = (CONFIG.folder ? CONFIG.folder.replace(/\/+$/, '') + '/' : '') + file;
+      const src = window.rjSupabase.storage.from(CONFIG.bucket).getPublicUrl(path).data.publicUrl;
       return {
         filename: file,
-        src: onlineUrl,
-        fallbackSrc: localUrl,
+        src,
         name: file.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()
       };
     };
@@ -3101,33 +3088,34 @@
 
     /* ---------- Playlist detection ---------- */
     async function loadSongNames(force) {
-      const cacheKey = 'rj_songs_cache';
+      const cacheKey = 'rj_songs_cache_v2';
       let cached = null;
       try { cached = JSON.parse(localStorage.getItem(cacheKey)); } catch (e) {}
       if (!force && cached && Date.now() - cached.time < CONFIG.cacheMinutes * 60000) return cached.files;
 
       try {
-        const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.folder}?ref=${CONFIG.branch}`);
-        if (!res.ok) throw new Error('GitHub API ' + res.status);
-        const files = (await res.json())
-          .filter((f) => f.type === 'file' && AUDIO_EXT.test(f.name))
+        const sb = window.rjSupabase;
+        if (!sb) throw new Error('Supabase client not ready');
+        const { data, error } = await sb.storage.from(CONFIG.bucket).list(CONFIG.folder, {
+          limit: 1000, sortBy: { column: 'name', order: 'asc' }
+        });
+        if (error) throw error;
+        const files = (data || [])
+          .filter((f) => f.id && AUDIO_EXT.test(f.name))      // files only (folders have no id), audio only
           .map((f) => f.name)
           .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-        if (files.length) {
-          try { localStorage.setItem(cacheKey, JSON.stringify({ time: Date.now(), files })); } catch (e) {}
-          return files;
-        }
+        try { localStorage.setItem(cacheKey, JSON.stringify({ time: Date.now(), files })); } catch (e) {}
+        return files;
       } catch (err) {
-        console.warn('Live song detection from GitHub failed, falling back:', err);
+        console.warn('Could not read the songs bucket:', err);
       }
-      if (cached && cached.files && cached.files.length) return cached.files;   // stale copy
-      return DEFAULT_SONGS;
+      return (cached && cached.files) ? cached.files : [];     // stale copy (works offline), else empty
     }
 
     /* ---------- Rendering ---------- */
     function renderList() {
       if (!tracks.length) {
-        $('sg-list').innerHTML = '<li class="sg-msg error">No audio files were found in the "' + esc(CONFIG.folder) + '" folder.</li>';
+        $('sg-list').innerHTML = '<li class="sg-msg error">No songs found in the "' + esc(CONFIG.bucket) + '" bucket. Upload audio files there (and check the bucket policy).</li>';
         return;
       }
       $('sg-list').innerHTML = tracks.map((t, n) =>
@@ -3195,7 +3183,7 @@
       const songName = t ? t.name : (tracks[index] ? tracks[index].name : 'RJ Mobile Songs');
       sendNativePlayback();
       if ('mediaSession' in navigator) {
-        const fullLogo = 'https://rjmobile-in.github.io/song/logo.png';
+        const fullLogo = new URL('logo.png', location.href).href;
         navigator.mediaSession.metadata = new MediaMetadata({
           title: songName,
           artist: 'RJ Mobile Jaipur',
@@ -3230,7 +3218,7 @@
       if (!tracks.length) return;
       index = (n + tracks.length) % tracks.length;
       const t = tracks[index];
-      t.triedOnline = false; t.triedLocal = false;
+      t.triedOnline = false;
 
       if (currentObjectUrl) {
         try { URL.revokeObjectURL(currentObjectUrl); } catch (e) {}
@@ -3299,7 +3287,6 @@
       if (!audio.getAttribute('src')) return;
       const t = tracks[index];
       if (t && !t.triedOnline && audio.src.startsWith('blob:')) { t.triedOnline = true; audio.src = t.src; play(); return; }   // bad offline copy -> stream online
-      if (t && !t.triedLocal) { t.triedLocal = true; audio.src = t.fallbackSrc; play(); return; }                               // online failed -> local folder
       if (++errorStreak >= tracks.length) { $('sg-now').textContent = 'Unable to play the audio files.'; return; }
       setTimeout(() => load(index + 1, true), 800);
     });
