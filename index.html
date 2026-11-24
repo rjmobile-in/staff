@@ -424,6 +424,63 @@
         .hide-on-print { display: none !important; }
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     }
+
+    /* =========================================================
+       STORE SONGS (merged from song.html) - all classes prefixed sg-
+       ========================================================= */
+    #songs-view .sg-title { margin-bottom: 14px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Bricolage Grotesque', sans-serif; }
+    .sg-player { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; }
+    .sg-np-row { display: flex; align-items: center; justify-content: space-between; }
+    .sg-badge { font-size: 12px; font-weight: 800; color: var(--primary-text); background: var(--primary-alpha); border-radius: 999px; padding: 5px 12px; }
+    .sg-viz { display: flex; align-items: flex-end; gap: 4px; height: 22px; }
+    .sg-viz i { width: 4px; height: 4px; background: var(--primary); border-radius: 4px; }
+    .sg-playing .sg-viz i { animation: sgBounce .6s infinite ease-in-out alternate; }
+    .sg-playing .sg-viz i:nth-child(2) { animation-delay: .15s; }
+    .sg-playing .sg-viz i:nth-child(3) { animation-delay: .3s; }
+    .sg-playing .sg-viz i:nth-child(4) { animation-delay: .45s; }
+    @keyframes sgBounce { from { height: 4px; } to { height: 20px; } }
+    .sg-now { text-align: center; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(20px, 5.5vw, 26px); line-height: 1.2; letter-spacing: -.01em; min-height: 32px; word-break: break-word; }
+    .sg-hint { display: none; text-align: center; font-size: 13px; color: var(--text-soft); background: var(--card-bg); border: 1px dashed var(--card-border); border-radius: 12px; padding: 10px 12px; }
+    .sg-hint.show { display: block; }
+
+    .sg-seek { height: 6px; background: var(--card-border); border-radius: 6px; cursor: pointer; position: relative; touch-action: none; }
+    .sg-seek::before { content: ''; position: absolute; inset: -12px 0; }
+    .sg-fill { height: 100%; width: 0; background: var(--primary); border-radius: 6px; position: relative; }
+    .sg-fill::after { content: ''; position: absolute; right: -8px; top: 50%; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 3px solid var(--primary); transform: translateY(-50%) scale(0); transition: transform .2s; }
+    .sg-seek:hover .sg-fill::after, .sg-seek.drag .sg-fill::after { transform: translateY(-50%) scale(1); }
+    .sg-times { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--text-soft); font-variant-numeric: tabular-nums; }
+
+    .sg-controls { display: flex; align-items: center; justify-content: center; gap: 18px; }
+    .sg-ctrl { width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); display: grid; place-items: center; cursor: pointer; transition: transform .15s, border-color .2s, color .2s; }
+    .sg-ctrl:hover { border-color: var(--primary); color: var(--primary-text); }
+    .sg-ctrl:active { transform: scale(.92); }
+    .sg-ctrl svg { width: 22px; height: 22px; fill: currentColor; }
+    .sg-ctrl.sg-main { width: 68px; height: 68px; background: var(--primary); border: 0; color: var(--on-gold); box-shadow: 0 6px 22px var(--primary-glow); }
+    .sg-ctrl.sg-main:hover { color: var(--on-gold); filter: brightness(1.07); }
+    .sg-ctrl.sg-main svg { width: 30px; height: 30px; }
+    .sg-ctrl.sg-main .sg-ico-pause, .sg-playing .sg-ctrl.sg-main .sg-ico-play { display: none; }
+    .sg-playing .sg-ctrl.sg-main .sg-ico-pause { display: block; }
+    .sg-ctrl.sg-loop { width: 42px; height: 42px; }
+    .sg-ctrl.sg-loop svg { width: 20px; height: 20px; }
+    .sg-ctrl.sg-loop[aria-pressed="true"] { background: var(--primary-alpha); border-color: var(--primary); color: var(--primary-text); }
+    .sg-spacer { width: 42px; height: 42px; }
+
+    .sg-list-head { display: flex; align-items: baseline; justify-content: space-between; margin: 20px 4px 10px; }
+    .sg-list-head h2 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 17px; font-weight: 800; }
+    .sg-list-head span { font-size: 13px; font-weight: 700; color: var(--primary-text); }
+    .sg-list { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); overflow: hidden; overflow-y: auto; max-height: 360px; list-style: none; }
+    .sg-list li + li { border-top: 1px solid var(--card-border); }
+    .sg-track { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 0; background: none; color: var(--text-main); text-align: left; cursor: pointer; transition: background-color .2s; }
+    .sg-track:hover { background: rgba(212, 175, 55, 0.06); }
+    .sg-track.active { background: var(--primary-alpha); box-shadow: inset 4px 0 0 var(--primary); }
+    .sg-t-num { width: 22px; font-size: 13px; font-weight: 800; color: var(--text-soft); flex-shrink: 0; }
+    .sg-t-name { flex: 1; font-size: 14.5px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sg-track.active .sg-t-name, .sg-track.active .sg-t-num { color: var(--primary-text); }
+    .sg-t-state { font-size: 12px; font-weight: 800; color: var(--primary-text); }
+    .sg-msg { padding: 24px 18px; text-align: center; color: var(--text-soft); font-size: 14px; }
+    .sg-msg.error { color: var(--danger); }
+    .sg-foot { margin-top: 14px; text-align: center; color: var(--text-soft); font-size: 12.5px; font-weight: 600; }
+    @media (prefers-reduced-motion: reduce) { #songs-view *, #songs-view *::before, #songs-view *::after { animation: none !important; transition: none !important; } }
   </style>
 </head>
 <body>
@@ -635,6 +692,7 @@
         <div class="nav-tab" id="tab-directory"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Team</span></div>
         <div class="nav-tab" id="tab-leave"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Requests</span></div>
         <div class="nav-tab" id="tab-payslips"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span>Payslips</span></div>
+        <div class="nav-tab" id="tab-songs"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span>Songs</span></div>
     </div>
 
     <!-- Scanner Feed Card -->
@@ -854,6 +912,44 @@
         </div>
     </div>
     
+    <!-- STORE SONGS VIEW -->
+    <div class="main-card" id="songs-view" style="display: none; padding-top: 16px;">
+        <h2 class="sg-title">Store Songs</h2>
+
+        <div class="sg-player" id="sg-player">
+            <div class="sg-np-row">
+                <span class="sg-badge" id="sg-badge">Loading…</span>
+                <div class="sg-viz" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            </div>
+
+            <div class="sg-now" id="sg-now">Loading playlist…</div>
+            <p class="sg-hint" id="sg-hint">Playback is waiting for your input. Please press Play to begin; browsers do not allow audio to start automatically.</p>
+
+            <div>
+                <div class="sg-seek" id="sg-seek" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="sg-fill" id="sg-fill"></div></div>
+                <div class="sg-times"><span id="sg-cur">0:00</span><span id="sg-tot">0:00</span></div>
+            </div>
+
+            <div class="sg-controls">
+                <button class="sg-ctrl sg-loop" id="sg-loop" type="button" aria-pressed="false" aria-label="Repeat current track" title="Repeat current track">
+                    <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/><path d="M11 9h1.6v6h-1.6v-4.2l-1 .5v-1.4z"/></svg>
+                </button>
+                <button class="sg-ctrl" id="sg-prev" type="button" aria-label="Previous track"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9.5 12z"/></svg></button>
+                <button class="sg-ctrl sg-main" id="sg-play" type="button" aria-label="Play or pause">
+                    <svg class="sg-ico-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <svg class="sg-ico-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+                </button>
+                <button class="sg-ctrl" id="sg-next" type="button" aria-label="Next track"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l10.5-7z"/></svg></button>
+                <span class="sg-spacer" aria-hidden="true"></span>
+            </div>
+        </div>
+
+        <div class="sg-list-head"><h2>Playlist</h2><span id="sg-count"></span></div>
+        <ul class="sg-list" id="sg-list"><li class="sg-msg">Open this tab to load the playlist…</li></ul>
+        <div class="sg-foot" id="sg-foot">Playlist repeats automatically</div>
+        <audio id="sg-audio" preload="auto"></audio>
+    </div>
+
     <!-- PAYSLIPS VIEW -->
     <div class="main-card" id="payslips-view" style="display: none; padding-top: 16px;">
         <h2 style="margin-bottom: 16px; font-size: 18px; text-align: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; font-family: 'Bricolage Grotesque', sans-serif;">My Salary Slips</h2>
@@ -990,12 +1086,12 @@
         try { localStorage.setItem('rj_staff_active_tab', activeTabId); } catch(e){}
 
         // Reset all tabs
-        ['tab-scanner', 'tab-phones', 'tab-stats', 'tab-directory', 'tab-leave', 'tab-payslips'].forEach(id => {
+        ['tab-scanner', 'tab-phones', 'tab-stats', 'tab-directory', 'tab-leave', 'tab-payslips', 'tab-songs'].forEach(id => {
             if(document.getElementById(id)) document.getElementById(id).classList.remove('active');
         });
         
         // Hide all views
-        ['scanner-view', 'phones-view', 'stats-view', 'directory-view', 'leave-view', 'payslips-view'].forEach(id => {
+        ['scanner-view', 'phones-view', 'stats-view', 'directory-view', 'leave-view', 'payslips-view', 'songs-view'].forEach(id => {
             if(document.getElementById(id)) document.getElementById(id).style.display = 'none';
         });
 
@@ -1029,6 +1125,12 @@
     document.getElementById('tab-payslips')?.addEventListener('click', () => {
         switchTab('tab-payslips', 'payslips-view');
         loadMyPayslips();
+    });
+
+    // STORE SONGS TAB (player lives in the separate <script> block below)
+    document.getElementById('tab-songs')?.addEventListener('click', () => {
+        switchTab('tab-songs', 'songs-view');
+        if (window.RJSongs) window.RJSongs.init();
     });
 
     // =========================================================================
@@ -2089,6 +2191,7 @@
             currentStaffId = null; currentStaffName = "";
             stopScanner();
             stopLiveGPS(); // Stop tracking when logged out
+            if (window.RJSongs) window.RJSongs.pause(); // stop music on logout
             updateButtonStates();
         }
     }
@@ -2885,6 +2988,454 @@
         document.getElementById('staff-payslip-modal').style.display = 'flex';
     };
 
+  </script>
+  <script>
+  /* =========================================================================
+     STORE SONGS PLAYER (merged from song.html)
+     - Loads lazily the first time the Songs tab is opened.
+     - Keeps playing when you switch to other tabs (audio element is never stopped).
+     - Songs are auto-detected from the "songs" folder of the GitHub repo below.
+     ========================================================================= */
+  (function () {
+    const CONFIG = {
+      folder: 'songs',       // folder that contains the audio files
+      owner: 'rjmobile-in',  // GitHub username
+      repo: 'song',          // repository that holds the songs
+      branch: 'main',        // repository branch
+      cacheMinutes: 5,       // how long the detected list is remembered on load
+      checkMinutes: 10       // how often an open app re-checks the folder
+    };
+    const AUTOPLAY_ON_OPEN = false;   // set true to start playing as soon as the Songs tab is first opened
+
+    const DEFAULT_SONGS = [
+      'aaiye_rj_mobile_par.mp3',
+      'Ek_Hi_Naam_Yaad_Aaye.mp3',
+      'Jaipur_Ka_Mega_Dhamaka.mp3',
+      'Jaipur_Ki_Sabse_Badi_Deal.mp3',
+      'Jaipur_Walon_Lets_Go.mp3',
+      'RJ_Mobile_Mela.mp3',
+      'Sabki_Pehli_Taiyari.mp3',
+      'Sabse_Best_Deal_Laaye.mp3'
+    ];
+
+    const AUDIO_EXT = /\.(mp3|wav|ogg|m4a|aac|flac)$/i;
+    const $ = (id) => document.getElementById(id);
+    const audio = $('sg-audio');
+    let tracks = [], index = 0, dragging = false, errorStreak = 0;
+    let started = false, isLoopSingle = false, currentObjectUrl = null, wakeLock = null;
+
+    /* ---------- Helpers ---------- */
+    const fmt = (s) => isFinite(s) && s > 0 ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '0:00';
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const toTrack = (file) => {
+      const encoded = encodeURIComponent(file);
+      const onlineUrl = `https://${CONFIG.owner}.github.io/${CONFIG.repo}/${CONFIG.folder}/${encoded}`;
+      const localUrl = `${CONFIG.folder}/${encoded}`;
+      return {
+        filename: file,
+        src: onlineUrl,
+        fallbackSrc: localUrl,
+        name: file.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()
+      };
+    };
+
+    /* ---------- Offline IndexedDB storage & cloud sync ---------- */
+    const DB_NAME = 'RJ_SONGS_OFFLINE_CACHE';
+    const STORE_NAME = 'songs';
+
+    function openSongsDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    async function getCachedBlob(filename) {
+      try {
+        const db = await openSongsDB();
+        return new Promise((resolve) => {
+          const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(filename);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) { return null; }
+    }
+    async function saveCachedBlob(filename, blob) {
+      try { const db = await openSongsDB(); db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(blob, filename); } catch (e) {}
+    }
+    async function deleteCachedBlob(filename) {
+      try { const db = await openSongsDB(); db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(filename); } catch (e) {}
+    }
+    async function getCachedKeys() {
+      try {
+        const db = await openSongsDB();
+        return new Promise((resolve) => {
+          const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAllKeys();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => resolve([]);
+        });
+      } catch (e) { return []; }
+    }
+    async function syncOfflineStorage(currentFiles) {
+      if (!currentFiles || !currentFiles.length) return;
+      try {
+        const cached = await getCachedKeys();
+        const remoteSet = new Set(currentFiles);
+        for (const key of cached) {
+          if (!remoteSet.has(key)) await deleteCachedBlob(key);   // song was deleted on GitHub
+        }
+        for (const file of currentFiles) {
+          if (!cached.includes(file)) {                           // new song: save it to the phone
+            try {
+              const res = await fetch(toTrack(file).src);
+              if (res.ok) await saveCachedBlob(file, await res.blob());
+            } catch (err) {}
+          }
+        }
+      } catch (e) {}
+    }
+
+    /* ---------- Playlist detection ---------- */
+    async function loadSongNames(force) {
+      const cacheKey = 'rj_songs_cache';
+      let cached = null;
+      try { cached = JSON.parse(localStorage.getItem(cacheKey)); } catch (e) {}
+      if (!force && cached && Date.now() - cached.time < CONFIG.cacheMinutes * 60000) return cached.files;
+
+      try {
+        const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.folder}?ref=${CONFIG.branch}`);
+        if (!res.ok) throw new Error('GitHub API ' + res.status);
+        const files = (await res.json())
+          .filter((f) => f.type === 'file' && AUDIO_EXT.test(f.name))
+          .map((f) => f.name)
+          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+        if (files.length) {
+          try { localStorage.setItem(cacheKey, JSON.stringify({ time: Date.now(), files })); } catch (e) {}
+          return files;
+        }
+      } catch (err) {
+        console.warn('Live song detection from GitHub failed, falling back:', err);
+      }
+      if (cached && cached.files && cached.files.length) return cached.files;   // stale copy
+      return DEFAULT_SONGS;
+    }
+
+    /* ---------- Rendering ---------- */
+    function renderList() {
+      if (!tracks.length) {
+        $('sg-list').innerHTML = '<li class="sg-msg error">No audio files were found in the "' + esc(CONFIG.folder) + '" folder.</li>';
+        return;
+      }
+      $('sg-list').innerHTML = tracks.map((t, n) =>
+        `<li><button class="sg-track ${n === index ? 'active' : ''}" type="button" data-i="${n}">
+           <span class="sg-t-num">${n + 1}</span><span class="sg-t-name">${esc(t.name)}</span>
+           <span class="sg-t-state">${n === index && !audio.paused ? 'Playing' : ''}</span>
+         </button></li>`).join('');
+    }
+    function setPlaying(on) {
+      $('sg-player').classList.toggle('sg-playing', on);
+      renderList();
+    }
+
+    /* ---------- Wake lock (only while music is playing) ---------- */
+    async function wakeOn() {
+      try {
+        if ('wakeLock' in navigator && !wakeLock) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => { wakeLock = null; });
+        }
+      } catch (e) {}
+    }
+    function wakeOff() {
+      try { if (wakeLock) wakeLock.release(); } catch (e) {}
+      wakeLock = null;
+    }
+
+    /* ---------- Native app / notification bridge ---------- */
+    window.onMediaAction = function (action) {
+      if (action === 'togglePlay') toggle();
+      else if (action === 'playTrack') play();
+      else if (action === 'pauseTrack') audio.pause();
+      else if (action === 'nextTrack') load(index + 1, true);
+      else if (action === 'prevTrack') load(index - 1, true);
+      else if (action && action.startsWith('seekTo:')) {
+        const ms = parseFloat(action.split(':')[1]);
+        if (!isNaN(ms) && isFinite(ms) && ms >= 0) {
+          audio.currentTime = ms / 1000;
+          sendNativePosition();
+        }
+      }
+    };
+
+    function sendNativePlayback(isPlayingOverride) {
+      if (!window.RJMediaNative) return;
+      try {
+        const songName = tracks[index] ? tracks[index].name : 'RJ Mobile Songs';
+        const playing = isPlayingOverride !== undefined ? isPlayingOverride : !audio.paused;
+        const cur = (audio.currentTime && isFinite(audio.currentTime)) ? audio.currentTime : 0;
+        const dur = (audio.duration && isFinite(audio.duration)) ? audio.duration : 0;
+        if (window.RJMediaNative.updatePlayback) window.RJMediaNative.updatePlayback(songName, playing, cur, dur);
+        else if (window.RJMediaNative.updateTrack) window.RJMediaNative.updateTrack(songName, playing);
+      } catch (e) {}
+    }
+    function sendNativePosition() {
+      if (!window.RJMediaNative || !window.RJMediaNative.updatePosition) return;
+      try {
+        const cur = (audio.currentTime && isFinite(audio.currentTime)) ? audio.currentTime : 0;
+        const dur = (audio.duration && isFinite(audio.duration)) ? audio.duration : 0;
+        window.RJMediaNative.updatePosition(!audio.paused, cur, dur);
+      } catch (e) {}
+    }
+
+    function updateMediaSession(t) {
+      const songName = t ? t.name : (tracks[index] ? tracks[index].name : 'RJ Mobile Songs');
+      sendNativePlayback();
+      if ('mediaSession' in navigator) {
+        const fullLogo = 'https://rjmobile-in.github.io/song/logo.png';
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: songName,
+          artist: 'RJ Mobile Jaipur',
+          album: 'Store Audio Broadcaster',
+          artwork: [
+            { src: fullLogo, sizes: '512x512', type: 'image/png' },
+            { src: fullLogo, sizes: '256x256', type: 'image/png' },
+            { src: fullLogo, sizes: '192x192', type: 'image/png' },
+            { src: fullLogo, sizes: '96x96', type: 'image/png' }
+          ]
+        });
+        navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
+        updateMediaSessionPosition();
+      }
+    }
+    function updateMediaSessionPosition() {
+      if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+        if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
+          try {
+            navigator.mediaSession.setPositionState({
+              duration: Math.max(audio.duration, 0),
+              playbackRate: audio.playbackRate || 1,
+              position: Math.min(Math.max(audio.currentTime, 0), audio.duration)
+            });
+          } catch (e) {}
+        }
+      }
+    }
+
+    /* ---------- Playback ---------- */
+    async function load(n, autoplay) {
+      if (!tracks.length) return;
+      index = (n + tracks.length) % tracks.length;
+      const t = tracks[index];
+      t.triedOnline = false; t.triedLocal = false;
+
+      if (currentObjectUrl) {
+        try { URL.revokeObjectURL(currentObjectUrl); } catch (e) {}
+        currentObjectUrl = null;
+      }
+
+      let playableSrc = t.src;
+      try {
+        const blob = await getCachedBlob(t.filename);
+        if (blob && blob.size > 1000) {
+          currentObjectUrl = URL.createObjectURL(blob);
+          playableSrc = currentObjectUrl;
+        } else {
+          fetch(t.src).then(r => r.ok ? r.blob() : null)
+            .then(b => { if (b && b.size > 1000) saveCachedBlob(t.filename, b); })
+            .catch(() => {});
+        }
+      } catch (e) {}
+
+      audio.src = playableSrc;
+      audio.loop = isLoopSingle;
+      $('sg-now').textContent = t.name;
+      $('sg-badge').textContent = `Track ${index + 1} of ${tracks.length}`;
+      $('sg-fill').style.width = '0%';
+      $('sg-cur').textContent = '0:00';
+      $('sg-tot').textContent = '0:00';
+      renderList();
+      updateMediaSession(t);
+      if (autoplay) play();
+    }
+
+    window.__userExplicitlyPaused = false;
+
+    function play() {
+      window.__userExplicitlyPaused = false;
+      return audio.play().then(() => {
+        $('sg-hint').classList.remove('show');
+        sendNativePlayback(true);
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+        updateMediaSessionPosition();
+      }).catch((err) => { if (err.name === 'NotAllowedError') $('sg-hint').classList.add('show'); });
+    }
+    function toggle() {
+      if (audio.paused) { play(); }
+      else { window.__userExplicitlyPaused = true; audio.pause(); }
+    }
+
+    audio.addEventListener('play', () => {
+      setPlaying(true); wakeOn();
+      sendNativePlayback(true);
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+      updateMediaSessionPosition();
+    });
+    audio.addEventListener('pause', () => {
+      if (!audio.ended) { setPlaying(false); wakeOff(); }
+      sendNativePlayback(false);
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+      updateMediaSessionPosition();
+    });
+    audio.addEventListener('playing', () => { errorStreak = 0; });
+    audio.addEventListener('ended', () => {
+      if (isLoopSingle) { audio.currentTime = 0; play(); }
+      else load(index + 1, true);
+    });
+    audio.addEventListener('error', () => {
+      if (!audio.getAttribute('src')) return;
+      const t = tracks[index];
+      if (t && !t.triedOnline && audio.src.startsWith('blob:')) { t.triedOnline = true; audio.src = t.src; play(); return; }   // bad offline copy -> stream online
+      if (t && !t.triedLocal) { t.triedLocal = true; audio.src = t.fallbackSrc; play(); return; }                               // online failed -> local folder
+      if (++errorStreak >= tracks.length) { $('sg-now').textContent = 'Unable to play the audio files.'; return; }
+      setTimeout(() => load(index + 1, true), 800);
+    });
+    audio.addEventListener('loadedmetadata', () => {
+      $('sg-tot').textContent = fmt(audio.duration);
+      updateMediaSessionPosition();
+      sendNativePosition();
+    });
+    let lastNativePosSync = 0;
+    audio.addEventListener('timeupdate', () => {
+      if (dragging || !audio.duration) return;
+      const pct = (audio.currentTime / audio.duration) * 100;
+      $('sg-fill').style.width = pct + '%';
+      $('sg-seek').setAttribute('aria-valuenow', Math.round(pct));
+      $('sg-cur').textContent = fmt(audio.currentTime);
+      updateMediaSessionPosition();
+      const now = Date.now();
+      if (now - lastNativePosSync > 3000) { lastNativePosSync = now; sendNativePosition(); }
+    });
+
+    /* ---------- Repeat one track ---------- */
+    const loopBtn = $('sg-loop');
+    loopBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      isLoopSingle = !isLoopSingle;
+      audio.loop = isLoopSingle;
+      loopBtn.setAttribute('aria-pressed', isLoopSingle ? 'true' : 'false');
+      $('sg-foot').textContent = isLoopSingle ? 'Repeating current track only (1 Song Loop ON)' : 'Playlist repeats automatically';
+    });
+
+    /* ---------- Controls ---------- */
+    $('sg-play').addEventListener('click', toggle);
+    $('sg-next').addEventListener('click', () => load(index + 1, true));
+    $('sg-prev').addEventListener('click', () => load(index - 1, true));
+    $('sg-list').addEventListener('click', (e) => {
+      const b = e.target.closest('.sg-track');
+      if (b) load(Number(b.dataset.i), true);
+    });
+    // Space = play/pause, but only while the Songs tab is open and you're not typing somewhere
+    window.addEventListener('keydown', (e) => {
+      if (e.code !== 'Space') return;
+      const view = $('songs-view');
+      if (!view || view.style.display === 'none') return;
+      if (e.target.closest && e.target.closest('button, input, textarea, select, a')) return;
+      e.preventDefault(); toggle();
+    });
+
+    // Seek bar (click or drag, mouse and touch)
+    const seek = $('sg-seek');
+    const seekTo = (x) => {
+      const r = seek.getBoundingClientRect();
+      const ratio = Math.min(1, Math.max(0, (x - r.left) / r.width));
+      $('sg-fill').style.width = ratio * 100 + '%';
+      if (audio.duration) $('sg-cur').textContent = fmt(ratio * audio.duration);
+      return ratio;
+    };
+    seek.addEventListener('pointerdown', (e) => { dragging = true; seek.classList.add('drag'); seek.setPointerCapture(e.pointerId); seekTo(e.clientX); });
+    seek.addEventListener('pointermove', (e) => { if (dragging) seekTo(e.clientX); });
+    seek.addEventListener('pointerup', (e) => {
+      if (!dragging) return;
+      dragging = false; seek.classList.remove('drag');
+      const ratio = seekTo(e.clientX);
+      if (audio.duration) {
+        audio.currentTime = ratio * audio.duration;
+        updateMediaSessionPosition();
+        sendNativePosition();
+      }
+    });
+
+    // Lock-screen / notification controls
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('play', () => play());
+      navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+      navigator.mediaSession.setActionHandler('previoustrack', () => load(index - 1, true));
+      navigator.mediaSession.setActionHandler('nexttrack', () => load(index + 1, true));
+      try {
+        navigator.mediaSession.setActionHandler('seekto', (d) => {
+          if (d.seekTime !== undefined && audio.duration) {
+            audio.currentTime = Math.min(Math.max(d.seekTime, 0), audio.duration);
+            updateMediaSessionPosition(); sendNativePosition();
+          }
+        });
+        navigator.mediaSession.setActionHandler('seekforward', (d) => {
+          audio.currentTime = Math.min(audio.currentTime + (d.seekOffset || 10), audio.duration || 0);
+          updateMediaSessionPosition(); sendNativePosition();
+        });
+        navigator.mediaSession.setActionHandler('seekbackward', (d) => {
+          audio.currentTime = Math.max(audio.currentTime - (d.seekOffset || 10), 0);
+          updateMediaSessionPosition(); sendNativePosition();
+        });
+      } catch (e) {}
+    }
+
+    /* ---------- Automatic playlist refresh ---------- */
+    async function refreshPlaylist() {
+      if (!started) return;
+      try {
+        const files = await loadSongNames(true);
+        if (!files.length) return;
+        syncOfflineStorage(files);
+        const next = files.map(toTrack);
+        if (next.map((t) => t.src).join('|') === tracks.map((t) => t.src).join('|')) return;
+        const current = tracks[index] && tracks[index].src;
+        tracks = next;
+        const found = tracks.findIndex((t) => t.src === current);
+        index = found >= 0 ? found : Math.min(index, tracks.length - 1);
+        $('sg-count').textContent = tracks.length + (tracks.length === 1 ? ' track' : ' tracks');
+        $('sg-badge').textContent = `Track ${index + 1} of ${tracks.length}`;
+        renderList();
+      } catch (e) { console.warn('Playlist refresh failed:', e); }
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        refreshPlaylist();
+        if (!audio.paused) wakeOn();
+      }
+    });
+
+    /* ---------- Start (first time the Songs tab is opened) ---------- */
+    async function init() {
+      if (started) return;
+      started = true;
+      const files = await loadSongNames();
+      syncOfflineStorage(files);
+      tracks = files.map(toTrack);
+      $('sg-count').textContent = tracks.length + (tracks.length === 1 ? ' track' : ' tracks');
+      if (!tracks.length) { $('sg-now').textContent = 'No tracks available'; $('sg-badge').textContent = 'Empty'; renderList(); return; }
+      load(0, AUTOPLAY_ON_OPEN);
+      setInterval(refreshPlaylist, CONFIG.checkMinutes * 60000);
+    }
+
+    window.RJSongs = {
+      init,
+      pause: () => { window.__userExplicitlyPaused = true; try { audio.pause(); } catch (e) {} }
+    };
+  })();
   </script>
   <script>
     // Hide the bottom dock while typing so it never rides above the keyboard
