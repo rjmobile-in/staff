@@ -181,18 +181,26 @@
     .ph-preset.active { border-style: solid; border-color: var(--primary); color: var(--primary-text); background: var(--primary-alpha); }
     .ph-reset { width: 100%; padding: 11px; border-radius: var(--radius-sm); border: 1px solid var(--danger-alpha); background: var(--danger-alpha); color: var(--danger); font-weight: 800; font-size: 13px; font-family: inherit; cursor: pointer; }
     .ph-count { font-size: 12px; color: var(--text-soft); font-weight: 700; margin: 2px 2px 10px; }
-    .ph-list { display: flex; flex-direction: column; gap: 10px; }
-    .ph-card { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 14px; }
+    .ph-list { display: flex; flex-direction: column; gap: 12px; }
+    .ph-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 16px 14px 12px; box-shadow: 0 8px 32px rgba(0,0,0,.35); }
     .ph-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
     .ph-brand { font-size: 10.5px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: var(--primary-text); margin-bottom: 3px; }
-    .ph-model { font-size: 16px; font-weight: 800; color: var(--text-main); line-height: 1.25; word-break: break-word; }
+    .ph-model { font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px; font-weight: 800; color: var(--text-main); line-height: 1.2; word-break: break-word; }
+    .ph-sub { margin-top: 4px; font-size: 12px; font-weight: 700; color: var(--text-soft); }
     .ph-inc { flex-shrink: 0; text-align: right; background: var(--success-alpha); border: 1px solid rgba(52,211,153,0.28); border-radius: 12px; padding: 7px 11px; }
     .ph-inc small { display: block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--success); opacity: 0.85; }
     .ph-inc b { font-size: 18px; font-weight: 800; color: var(--success); font-family: 'Bricolage Grotesque', sans-serif; }
-    .ph-specs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-    .ph-spec { padding: 4px 10px; border-radius: 8px; background: var(--card-bg); border: 1px solid var(--card-border); font-size: 11.5px; font-weight: 700; color: var(--text-soft); }
-    .ph-price { margin-top: 10px; font-size: 13px; color: var(--text-soft); font-weight: 700; }
-    .ph-price b { color: var(--text-main); font-size: 15px; }
+    .ph-vars { margin-top: 14px; border: 1px solid var(--card-border); border-radius: var(--radius-md); overflow: hidden; background: var(--input-bg); }
+    .ph-vh, .ph-v { display: grid; grid-template-columns: 1.25fr 1fr 1fr; align-items: center; gap: 8px; padding: 10px 12px; }
+    .ph-vars.noprice .ph-vh, .ph-vars.noprice .ph-v { grid-template-columns: 1.5fr 1fr; }
+    .ph-vh { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text-soft); background: rgba(255,255,255,.03); }
+    .ph-vh span:nth-child(n+2), .ph-v .pr, .ph-v .ic { text-align: right; }
+    .ph-v { border-top: 1px solid var(--card-border); }
+    .ph-v .sp { display: flex; flex-direction: column; gap: 1px; }
+    .ph-v .sp b { font-size: 13.5px; font-weight: 800; }
+    .ph-v .sp em { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--text-soft); }
+    .ph-v .pr { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .ph-v .ic { font-size: 14px; font-weight: 800; color: var(--success); font-variant-numeric: tabular-nums; }
     .ph-notes { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--card-border); font-size: 12px; line-height: 1.5; color: var(--text-soft); }
     .ph-empty { text-align: center; color: var(--text-soft); padding: 28px 12px; font-size: 13px; line-height: 1.6; }
     .ph-empty button { margin-top: 12px; }
@@ -1223,9 +1231,9 @@
         const brandRows = phoneRows.filter(p => phMatches(p, 'brand'));
         const brands = [...new Set(phoneRows.map(p => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b));
         if (phF.brand && !brands.includes(phF.brand)) phF.brand = '';
-        const chips = [`<button type="button" class="ph-chip${phF.brand === '' ? ' active' : ''}" data-brand="">All<span class="n">${brandRows.length}</span></button>`]
+        const chips = [`<button type="button" class="ph-chip${phF.brand === '' ? ' active' : ''}" data-brand="">All<span class="n">${new Set(brandRows.map(p => p.brand + '||' + p.model)).size}</span></button>`]
             .concat(brands.map(b => {
-                const n = brandRows.filter(p => p.brand === b).length;
+                const n = new Set(brandRows.filter(p => p.brand === b).map(p => p.model)).size;
                 return `<button type="button" class="ph-chip${phF.brand === b ? ' active' : ''}" data-brand="${phEsc(b)}"${n === 0 ? ' style="opacity:0.4"' : ''}>${phEsc(b)}<span class="n">${n}</span></button>`;
             }));
         document.getElementById('ph-brand-chips').innerHTML = chips.join('');
@@ -1257,41 +1265,68 @@
     }
 
     function phRenderList() {
-        const sortFn = {
+        // group rows -> one card per brand + model, all RAM/Storage variants inside
+        const groups = {};
+        phoneRows.filter(p => phMatches(p)).forEach(p => {
+            const k = p.brand + '||' + p.model;
+            (groups[k] = groups[k] || { brand: p.brand, model: p.model, vars: [] }).vars.push(p);
+        });
+        const models = Object.values(groups);
+        const showPrice = phHasPrice();
+        models.forEach(g => {
+            g.vars.sort((a, b) => phSizeGB(a.ram) - phSizeGB(b.ram) || phSizeGB(a.storage) - phSizeGB(b.storage));
+            const prs = g.vars.map(v => Number(v.price || 0));
+            g.minPrice = Math.min(...prs); g.maxPrice = Math.max(...prs);
+            g.maxInc = Math.max(...g.vars.map(v => Number(v.incentive || 0)));
+            g.minRam = Math.min(...g.vars.map(v => phSizeGB(v.ram)));
+            g.minStorage = Math.min(...g.vars.map(v => phSizeGB(v.storage)));
+        });
+        models.sort({
             'brand': (a, b) => String(a.brand || '').localeCompare(String(b.brand || '')) || String(a.model || '').localeCompare(String(b.model || '')),
-            'price-asc': (a, b) => Number(a.price || 0) - Number(b.price || 0),
-            'price-desc': (a, b) => Number(b.price || 0) - Number(a.price || 0),
-            'ram': (a, b) => phSizeGB(a.ram) - phSizeGB(b.ram),
-            'storage': (a, b) => phSizeGB(a.storage) - phSizeGB(b.storage)
-        }[phF.sort] || (() => 0);
-        const rows = phoneRows.filter(p => phMatches(p)).sort(sortFn);
+            'price-asc': (a, b) => a.minPrice - b.minPrice,
+            'price-desc': (a, b) => b.maxPrice - a.maxPrice,
+            'ram': (a, b) => a.minRam - b.minRam,
+            'storage': (a, b) => a.minStorage - b.minStorage
+        }[phF.sort] || (() => 0));
 
         const countEl = document.getElementById('ph-count');
-        const prs = rows.map(p => Number(p.price || 0));
-        countEl.innerText = rows.length
-            ? `${rows.length} phone${rows.length === 1 ? '' : 's'}` + (prs.length ? ` • Price ${phInr(Math.min(...prs))} – ${phInr(Math.max(...prs))}` : '')
+        const total = models.reduce((s, g) => s + g.vars.length, 0);
+        countEl.innerText = models.length
+            ? `${models.length} model${models.length === 1 ? '' : 's'} \u2022 ${total} variant${total === 1 ? '' : 's'}`
             : '';
 
         const list = document.getElementById('ph-list');
         if (phoneRows.length === 0) { list.innerHTML = '<div class="ph-empty">No phones have been added yet.</div>'; return; }
-        if (rows.length === 0) {
+        if (models.length === 0) {
             list.innerHTML = '<div class="ph-empty">No phones found 😕<br>Try adjusting or resetting your filters.<br><button type="button" class="btn-secondary" id="ph-empty-reset">Reset Filters</button></div>';
             return;
         }
-        const showPrice = phHasPrice();
-        list.innerHTML = rows.map(p => `
+        list.innerHTML = models.map(g => {
+            const multi = g.vars.length > 1;
+            const notes = [...new Set(g.vars.map(v => v.notes).filter(Boolean))];
+            const range = showPrice ? ' \u2022 ' + (g.minPrice !== g.maxPrice ? `${phInr(g.minPrice)} \u2013 ${phInr(g.maxPrice)}` : phInr(g.minPrice)) : '';
+            return `
             <div class="ph-card">
                 <div class="ph-top">
-                    <div><div class="ph-brand">${phEsc(p.brand)}</div><div class="ph-model">${phEsc(p.model)}</div></div>
-                    <div class="ph-inc"><small>Incentive</small><b>${phInr(p.incentive)}</b></div>
+                    <div>
+                        <div class="ph-brand">${phEsc(g.brand)}</div>
+                        <div class="ph-model">${phEsc(g.model)}</div>
+                        <div class="ph-sub">${g.vars.length} variant${multi ? 's' : ''}${range}</div>
+                    </div>
+                    <div class="ph-inc"><small>${multi ? 'Up to' : 'Incentive'}</small><b>${phInr(g.maxInc)}</b></div>
                 </div>
-                <div class="ph-specs">
-                    ${p.ram ? `<span class="ph-spec">${phEsc(p.ram)} RAM</span>` : ''}
-                    ${p.storage ? `<span class="ph-spec">${phEsc(p.storage)}</span>` : ''}
+                <div class="ph-vars${showPrice ? '' : ' noprice'}">
+                    <div class="ph-vh"><span>RAM / Storage</span>${showPrice ? '<span>Price</span>' : ''}<span>Incentive</span></div>
+                    ${g.vars.map(v => `
+                    <div class="ph-v">
+                        <div class="sp"><b>${[v.ram, v.storage].filter(Boolean).map(phEsc).join(' + ') || '\u2014'}</b><em>RAM + Storage</em></div>
+                        ${showPrice ? `<div class="pr">${v.price !== null && v.price !== undefined && v.price !== '' ? phInr(v.price) : '\u2014'}</div>` : ''}
+                        <div class="ic">${phInr(v.incentive)}</div>
+                    </div>`).join('')}
                 </div>
-                ${showPrice && p.price !== null && p.price !== undefined && p.price !== '' ? `<div class="ph-price">Price: <b>${phInr(p.price)}</b></div>` : ''}
-                ${p.notes ? `<div class="ph-notes">${phEsc(p.notes)}</div>` : ''}
-            </div>`).join('');
+                ${notes.length ? `<div class="ph-notes">${notes.map(phEsc).join('<br>')}</div>` : ''}
+            </div>`;
+        }).join('');
     }
 
     function phResetAll() {
